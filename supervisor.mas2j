@@ -1,0 +1,18 @@
+MAS supervisor {
+
+	infrastructure: Centralised
+
+	environment: Simu
+	
+//	executionControl: jason.control.ExecutionControlGUI
+
+	agents:
+		supervisor beliefBaseClass supervisor.TimeBB;
+		robot [verbose=2] 
+			  beliefBaseClass supervisor.TimeBB
+			  agentArchClass RobotAgArch;
+		
+
+	aslSourcePath:
+		"src/asl";
+}

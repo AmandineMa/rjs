@@ -3,14 +3,13 @@ package supervisor;
 import jason.asSemantics.*;
 import jason.asSyntax.*;
 import jason.bb.*;
-import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class TimeBB extends DefaultBeliefBase {
 
 	private static long start;
 	private static boolean start_initialized = false;
+	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(TimeBB.class.getSimpleName());
 
 	@Override

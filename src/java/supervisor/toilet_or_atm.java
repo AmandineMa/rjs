@@ -16,9 +16,11 @@ public class toilet_or_atm extends DefaultInternalAction {
 	
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
-        if(args[0].toString().equals("atm")) {
+    	String param = args[0].toString();
+		param = param.replaceAll("^\"|\"$", "");
+        if(param.equals("atm")) {
         	return un.unifies(args[1], new ObjectTermImpl("atm"));
-        }else if(args[0].toString().equals("toilets")) {
+        }else if(param.equals("toilets")) {
         	return un.unifies(args[1], new ObjectTermImpl("toilets"));
         }
         else {

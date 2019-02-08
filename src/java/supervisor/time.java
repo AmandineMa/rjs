@@ -2,10 +2,20 @@
 
 package supervisor;
 
-import jason.*;
 import jason.asSemantics.*;
 import jason.asSyntax.*;
 
+/**
+	<p>Internal action: <b><code>supervisor.time(Time)</code></b>.
+  	<p>Description: gets the current time of the supervisor in milliseconds
+  	<p>Parameters:<ul>
+  		<li>+ Time (number): the time in milliseconds </li>
+  	</ul>
+
+	@author amdia
+*/
+
+@SuppressWarnings("serial")
 public class time extends DefaultInternalAction {
 
     @Override

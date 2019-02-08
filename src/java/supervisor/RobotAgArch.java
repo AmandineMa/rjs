@@ -1,5 +1,6 @@
+package supervisor;
+
 import jason.RevisionFailedException;
-import jason.architecture.AgArch;
 import jason.asSemantics.ActionExec;
 import jason.asSemantics.Message;
 import jason.asSyntax.Atom;
@@ -12,46 +13,21 @@ import pointing_planner_msgs.PointingActionResult;
 import semantic_route_description_msgs.Route;
 import semantic_route_description_msgs.SemanticRouteResponse;
 import supervisor.Code;
-import supervisor.RosNode;
 import supervisor.RouteImpl;
 import supervisor.SemanticRouteResponseImpl;
-
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
-
-import org.ros.node.DefaultNodeMainExecutor;
-import org.ros.node.NodeConfiguration;
-import org.ros.node.NodeMainExecutor;
 
 import actionlib_msgs.GoalStatus;
 import geometry_msgs.Pose;
 
 
 
-public class RobotAgArch extends AgArch {
+public class RobotAgArch extends ROSAgArch {
     
 	@SuppressWarnings("unused")
 	private Logger logger = Logger.getLogger(RobotAgArch.class.getName());
-	RosNode                      	   m_rosnode;
-	private NodeMainExecutor nodeMainExecutor = DefaultNodeMainExecutor.newDefault();
-	private NodeConfiguration nodeConfiguration;
-	URI masteruri;
-	
-    
-    @Override
-    public void init() throws Exception {
-    
-        super.init();
-        
-        masteruri = URI.create("http://140.93.7.251:11311");
-		nodeConfiguration = NodeConfiguration.newPublic("140.93.7.251", masteruri);
-		m_rosnode = new RosNode("node_test");
-		nodeMainExecutor.execute(m_rosnode, nodeConfiguration);
-        
-    }      
-   
     
     @Override
     public void act(ActionExec action) {
@@ -63,9 +39,10 @@ public class RobotAgArch extends AgArch {
 		} catch (Exception e1) {
 			e1.printStackTrace();
 		}
-		
-    	
-    	if(action_name.equals("compute_route")) {
+		if(action_name.equals("act")) {
+			action.setResult(true);
+			actionExecuted(action);
+		}else if(action_name.equals("compute_route")) {
     		// to remove the extra ""
     		String from = action.getActionTerm().getTerm(0).toString();
     		from = from.replaceAll("^\"|\"$", "");
@@ -257,6 +234,9 @@ public class RobotAgArch extends AgArch {
     	return best_route;
     	
     }
+
+
+
 
 
 	@Override

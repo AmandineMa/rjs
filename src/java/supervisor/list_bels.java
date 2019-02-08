@@ -3,6 +3,7 @@ package supervisor;
 import jason.asSemantics.*;
 import jason.asSyntax.*;
 
+@SuppressWarnings("serial")
 public class list_bels extends DefaultInternalAction {
 
    @Override

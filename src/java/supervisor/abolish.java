@@ -7,14 +7,24 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
 
-import jason.*;
 import jason.asSemantics.*;
 import jason.asSyntax.*;
-import jason.bb.BeliefBase;
 
+/**
+	<p>Internal action: <b><code>supervisor.abolish(b(_),Time)</code></b>.
+	<p>Description: removes all the beliefs that match b and that have been added before the given time
+	<p>Parameters:<ul>
+		<li>+ b(_) (literal) : belief to delete from the BB </li>
+		<li>+ Time (number): the time in milliseconds </li>
+	</ul>
 
+	@author amdia
+*/
+
+@SuppressWarnings("serial")
 public class abolish extends DefaultInternalAction {
 	
+	@SuppressWarnings("unused")
 	private Logger logger = Logger.getLogger(RosNode.class.getName());
 
 	@Override public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {

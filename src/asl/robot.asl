@@ -21,9 +21,9 @@
 //!pause_look_for_interactant.
 
 // TODO handle when place to go already frame name
-place_asked(reima).
-!guiding("human_0").
-
+place_asked("atm").
+!guiding(human).
+//!test.
 
 /* Plans */
 
@@ -59,7 +59,9 @@ place_asked(reima).
 	.wait(1000); 
 	?place_asked(Place);
 	!get_optimal_route("robot_infodesk", Place, lambda, false);
-	!get_optimal_places(Human).
+//	!get_optimal_pos(Human);
+	?target_place(TargetLD);
+	!get_human_to_be_oriented(Human, TargetLD).
 
 	
 
@@ -85,8 +87,8 @@ place_asked(reima).
 	// if the route has stairs, check if the human can use the stairs
 	if(.substring("stairs", R)){
 		// remove the old computed route
-		supervisor.time(Time);
-		supervisor.abolish(route(X), Time);
+		supervisor.time(TimeNow);
+		supervisor.abolish(route(_), TimeNow);
 		// to know if the human can climb stairs
 		get_human_abilities;
 		?persona_asked(PA);
@@ -100,27 +102,57 @@ place_asked(reima).
 	}.
 	
 	
-+!get_optimal_places(Human): true <-
++!get_optimal_pos(Human): true <-
 	?target_place(TargetLD);
 	// if there is a direction
 	if(.count((direction(_)),I) & I > 0){
-		?direction(Dir)
+		?direction(Dir);
 		get_placements(TargetLD,Dir,Human);
 	}else{
 		get_placements(TargetLD,"",Human);
-	}.
-//	!decide_to_move.
+	}
+	!be_at_good_pos.
 	
++!get_human_to_be_oriented(Human, TargetLD): true <- 
+	.send(Human, askOne, canSee(TargetLD), Ans, 4000);
+	if(not .substring(Ans,"false")){
+      	+Ans;
+    }
+    !adjust_orientation(Human, TargetLD).
+
 	
 	
 //Level 2
 +!handle_atm_toilet(To): true <- 
 	supervisor.toilet_or_atm(To, AorT);
-	get_individual_type(AorT).
+	// add belief possible_places
+	get_individual_type(AorT).	
 
 -!handle_atm_toilet(To):true <- true.
-	
 
++!be_at_good_pos : not positions_ok <- !make_human_move; !be_at_good_places.
+
++!be_at_good_pos : positions_ok <- true.
+
++!adjust_orientation(Human, TargetLD): canSee(TargetLD)[source(Human)] <- .send(Human, tell, robotKnows(ableToSee)); -canSee(TargetLD)[source(Human)].
+
++!adjust_orientation(Human, TargetLD): not canSee(TargetLD)[source(Human)] <-
+	supervisor.compute_turn_direction(Human, TargetLD, LeftOrRight);
+	.send(Human, tell, should(LeftOrRight));
+	.wait(4000);
+	!get_human_to_be_oriented(Human, TargetLD).
+
+
+
+//Level 3
+ +!test : true <- supervisor.compute_turn_direction(human, atm_1, LeftOrRight); .print(LeftOrRight).
+//+!test : true <- .send(human, achieve, start); .wait({+start}, 1000); .print(heeeey).
+//+!test : true <- ?isMoving; .wait(1000); !test.
+//-!test : not stop <- .wait(1000); !test.
+//-!test : stop <- true.
+//+isMoving : true <- -place_asked(X); +stop; .print("bouh").
+//-!test : true <- .print("did not receive event").
+//+!make_human_move : too_north <- .send(human, achieve, step_forward); .wait({stepped_forward}, 2000).
 
 //-!get_optimal_route(From, To, Persona, Signpost)[error(ErrorId), error_msg(Msg), code(CodeBody), code_src(CodeSrc), code_line(CodeLine)]: true <- 
 //	.current_intention(I); 

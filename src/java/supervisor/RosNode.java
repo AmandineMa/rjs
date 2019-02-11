@@ -24,19 +24,32 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
+import msg_srv_impl.*;
+
 import actionlib_msgs.GoalStatusArray;
+import deictic_gestures_msgs.PointAt;
+import deictic_gestures_msgs.PointAtRequest;
+import deictic_gestures_msgs.PointAtResponse;
+import geometry_msgs.PointStamped;
 import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceRequest;
 import ontologenius_msgs.OntologeniusServiceResponse;
 import perspectives_msgs.Fact;
 import perspectives_msgs.FactArrayStamped;
+import perspectives_msgs.HasMesh;
+import perspectives_msgs.HasMeshRequest;
+import perspectives_msgs.HasMeshResponse;
 import pointing_planner_msgs.PointingActionFeedback;
 import pointing_planner_msgs.PointingActionGoal;
 import pointing_planner_msgs.PointingActionResult;
 import pointing_planner_msgs.PointingGoal;
+import pointing_planner_msgs.VisibilityScore;
+import pointing_planner_msgs.VisibilityScoreRequest;
+import pointing_planner_msgs.VisibilityScoreResponse;
 import semantic_route_description_msgs.SemanticRoute;
 import semantic_route_description_msgs.SemanticRouteRequest;
 import semantic_route_description_msgs.SemanticRouteResponse;
+import std_msgs.Header;
 
 /***
  * ROS node to be used by Jason
@@ -55,17 +68,20 @@ public class RosNode extends AbstractNodeMain {
 	private TransformListener tfl;
 	private ServiceClient<OntologeniusServiceRequest, OntologeniusServiceResponse> onto_individual_c;
 	private ServiceClient<SemanticRouteRequest, SemanticRouteResponse> get_route_c;
+	private ServiceClient<HasMeshRequest, HasMeshResponse> has_mesh_c;
+	private ServiceClient<VisibilityScoreRequest, VisibilityScoreResponse> visibility_score_c;
+	private ServiceClient<PointAtRequest, PointAtResponse> point_at_c;
 	private ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult> get_placements_ac;
-//	private Subscriber<std_msgs.String> dialogue_sub;
-	private Subscriber<perspectives_msgs.FactArrayStamped> dialogue_sub;
-	private OntologeniusServiceResponseImpl onto_individual_resp;
+	private Subscriber<perspectives_msgs.FactArrayStamped> facts_sub;
+	private OntologeniusServiceResponse onto_individual_resp;
 	private SemanticRouteResponseImpl get_route_resp;
+	private HasMeshResponse has_mesh_resp;
+	private VisibilityScoreResponse visibility_score_resp;
+	private PointAtResponse point_at_resp;
 	private PointingActionResult get_placements_result;
 
 	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
 	private volatile int percept_id = 0;
-	
-//	private ArrayList<String> perceptions;
 
 
 	public RosNode(String name) {
@@ -86,15 +102,21 @@ public class RosNode extends AbstractNodeMain {
 			onto_individual_c = connectedNode.newServiceClient("/ontologenius/individual",OntologeniusService._TYPE);
 
 			get_route_c = connectedNode.newServiceClient("/semantic_route_description/get_route", SemanticRoute._TYPE);
+			
+			visibility_score_c = connectedNode.newServiceClient("/pointing_planner/visibility_score", VisibilityScore._TYPE);
+			
+			has_mesh_c = connectedNode.newServiceClient("/uwds_ros_bridge/has_mesh", HasMesh._TYPE);
+			
+			point_at_c = connectedNode.newServiceClient("/deictic_gestures/point_at", PointAt._TYPE);
 
 			get_placements_ac = new ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult>
 			(connectedNode, "/pointing_planner/PointingPlanner", PointingActionGoal._TYPE, PointingActionFeedback._TYPE, PointingActionResult._TYPE);
 			// too many useless loginfo in the class ActionClient (modified ActionClient by amdia to add the setLogLevel method)
 			get_placements_ac.setLogLevel(Level.OFF);
 			
-			dialogue_sub = connectedNode.newSubscriber("/base/current_facts", perspectives_msgs.FactArrayStamped._TYPE);
+			facts_sub = connectedNode.newSubscriber("/base/current_facts", perspectives_msgs.FactArrayStamped._TYPE);
 
-			dialogue_sub.addMessageListener(new MessageListener<perspectives_msgs.FactArrayStamped>() {
+			facts_sub.addMessageListener(new MessageListener<perspectives_msgs.FactArrayStamped>() {
 				
 
 				public void onNewMessage(FactArrayStamped facts) {
@@ -123,16 +145,6 @@ public class RosNode extends AbstractNodeMain {
 				}
 			});
 			
-//			dialogue_sub = connectedNode.newSubscriber("/human_dialogue", std_msgs.String._TYPE);
-//			perceptions = new ArrayList<String>();
-//			dialogue_sub.addMessageListener(new MessageListener<std_msgs.String>() {
-//
-//				public void onNewMessage(std_msgs.String arg0) {
-////					perceptions.clear();
-//					perceptions.add(arg0.getData());
-//					
-//				}
-//			});
 
 			ActionClientListener<PointingActionFeedback, PointingActionResult> client_listener 
 			= new ActionClientListener<PointingActionFeedback, PointingActionResult>(){
@@ -153,14 +165,14 @@ public class RosNode extends AbstractNodeMain {
 		}
 	}
 
-	public void call_onto_indivual_c(String action, String param) {
+	public void call_onto_indivual_srv(String action, String param) {
 		onto_individual_resp = null;
 		final OntologeniusServiceRequest request = onto_individual_c.newMessage();
 		request.setAction(action);
 		request.setParam(param);
 		onto_individual_c.call(request, new ServiceResponseListener<OntologeniusServiceResponse>() {
 			public void onSuccess(OntologeniusServiceResponse response) {
-				onto_individual_resp = new OntologeniusServiceResponseImpl();
+				onto_individual_resp = connectedNode.getServiceResponseMessageFactory().newFromType(OntologeniusService._TYPE);
 				if(response.getValues().isEmpty()) {
 					onto_individual_resp.setCode((short) Code.ERROR.getCode());
 				}else {
@@ -175,7 +187,7 @@ public class RosNode extends AbstractNodeMain {
 		});
 	}
 
-	public void call_get_route_c(String from, String to, String persona, boolean signpost) {
+	public void call_get_route_srv(String from, String to, String persona, boolean signpost) {
 		get_route_resp = null;
 		final SemanticRouteRequest request = get_route_c.newMessage();
 		request.setFrom(from);
@@ -195,6 +207,64 @@ public class RosNode extends AbstractNodeMain {
 			public void onFailure(RemoteException e) {
 				throw new RosRuntimeException(e);
 			}
+		});
+	}
+	
+
+	public void call_has_mesh_srv(String world, String frame) {
+		has_mesh_resp = null;
+		final HasMeshRequest request = has_mesh_c.newMessage();
+		request.setName(frame);
+		request.setWorld(world);
+		has_mesh_c.call(request, new ServiceResponseListener<HasMeshResponse>() {
+
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+			}
+
+			public void onSuccess(HasMeshResponse response) {
+				has_mesh_resp = response;
+			}
+			
+		});
+	}
+	
+	public void call_visibility_score_srv(String agent, String frame) {
+		visibility_score_resp = null;
+		final VisibilityScoreRequest request = visibility_score_c.newMessage();
+		request.setAgentName(agent);
+		request.setTargetName(frame);
+		visibility_score_c.call(request, new ServiceResponseListener<VisibilityScoreResponse>() {
+
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+			}
+
+			public void onSuccess(VisibilityScoreResponse response) {
+				visibility_score_resp = response;
+			}
+			
+		});
+	}
+	
+	public void call_point_at_srv(String frame) {
+		point_at_resp = null;
+		final PointAtRequest request = point_at_c.newMessage();
+		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
+		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
+		header.setFrameId(frame);
+		point.setHeader(header);
+		request.setPoint(point);
+		point_at_c.call(request, new ServiceResponseListener<PointAtResponse>() {
+
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+			}
+
+			public void onSuccess(PointAtResponse response) {
+				point_at_resp = response;
+			}
+			
 		});
 	}
 
@@ -219,8 +289,9 @@ public class RosNode extends AbstractNodeMain {
 			sleep(100);
 		}
 	}
+	
 
-	public OntologeniusServiceResponseImpl get_onto_individual_resp() {
+	public OntologeniusServiceResponse get_onto_individual_resp() {
 		return onto_individual_resp;
 	}
 
@@ -232,16 +303,21 @@ public class RosNode extends AbstractNodeMain {
 	public PointingActionResult get_get_placements_result() {
 		return get_placements_result;
 	}
-
-
-//	public ArrayList<String> getPerceptions() {
-//		return perceptions;
-//	}
-//
-//	public void setPerceptions(ArrayList<String> perceptions) {
-//		this.perceptions = perceptions;
-//	}
 	
+	
+	public HasMeshResponse getHas_mesh_resp() {
+		return has_mesh_resp;
+	}
+
+	public VisibilityScoreResponse getVisibility_score_resp() {
+		return visibility_score_resp;
+	}
+	
+
+	public PointAtResponse getPoint_at_resp() {
+		return point_at_resp;
+	}
+
 	public Multimap<String, SimpleFact> getPerceptions() {
 		return perceptions;
 	}

@@ -9,17 +9,20 @@ import jason.asSyntax.ListTermImpl;
 import jason.asSyntax.Literal;
 import jason.asSyntax.Term;
 import ontologenius_msgs.OntologeniusServiceResponse;
+import perspectives_msgs.HasMeshResponse;
 import pointing_planner_msgs.PointingActionResult;
+import pointing_planner_msgs.VisibilityScoreResponse;
 import semantic_route_description_msgs.Route;
 import semantic_route_description_msgs.SemanticRouteResponse;
 import supervisor.Code;
-import supervisor.RouteImpl;
-import supervisor.SemanticRouteResponseImpl;
+import msg_srv_impl.RouteImpl;
+import msg_srv_impl.SemanticRouteResponseImpl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
 import actionlib_msgs.GoalStatus;
+import deictic_gestures_msgs.PointAtResponse;
 import geometry_msgs.Pose;
 
 
@@ -65,7 +68,7 @@ public class RobotAgArch extends ROSAgArch {
     		// (we will be able then to choose between the best toilet or atm to go)
     		for (Term t: to_list) {
     			// call the service to compute route
-    			m_rosnode.call_get_route_c(from, 
+    			m_rosnode.call_get_route_srv(from, 
     									t.toString(),
     									action.getActionTerm().getTerm(2).toString(), 
     									Boolean.parseBoolean(action.getActionTerm().getTerm(3).toString()));
@@ -108,7 +111,7 @@ public class RobotAgArch extends ROSAgArch {
     		}
 
     	} else if(action_name.equals("get_individual_type")) {
-    		m_rosnode.call_onto_indivual_c("getType", action.getActionTerm().getTerm(0).toString());
+    		m_rosnode.call_onto_indivual_srv("getType", action.getActionTerm().getTerm(0).toString());
     		OntologeniusServiceResponse places;
     		do {
     			places = m_rosnode.get_onto_individual_resp();
@@ -130,7 +133,7 @@ public class RobotAgArch extends ROSAgArch {
     		String param = action.getActionTerm().getTerm(0).toString();
     		param = param.replaceAll("^\"|\"$", "");
     		
-			m_rosnode.call_onto_indivual_c("find", param);
+			m_rosnode.call_onto_indivual_srv("find", param);
 			OntologeniusServiceResponse place;
 			do {
 				place = m_rosnode.get_onto_individual_resp();
@@ -152,8 +155,8 @@ public class RobotAgArch extends ROSAgArch {
 				action.setResult(false);
 				action.setFailureReason(new Atom("name_not_found"), "No place matching "+param+" has been found in the ontology");
 	        	actionExecuted(action);
-			}
-	} else if(action_name.equals("get_human_abilities")) {
+			} 
+	} else if(action_name.equals("get_human_abilities")) { //TODO to proper implement
 		try {
 			getTS().getAg().addBel(Literal.parseLiteral("persona_asked(old)"));
 		} catch (RevisionFailedException e) {
@@ -205,8 +208,77 @@ public class RobotAgArch extends ROSAgArch {
 			action.setFailureReason(new Atom("svp_failure"), "SVP planner goal status :"+placements_result.getStatus().getStatus());
 			actionExecuted(action);
 		}
-	}
-    	else {
+	}else if(action_name.equals("has_mesh")) {
+		// to remove the extra ""
+		String param = action.getActionTerm().getTerm(0).toString();
+		param = param.replaceAll("^\"|\"$", "");
+		
+		m_rosnode.call_has_mesh_srv("base", param);
+		HasMeshResponse has_mesh;
+		do {
+			has_mesh = m_rosnode.getHas_mesh_resp();
+        	try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+        }while(has_mesh == null);
+		if(has_mesh.getHasMesh()) {
+			action.setResult(true);
+		}else {
+			action.setResult(false);
+			if(!has_mesh.getHasMesh()) {
+				action.setFailureReason(new Atom("has_no_mesh"), param+" does not have a mesh");
+			}else {
+				action.setFailureReason(new Atom("srv_has_mesh_failed"), "has_mesh service failed");
+			}
+		}
+		actionExecuted(action);
+	} else if(action_name.equals("can_be_visible")) {
+		// to remove the extra ""
+		String human = action.getActionTerm().getTerm(0).toString();
+		human = human.replaceAll("^\"|\"$", "");
+		String place = action.getActionTerm().getTerm(1).toString();
+		place = place.replaceAll("^\"|\"$", "");
+		m_rosnode.call_visibility_score_srv(human, place);
+		VisibilityScoreResponse vis_resp;
+		do {
+			vis_resp = m_rosnode.getVisibility_score_resp();
+        	try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+        }while(vis_resp == null);
+		if(vis_resp.getIsVisible()) {
+			action.setResult(true);
+		}else {
+			action.setResult(false);
+			action.setFailureReason(new Atom("not_visible"), place+" is not visible");
+		}
+		actionExecuted(action);
+	} else if(action_name.equals("point_at")) {
+		// to remove the extra ""
+		String place = action.getActionTerm().getTerm(0).toString();
+		place = place.replaceAll("^\"|\"$", "");
+		m_rosnode.call_point_at_srv(place);
+		PointAtResponse point_at_resp;
+		do {
+			point_at_resp = m_rosnode.getPoint_at_resp();
+        	try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+        }while(point_at_resp == null);
+		if(point_at_resp.getSuccess()) {
+			action.setResult(true);
+		}else {
+			action.setResult(false);
+			action.setFailureReason(new Atom("point_at_failed"), "the pointing failed for "+place);
+		}
+		actionExecuted(action);
+	} else {
 			super.act(action);
 		}
     }

@@ -1,5 +1,6 @@
 package supervisor;
 
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,9 +47,15 @@ import pointing_planner_msgs.PointingGoal;
 import pointing_planner_msgs.VisibilityScore;
 import pointing_planner_msgs.VisibilityScoreRequest;
 import pointing_planner_msgs.VisibilityScoreResponse;
+import route_verbalization.VerbalizeRegionRoute;
+import route_verbalization.VerbalizeRegionRouteRequest;
+import route_verbalization.VerbalizeRegionRouteResponse;
 import semantic_route_description_msgs.SemanticRoute;
 import semantic_route_description_msgs.SemanticRouteRequest;
 import semantic_route_description_msgs.SemanticRouteResponse;
+import speech_wrapper_msgs.SpeakTo;
+import speech_wrapper_msgs.SpeakToRequest;
+import speech_wrapper_msgs.SpeakToResponse;
 import std_msgs.Header;
 
 /***
@@ -71,13 +78,17 @@ public class RosNode extends AbstractNodeMain {
 	private ServiceClient<HasMeshRequest, HasMeshResponse> has_mesh_c;
 	private ServiceClient<VisibilityScoreRequest, VisibilityScoreResponse> visibility_score_c;
 	private ServiceClient<PointAtRequest, PointAtResponse> point_at_c;
+	private ServiceClient<SpeakToRequest, SpeakToResponse> speak_to_c;
+	private ServiceClient<VerbalizeRegionRouteRequest, VerbalizeRegionRouteResponse> route_verbalization_c;
 	private ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult> get_placements_ac;
 	private Subscriber<perspectives_msgs.FactArrayStamped> facts_sub;
 	private OntologeniusServiceResponse onto_individual_resp;
 	private SemanticRouteResponseImpl get_route_resp;
 	private HasMeshResponse has_mesh_resp;
 	private VisibilityScoreResponse visibility_score_resp;
+	private SpeakToResponse speak_to_resp;
 	private PointAtResponse point_at_resp;
+	private VerbalizeRegionRouteResponse verbalization_resp;
 	private PointingActionResult get_placements_result;
 
 	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
@@ -96,7 +107,7 @@ public class RosNode extends AbstractNodeMain {
 	public void onStart(final ConnectedNode connectedNode) {
 		try {
 			this.connectedNode = connectedNode;
-			
+			//TODO handle srv not started
 			tfl = new TransformListener(connectedNode);
 			
 			onto_individual_c = connectedNode.newServiceClient("/ontologenius/individual",OntologeniusService._TYPE);
@@ -105,9 +116,13 @@ public class RosNode extends AbstractNodeMain {
 			
 			visibility_score_c = connectedNode.newServiceClient("/pointing_planner/visibility_score", VisibilityScore._TYPE);
 			
+			speak_to_c = connectedNode.newServiceClient("/speech_wrapper/speak_to", SpeakTo._TYPE);
+			
 			has_mesh_c = connectedNode.newServiceClient("/uwds_ros_bridge/has_mesh", HasMesh._TYPE);
 			
 			point_at_c = connectedNode.newServiceClient("/deictic_gestures/point_at", PointAt._TYPE);
+			
+			route_verbalization_c = connectedNode.newServiceClient("/route_verbalization/verbalizePlace", VerbalizeRegionRoute._TYPE);
 
 			get_placements_ac = new ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult>
 			(connectedNode, "/pointing_planner/PointingPlanner", PointingActionGoal._TYPE, PointingActionFeedback._TYPE, PointingActionResult._TYPE);
@@ -267,6 +282,48 @@ public class RosNode extends AbstractNodeMain {
 			
 		});
 	}
+	
+	public void call_speak_to_srv(String look_at, String text) {
+		speak_to_resp = null;
+		final SpeakToRequest request = speak_to_c.newMessage();
+		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
+		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
+		header.setFrameId(look_at);
+		point.setHeader(header);
+		request.setLookAt(point);
+		request.setText(text);
+		speak_to_c.call(request, new ServiceResponseListener<SpeakToResponse>() {
+
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+			}
+
+			public void onSuccess(SpeakToResponse response) {
+				speak_to_resp = response;
+			}
+			
+		});
+	}
+	
+	public void call_route_verbalization_srv(List<String> route, String start_place, String goal_shop) {
+		verbalization_resp = null;
+		final VerbalizeRegionRouteRequest request = route_verbalization_c.newMessage();
+		request.setRoute(route);
+		request.setStartPlace(start_place);
+		request.setGoalShop(goal_shop);
+		route_verbalization_c.call(request, new ServiceResponseListener<VerbalizeRegionRouteResponse>() {
+
+			@Override
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+			}
+
+			@Override
+			public void onSuccess(VerbalizeRegionRouteResponse response) {
+				verbalization_resp = response;
+			}
+		});
+	}
 
 	public void call_svp_planner(String target_ld, String direction_ld, String human) {
 		get_placements_result = null;
@@ -314,8 +371,16 @@ public class RosNode extends AbstractNodeMain {
 	}
 	
 
+	public SpeakToResponse getSpeak_to_resp() {
+		return speak_to_resp;
+	}
+
 	public PointAtResponse getPoint_at_resp() {
 		return point_at_resp;
+	}
+
+	public VerbalizeRegionRouteResponse getVerbalization_resp() {
+		return verbalization_resp;
 	}
 
 	public Multimap<String, SimpleFact> getPerceptions() {

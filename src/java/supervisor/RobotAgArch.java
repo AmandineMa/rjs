@@ -12,8 +12,11 @@ import ontologenius_msgs.OntologeniusServiceResponse;
 import perspectives_msgs.HasMeshResponse;
 import pointing_planner_msgs.PointingActionResult;
 import pointing_planner_msgs.VisibilityScoreResponse;
+import route_verbalization.VerbalizeRegionRouteResponse;
 import semantic_route_description_msgs.Route;
 import semantic_route_description_msgs.SemanticRouteResponse;
+import speech_wrapper_msgs.SpeakResponse;
+import speech_wrapper_msgs.SpeakToResponse;
 import supervisor.Code;
 import msg_srv_impl.RouteImpl;
 import msg_srv_impl.SemanticRouteResponseImpl;
@@ -252,6 +255,11 @@ public class RobotAgArch extends ROSAgArch {
         }while(vis_resp == null);
 		if(vis_resp.getIsVisible()) {
 			action.setResult(true);
+			try {
+				getTS().getAg().addBel(Literal.parseLiteral("canBeVisibleFor("+place+","+human+")"));
+			} catch (RevisionFailedException e) {
+				e.printStackTrace();
+			}
 		}else {
 			action.setResult(false);
 			action.setFailureReason(new Atom("not_visible"), place+" is not visible");
@@ -278,7 +286,75 @@ public class RobotAgArch extends ROSAgArch {
 			action.setFailureReason(new Atom("point_at_failed"), "the pointing failed for "+place);
 		}
 		actionExecuted(action);
-	} else {
+	} else if(action_name.equals("text2speech")) {
+		// to remove the extra ""
+		String human = action.getActionTerm().getTerm(0).toString();
+		human = human.replaceAll("^\"|\"$", "");
+		Literal bel = (Literal) action.getActionTerm().getTerm(1);
+		String text;
+		String bel_functor = bel.getFunctor();
+		switch(bel_functor) {
+		case "should_look_place": text = new String("Look "+bel.getTerm(0)+" over there"); break;
+		case "should_look_orientation": text = new String("You should look a bit more at the "+bel.getTerm(0)); break;
+		case "able_to_see": text = new String("I note that you must be looking at the place right now"); break;
+		case "route_verbalization" : text = bel.getTerm(0).toString().replaceAll("^\"|\"$", ""); break;
+		default : action.setResult(false); action.setFailureReason(new Atom("empty_string"), "no speech to say"); actionExecuted(action); return;
+		}
+		m_rosnode.call_speak_to_srv(human, text);
+		SpeakToResponse speak_to_resp;
+		do {
+			speak_to_resp = m_rosnode.getSpeak_to_resp();
+        	try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+        }while(speak_to_resp == null);
+		if(speak_to_resp.getSuccess()) {
+			action.setResult(true);
+		}else {
+			action.setResult(false);
+			action.setFailureReason(new Atom("speak_to_failed"), "the speech service failed");
+		}
+		actionExecuted(action);
+	} else if(action_name.equals("get_route_verbalization")) {
+		// to remove the extra ""
+		@SuppressWarnings("unchecked")
+		List<Term> route_temp = (List<Term>) action.getActionTerm().getTerm(0);
+		List<String> route = new ArrayList<>();
+		for(Term t : route_temp) {
+			route.add(t.toString());
+		}
+		String robot_place = action.getActionTerm().getTerm(1).toString();
+		robot_place = robot_place.replaceAll("^\"|\"$", "");
+		String place = action.getActionTerm().getTerm(2).toString();
+		place = place.replaceAll("^\"|\"$", "");
+		m_rosnode.call_route_verbalization_srv(route, robot_place, place);
+		VerbalizeRegionRouteResponse verba_resp;
+		do {
+			verba_resp = m_rosnode.getVerbalization_resp();
+        	try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+        }while(verba_resp == null);
+		String verba = new String(verba_resp.getRegionRoute());
+		if(verba_resp.getSuccess() & verba != "") {
+			action.setResult(true);
+			try {
+				getTS().getAg().addBel(Literal.parseLiteral("verbalization(\""+verba+"\")"));
+			} catch (RevisionFailedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}else {
+			action.setResult(false);
+			action.setFailureReason(new Atom("route_verba_failed"), "the route verbalization service failed");
+		}
+		actionExecuted(action);
+	} 
+	else {
 			super.act(action);
 		}
     }

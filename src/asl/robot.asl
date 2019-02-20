@@ -22,6 +22,7 @@
 
 // TODO handle when place to go already frame name
 place_asked("atm").
+robot_place("robot_infodesk").
 !guiding(human).
 //!test.
 
@@ -58,10 +59,11 @@ place_asked("atm").
 	// wait for the services client to be started
 	.wait(1000); 
 	?place_asked(Place);
-	!get_optimal_route("robot_infodesk", Place, lambda, false);
+	?robot_place(RobotPlace)
+	!get_optimal_route(RobotPlace, Place, lambda, false);
 //	!get_optimal_pos(Human);
 	?target_place(TargetLD);
-	!get_human_to_be_oriented(Human, TargetLD).
+	!show_landmarks(Human, TargetLD).
 
 	
 
@@ -112,14 +114,10 @@ place_asked("atm").
 		get_placements(TargetLD,"",Human);
 	}
 	!be_at_good_pos.
-	
-+!get_human_to_be_oriented(Human, TargetLD): true <- 
-	.send(Human, askOne, canSee(TargetLD), Ans, 4000);
-	if(not .substring(Ans,"false")){
-      	+Ans;
-    }
-    !adjust_orientation(Human, TargetLD).
 
++!show_landmarks(Human, Place): true <-
+	!show_direction(Human);
+	!show_target(Human, Place).
 	
 	
 //Level 2
@@ -130,40 +128,72 @@ place_asked("atm").
 
 -!handle_atm_toilet(To):true <- true.
 
-+!be_at_good_pos : not positions_ok <- !make_human_move; !be_at_good_places.
++!show_direction(Human) : direction(X) <- 
+	?direction(Dir);
+	!indicate(Human, Dir).
+	
++!show_direction(Human) : not direction(X) <- true.
 
-+!be_at_good_pos : positions_ok <- true.
-
-+!adjust_orientation(Human, TargetLD): canSee(TargetLD)[source(Human)] <- .send(Human, tell, robotKnows(ableToSee)); -canSee(TargetLD)[source(Human)].
-
-+!adjust_orientation(Human, TargetLD): not canSee(TargetLD)[source(Human)] <-
-	supervisor.compute_turn_direction(Human, TargetLD, LeftOrRight);
-	.send(Human, tell, should(LeftOrRight));
-	.wait(4000);
-	!get_human_to_be_oriented(Human, TargetLD).
-
++!show_target(Human, TargetLD) : true <-
+	.print("SHOW TARGEEEEEET");
+	!indicate(Human, TargetLD).
 
 
 //Level 3
- +!test : true <- supervisor.compute_turn_direction(human, atm_1, LeftOrRight); .print(LeftOrRight).
-//+!test : true <- .send(human, achieve, start); .wait({+start}, 1000); .print(heeeey).
-//+!test : true <- ?isMoving; .wait(1000); !test.
-//-!test : not stop <- .wait(1000); !test.
-//-!test : stop <- true.
-//+isMoving : true <- -place_asked(X); +stop; .print("bouh").
-//-!test : true <- .print("did not receive event").
+
++!indicate(Human, Place) : true <-
+	has_mesh(Place);
+	can_be_visible(Human, Place);
+	?direction(Dir);
+	!speak(Human, should_look_place(Place));
+	point_at(Place);
+	!get_human_to_be_oriented(Human, Place);
+	!verbalize_route(Human, Place).
+	
+-!indicate(Human, Place)[Failure, error(ErrorId), error_msg(Msg), code(CodeBody), code_src(CodeSrc), code_line(CodeLine)]: true <- 	
+	if(.substring(Failure, "has_no_mesh") | .substring(Failure, "not_visible")){
+		!verbalize_route(Human, Place);
+	}elif(.substring("direction", CodeBody)){
+		point_at(Place);
+	}
+	.
+
+// Level 4
+
++!get_human_to_be_oriented(Human, Place): true <- 
+	.send(Human, askOne, canSee(Place), Ans, 4000);
+	if(not .substring(Ans,"false")){
+      	+Ans;
+    }
+    !adjust_orientation(Human, Place).
+    
+// Level 5
+
++!adjust_orientation(Human, Place): canSee(Place)[source(Human)] <- !speak(Human, able_to_see(Place)); -canSee(Place)[source(Human)].
+
++!adjust_orientation(Human, Place): not canSee(Place)[source(Human)] <-
+	supervisor.compute_turn_orientation(Human, Place, LeftOrRight);
+	if(not .substring(LeftOrRight, "false")){ //TODO handle no tf transform
+	!speak(Human, should_look_orientation(LeftOrRight));
+	.wait(4000);
+	!get_human_to_be_oriented(Human, Place);
+	}.
+	
++!verbalize_route(Human, Place): true <- 
+	?route(Route);
+	?robot_place(RobotPlace);
+	get_route_verbalization(Route, RobotPlace, Place);
+	?verbalization(RouteVerba);
+	!speak(Human, route_verbalization(RouteVerba)).
+
+	
+// Utils
++!speak(Human, ToSay) : true <-
+	.send(Human, tell, ToSay);
+	text2speech(Human, ToSay).
+
 //+!make_human_move : too_north <- .send(human, achieve, step_forward); .wait({stepped_forward}, 2000).
 
-//-!get_optimal_route(From, To, Persona, Signpost)[error(ErrorId), error_msg(Msg), code(CodeBody), code_src(CodeSrc), code_line(CodeLine)]: true <- 
-//	.current_intention(I); 
-//	I = intention(Id,[X|IntendedMeans]);
-//	.print("code body :",CodeBody);
-//	!print_im(IntendedMeans).
-//
-//+!print_im([]).
-//+!print_im([im(PlanLabel,Body, Unif, Trigger)|R])
-//  <- .print("*        ",Body,"      * unifier: ",Unif);
-//     !print_im(R).
 
 //+!guiding(X, Place): interactant(X) & isPerceiving(X) <- 
 //	!get_optimal_route(Place);

@@ -10,7 +10,7 @@ import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 
 @SuppressWarnings("serial")
-public class compute_turn_direction extends DefaultInternalAction {
+public class compute_turn_orientation extends DefaultInternalAction {
 
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {

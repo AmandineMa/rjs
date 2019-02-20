@@ -7,5 +7,5 @@
 //!start.
 
 /* Plans */
-
+//TODO check si les srv, action servers sont connectés
 +!start : true <- .print("hello world.").

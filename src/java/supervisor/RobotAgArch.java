@@ -12,7 +12,7 @@ import ontologenius_msgs.OntologeniusServiceResponse;
 import perspectives_msgs.HasMeshResponse;
 import pointing_planner_msgs.PointingActionResult;
 import pointing_planner_msgs.VisibilityScoreResponse;
-import route_verbalization.VerbalizeRegionRouteResponse;
+import route_verbalization_msgs.VerbalizeRegionRouteResponse;
 import semantic_route_description_msgs.Route;
 import semantic_route_description_msgs.SemanticRouteResponse;
 import speech_wrapper_msgs.SpeakResponse;
@@ -83,11 +83,7 @@ public class RobotAgArch extends ROSAgArch {
                 	if (resp != null) {
                 		routes.add(resp);
                 	}
-                	try {
-    					Thread.sleep(100);
-    				} catch (InterruptedException e) {
-    					e.printStackTrace();
-    				}
+                	sleep(100);
                 }while(resp == null);
                 if(resp.getCode() == Code.ERROR.getCode()) {
                 	action.setResult(false);
@@ -118,11 +114,7 @@ public class RobotAgArch extends ROSAgArch {
     		OntologeniusServiceResponse places;
     		do {
     			places = m_rosnode.get_onto_individual_resp();
-            	try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+            	sleep(100);
             }while(places == null);
     		try {
 				getTS().getAg().addBel(Literal.parseLiteral("possible_places("+places.getValues()+")"));
@@ -140,11 +132,7 @@ public class RobotAgArch extends ROSAgArch {
 			OntologeniusServiceResponse place;
 			do {
 				place = m_rosnode.get_onto_individual_resp();
-	        	try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+	        	sleep(100);
 	        }while(place == null);
 			if(place.getCode() == Code.OK.getCode()) {
 				try {
@@ -220,11 +208,7 @@ public class RobotAgArch extends ROSAgArch {
 		HasMeshResponse has_mesh;
 		do {
 			has_mesh = m_rosnode.getHas_mesh_resp();
-        	try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+        	sleep(100);
         }while(has_mesh == null);
 		if(has_mesh.getHasMesh()) {
 			action.setResult(true);
@@ -247,11 +231,7 @@ public class RobotAgArch extends ROSAgArch {
 		VisibilityScoreResponse vis_resp;
 		do {
 			vis_resp = m_rosnode.getVisibility_score_resp();
-        	try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+        	sleep(100);
         }while(vis_resp == null);
 		if(vis_resp.getIsVisible()) {
 			action.setResult(true);
@@ -273,11 +253,7 @@ public class RobotAgArch extends ROSAgArch {
 		PointAtResponse point_at_resp;
 		do {
 			point_at_resp = m_rosnode.getPoint_at_resp();
-        	try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+        	sleep(100);
         }while(point_at_resp == null);
 		if(point_at_resp.getSuccess()) {
 			action.setResult(true);
@@ -304,11 +280,7 @@ public class RobotAgArch extends ROSAgArch {
 		SpeakToResponse speak_to_resp;
 		do {
 			speak_to_resp = m_rosnode.getSpeak_to_resp();
-        	try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+        	sleep(100);
         }while(speak_to_resp == null);
 		if(speak_to_resp.getSuccess()) {
 			action.setResult(true);
@@ -333,11 +305,7 @@ public class RobotAgArch extends ROSAgArch {
 		VerbalizeRegionRouteResponse verba_resp;
 		do {
 			verba_resp = m_rosnode.getVerbalization_resp();
-        	try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+        	sleep(100);
         }while(verba_resp == null);
 		String verba = new String(verba_resp.getRegionRoute());
 		if(verba_resp.getSuccess() & verba != "") {

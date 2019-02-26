@@ -1,17 +1,29 @@
 package supervisor;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.ros.exception.ParameterNotFoundException;
 import org.ros.exception.RemoteException;
 import org.ros.exception.RosRuntimeException;
 import org.ros.exception.ServiceNotFoundException;
+import org.ros.internal.message.Message;
+import org.ros.master.client.MasterStateClient;
 import org.ros.message.Duration;
 import org.ros.message.MessageListener;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
+import org.ros.node.parameter.ParameterTree;
 import org.ros.node.service.ServiceClient;
 import org.ros.node.service.ServiceResponseListener;
 import org.ros.node.topic.Subscriber;
@@ -25,35 +37,28 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
-import msg_srv_impl.*;
-
 import actionlib_msgs.GoalStatusArray;
-import deictic_gestures_msgs.PointAt;
 import deictic_gestures_msgs.PointAtRequest;
 import deictic_gestures_msgs.PointAtResponse;
 import geometry_msgs.PointStamped;
+import msg_srv_impl.SemanticRouteResponseImpl;
 import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceRequest;
 import ontologenius_msgs.OntologeniusServiceResponse;
 import perspectives_msgs.Fact;
 import perspectives_msgs.FactArrayStamped;
-import perspectives_msgs.HasMesh;
 import perspectives_msgs.HasMeshRequest;
 import perspectives_msgs.HasMeshResponse;
 import pointing_planner_msgs.PointingActionFeedback;
 import pointing_planner_msgs.PointingActionGoal;
 import pointing_planner_msgs.PointingActionResult;
 import pointing_planner_msgs.PointingGoal;
-import pointing_planner_msgs.VisibilityScore;
 import pointing_planner_msgs.VisibilityScoreRequest;
 import pointing_planner_msgs.VisibilityScoreResponse;
-import route_verbalization.VerbalizeRegionRoute;
-import route_verbalization.VerbalizeRegionRouteRequest;
-import route_verbalization.VerbalizeRegionRouteResponse;
-import semantic_route_description_msgs.SemanticRoute;
+import route_verbalization_msgs.VerbalizeRegionRouteRequest;
+import route_verbalization_msgs.VerbalizeRegionRouteResponse;
 import semantic_route_description_msgs.SemanticRouteRequest;
 import semantic_route_description_msgs.SemanticRouteResponse;
-import speech_wrapper_msgs.SpeakTo;
 import speech_wrapper_msgs.SpeakToRequest;
 import speech_wrapper_msgs.SpeakToResponse;
 import std_msgs.Header;
@@ -73,13 +78,11 @@ public class RosNode extends AbstractNodeMain {
 	
 	private ConnectedNode connectedNode;
 	private TransformListener tfl;
-	private ServiceClient<OntologeniusServiceRequest, OntologeniusServiceResponse> onto_individual_c;
-	private ServiceClient<SemanticRouteRequest, SemanticRouteResponse> get_route_c;
-	private ServiceClient<HasMeshRequest, HasMeshResponse> has_mesh_c;
-	private ServiceClient<VisibilityScoreRequest, VisibilityScoreResponse> visibility_score_c;
-	private ServiceClient<PointAtRequest, PointAtResponse> point_at_c;
-	private ServiceClient<SpeakToRequest, SpeakToResponse> speak_to_c;
-	private ServiceClient<VerbalizeRegionRouteRequest, VerbalizeRegionRouteResponse> route_verbalization_c;
+	private ParameterTree parameters;
+	private MasterStateClient msc;
+	HashMap<String, String> services_map;
+	private HashMap <String, ServiceClient<Message, Message>> service_clients;
+	private HashMap <String, String> service_types;
 	private ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult> get_placements_ac;
 	private Subscriber<perspectives_msgs.FactArrayStamped> facts_sub;
 	private OntologeniusServiceResponse onto_individual_resp;
@@ -100,36 +103,33 @@ public class RosNode extends AbstractNodeMain {
 	}
 
 	public GraphName getDefaultNodeName() {
-		return GraphName.of("clients_node");
+		return GraphName.of("supervisor_clients");
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void onStart(final ConnectedNode connectedNode) {
 		try {
 			this.connectedNode = connectedNode;
-			//TODO handle srv not started
 			tfl = new TransformListener(connectedNode);
+			parameters = connectedNode.getParameterTree();
+			URI uri = null;
+			try {
+				uri = new URI("http://localhost:11311");
+			} catch (URISyntaxException e) {
+				logger.info("Wrong URI syntax :"+e.getMessage());
+			}
+			msc = new MasterStateClient(connectedNode, uri);
+			service_clients = new HashMap<String, ServiceClient<Message, Message>>();
+			service_types = new HashMap <String, String>();
+			services_map = (HashMap<String, String>) parameters.getMap("/guiding/services");
 			
-			onto_individual_c = connectedNode.newServiceClient("/ontologenius/individual",OntologeniusService._TYPE);
-
-			get_route_c = connectedNode.newServiceClient("/semantic_route_description/get_route", SemanticRoute._TYPE);
-			
-			visibility_score_c = connectedNode.newServiceClient("/pointing_planner/visibility_score", VisibilityScore._TYPE);
-			
-			speak_to_c = connectedNode.newServiceClient("/speech_wrapper/speak_to", SpeakTo._TYPE);
-			
-			has_mesh_c = connectedNode.newServiceClient("/uwds_ros_bridge/has_mesh", HasMesh._TYPE);
-			
-			point_at_c = connectedNode.newServiceClient("/deictic_gestures/point_at", PointAt._TYPE);
-			
-			route_verbalization_c = connectedNode.newServiceClient("/route_verbalization/verbalizePlace", VerbalizeRegionRoute._TYPE);
-
 			get_placements_ac = new ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult>
-			(connectedNode, "/pointing_planner/PointingPlanner", PointingActionGoal._TYPE, PointingActionFeedback._TYPE, PointingActionResult._TYPE);
+			(connectedNode, parameters.getString("/guiding/action_servers/pointing_planner"), PointingActionGoal._TYPE, PointingActionFeedback._TYPE, PointingActionResult._TYPE);
 			// too many useless loginfo in the class ActionClient (modified ActionClient by amdia to add the setLogLevel method)
 			get_placements_ac.setLogLevel(Level.OFF);
 			
-			facts_sub = connectedNode.newSubscriber("/base/current_facts", perspectives_msgs.FactArrayStamped._TYPE);
+			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"), perspectives_msgs.FactArrayStamped._TYPE);
 
 			facts_sub.addMessageListener(new MessageListener<perspectives_msgs.FactArrayStamped>() {
 				
@@ -175,44 +175,122 @@ public class RosNode extends AbstractNodeMain {
 
 			};
 			get_placements_ac.attachListener(client_listener);
-		} catch (ServiceNotFoundException e) {
+		} catch (ParameterNotFoundException e) {
+			logger.severe("Parameter not found exception : "+e.getMessage());
 			throw new RosRuntimeException(e);
 		}
+		
+	}
+	
+	public HashMap<String, Boolean> init_service_clients() {
+		HashMap<String, Boolean> services_status = new HashMap<String, Boolean>();		
+		
+		for(Map.Entry<String, String> entry : services_map.entrySet()) {
+			services_status.put(entry.getKey(), create_service_client(entry.getKey(), entry.getValue()));
+		}
+		return services_status;
+	}
+	
+	public HashMap<String, Boolean> retry_init_service_clients(Set<String> clients_to_init){
+		HashMap<String, Boolean> services_status = new HashMap<String, Boolean>();
+		
+		for(String client : clients_to_init) {
+			services_status.put(client, create_service_client(client, services_map.get(client)));
+		}
+		return services_status;
+	}
+	
+	private boolean create_service_client(String key, String srv_name) {
+		boolean status;
+		URI ls = msc.lookupService(srv_name);
+		if (ls.toString().isEmpty()) {
+			service_clients.put(key, null);
+			status = false;
+		}else {
+	        ServiceClient<Message, Message> serv_client;
+			try {
+				service_types.put(key, get_srv_type(srv_name));
+				serv_client = connectedNode.newServiceClient(srv_name, service_types.get(key));
+				service_clients.put(key, serv_client);	
+				status = true;
+			}catch (ServiceNotFoundException e) {
+				logger.severe("Service not found exception : "+e.getMessage());
+				throw new RosRuntimeException(e);
+			} 
+		}
+		return status;
+	}
+	
+	
+	private String get_srv_type(String srv_name) {
+		ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", ". ./env; rosservice info "+srv_name);
+		builder.redirectErrorStream(true);
+		String type = null;
+		try {
+			Process p = builder.start();
+			BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			String line;
+
+			while (true) {
+				line = r.readLine();
+				if (line == null) { break; }
+				String[] tokens = line.split(" ");
+				if(tokens[0].contains("Type")) {
+					type = tokens[1];
+					if(!type.contains("msgs")) {
+						String[] tokens_type = type.split("/");
+						type = tokens_type[0]+"_msgs/"+tokens_type[1];
+					}
+				}
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return type;
 	}
 
 	public void call_onto_indivual_srv(String action, String param) {
 		onto_individual_resp = null;
-		final OntologeniusServiceRequest request = onto_individual_c.newMessage();
+		final OntologeniusServiceRequest request = (OntologeniusServiceRequest) service_clients.get("get_individual_info").newMessage();
 		request.setAction(action);
 		request.setParam(param);
-		onto_individual_c.call(request, new ServiceResponseListener<OntologeniusServiceResponse>() {
-			public void onSuccess(OntologeniusServiceResponse response) {
+		service_clients.get("get_individual_info").call(request, new ServiceResponseListener<Message>() {
+
+			@Override
+			public void onSuccess(Message response) {
 				onto_individual_resp = connectedNode.getServiceResponseMessageFactory().newFromType(OntologeniusService._TYPE);
-				if(response.getValues().isEmpty()) {
+				if(((OntologeniusServiceResponse) response).getValues().isEmpty()) {
 					onto_individual_resp.setCode((short) Code.ERROR.getCode());
 				}else {
 					onto_individual_resp.setCode((short) Code.OK.getCode());
-					onto_individual_resp.setValues(response.getValues());
+					onto_individual_resp.setValues(((OntologeniusServiceResponse) response).getValues());
 				}
+				
 			}
 
+			@Override
 			public void onFailure(RemoteException e) {
 				throw new RosRuntimeException(e);
+				
 			}
 		});
 	}
 
 	public void call_get_route_srv(String from, String to, String persona, boolean signpost) {
 		get_route_resp = null;
-		final SemanticRouteRequest request = get_route_c.newMessage();
+		final SemanticRouteRequest request = (SemanticRouteRequest) service_clients.get("get_route").newMessage();
 		request.setFrom(from);
 		request.setTo(to);
 		request.setPersona(persona);
 		request.setSignpost(signpost);
-		get_route_c.call(request, new ServiceResponseListener<SemanticRouteResponse>() {
-			public void onSuccess(SemanticRouteResponse response) {
-				get_route_resp = new SemanticRouteResponseImpl(response.getCosts(), response.getGoals(), response.getRoutes());
-				if(response.getRoutes().isEmpty()) {
+		service_clients.get("get_route").call(request, new ServiceResponseListener<Message>() {
+			public void onSuccess(Message response) {
+				get_route_resp = new SemanticRouteResponseImpl(
+						((SemanticRouteResponse) response).getCosts(), 
+						((SemanticRouteResponse) response).getGoals(), 
+						((SemanticRouteResponse) response).getRoutes());
+				if(((SemanticRouteResponse) response).getRoutes().isEmpty()) {
 					get_route_resp.setCode(Code.ERROR.getCode());
 				}else {
 					get_route_resp.setCode(Code.OK.getCode());
@@ -228,17 +306,17 @@ public class RosNode extends AbstractNodeMain {
 
 	public void call_has_mesh_srv(String world, String frame) {
 		has_mesh_resp = null;
-		final HasMeshRequest request = has_mesh_c.newMessage();
+		final HasMeshRequest request = (HasMeshRequest) service_clients.get("has_mesh").newMessage();
 		request.setName(frame);
 		request.setWorld(world);
-		has_mesh_c.call(request, new ServiceResponseListener<HasMeshResponse>() {
+		service_clients.get("has_mesh").call(request, new ServiceResponseListener<Message>() {
 
 			public void onFailure(RemoteException e) {
 				throw new RosRuntimeException(e);
 			}
 
-			public void onSuccess(HasMeshResponse response) {
-				has_mesh_resp = response;
+			public void onSuccess(Message response) {
+				has_mesh_resp = (HasMeshResponse) response;
 			}
 			
 		});
@@ -246,17 +324,17 @@ public class RosNode extends AbstractNodeMain {
 	
 	public void call_visibility_score_srv(String agent, String frame) {
 		visibility_score_resp = null;
-		final VisibilityScoreRequest request = visibility_score_c.newMessage();
+		final VisibilityScoreRequest request = (VisibilityScoreRequest) service_clients.get("is_visible").newMessage();
 		request.setAgentName(agent);
 		request.setTargetName(frame);
-		visibility_score_c.call(request, new ServiceResponseListener<VisibilityScoreResponse>() {
+		service_clients.get("is_visible").call(request, new ServiceResponseListener<Message>() {
 
 			public void onFailure(RemoteException e) {
 				throw new RosRuntimeException(e);
 			}
 
-			public void onSuccess(VisibilityScoreResponse response) {
-				visibility_score_resp = response;
+			public void onSuccess(Message response) {
+				visibility_score_resp = (VisibilityScoreResponse) response;
 			}
 			
 		});
@@ -264,20 +342,20 @@ public class RosNode extends AbstractNodeMain {
 	
 	public void call_point_at_srv(String frame) {
 		point_at_resp = null;
-		final PointAtRequest request = point_at_c.newMessage();
+		final PointAtRequest request = (PointAtRequest) service_clients.get("point_at").newMessage();
 		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
 		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
 		header.setFrameId(frame);
 		point.setHeader(header);
 		request.setPoint(point);
-		point_at_c.call(request, new ServiceResponseListener<PointAtResponse>() {
+		service_clients.get("point_at").call(request, new ServiceResponseListener<Message>() {
 
 			public void onFailure(RemoteException e) {
 				throw new RosRuntimeException(e);
 			}
 
-			public void onSuccess(PointAtResponse response) {
-				point_at_resp = response;
+			public void onSuccess(Message response) {
+				point_at_resp = (PointAtResponse) response;
 			}
 			
 		});
@@ -285,21 +363,21 @@ public class RosNode extends AbstractNodeMain {
 	
 	public void call_speak_to_srv(String look_at, String text) {
 		speak_to_resp = null;
-		final SpeakToRequest request = speak_to_c.newMessage();
+		final SpeakToRequest request = (SpeakToRequest) service_clients.get("speak_to").newMessage();
 		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
 		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
 		header.setFrameId(look_at);
 		point.setHeader(header);
 		request.setLookAt(point);
 		request.setText(text);
-		speak_to_c.call(request, new ServiceResponseListener<SpeakToResponse>() {
+		service_clients.get("speak_to").call(request, new ServiceResponseListener<Message>() {
 
 			public void onFailure(RemoteException e) {
 				throw new RosRuntimeException(e);
 			}
 
-			public void onSuccess(SpeakToResponse response) {
-				speak_to_resp = response;
+			public void onSuccess(Message response) {
+				speak_to_resp = (SpeakToResponse) response;
 			}
 			
 		});
@@ -307,11 +385,11 @@ public class RosNode extends AbstractNodeMain {
 	
 	public void call_route_verbalization_srv(List<String> route, String start_place, String goal_shop) {
 		verbalization_resp = null;
-		final VerbalizeRegionRouteRequest request = route_verbalization_c.newMessage();
+		final VerbalizeRegionRouteRequest request = (VerbalizeRegionRouteRequest) service_clients.get("route_verbalization").newMessage();
 		request.setRoute(route);
 		request.setStartPlace(start_place);
 		request.setGoalShop(goal_shop);
-		route_verbalization_c.call(request, new ServiceResponseListener<VerbalizeRegionRouteResponse>() {
+		service_clients.get("route_verbalization").call(request, new ServiceResponseListener<Message>() {
 
 			@Override
 			public void onFailure(RemoteException e) {
@@ -319,8 +397,8 @@ public class RosNode extends AbstractNodeMain {
 			}
 
 			@Override
-			public void onSuccess(VerbalizeRegionRouteResponse response) {
-				verbalization_resp = response;
+			public void onSuccess(Message response) {
+				verbalization_resp = (VerbalizeRegionRouteResponse) response;
 			}
 		});
 	}

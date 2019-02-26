@@ -21,9 +21,9 @@
 //!pause_look_for_interactant.
 
 // TODO handle when place to go already frame name
-place_asked("atm").
+place_asked("burger king").
 robot_place("robot_infodesk").
-!guiding(human).
+//!guiding(human).
 //!test.
 
 /* Plans */
@@ -57,7 +57,7 @@ robot_place("robot_infodesk").
 	
 +!guiding(Human): true <- 
 	// wait for the services client to be started
-	.wait(1000); 
+	supervisor.verbose(2);
 	?place_asked(Place);
 	?robot_place(RobotPlace)
 	!get_optimal_route(RobotPlace, Place, lambda, false);

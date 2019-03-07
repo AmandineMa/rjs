@@ -37,6 +37,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
+import actionlib_msgs.GoalStatus;
 import actionlib_msgs.GoalStatusArray;
 import deictic_gestures_msgs.PointAtRequest;
 import deictic_gestures_msgs.PointAtResponse;
@@ -92,7 +93,8 @@ public class RosNode extends AbstractNodeMain {
 	private SpeakToResponse speak_to_resp;
 	private PointAtResponse point_at_resp;
 	private VerbalizeRegionRouteResponse verbalization_resp;
-	private PointingActionResult get_placements_result;
+	private PointingActionResult placements_result;
+	private PointingActionFeedback placements_fb;
 
 	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
 	private volatile int percept_id = 0;
@@ -106,11 +108,14 @@ public class RosNode extends AbstractNodeMain {
 		return GraphName.of("supervisor_clients");
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void onStart(final ConnectedNode connectedNode) {
+		this.connectedNode = connectedNode;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public void init() {
 		try {
-			this.connectedNode = connectedNode;
 			tfl = new TransformListener(connectedNode);
 			parameters = connectedNode.getParameterTree();
 			URI uri = null;
@@ -129,11 +134,27 @@ public class RosNode extends AbstractNodeMain {
 			// too many useless loginfo in the class ActionClient (modified ActionClient by amdia to add the setLogLevel method)
 			get_placements_ac.setLogLevel(Level.OFF);
 			
+			get_placements_ac.attachListener(new ActionClientListener<PointingActionFeedback, PointingActionResult>() {
+	
+				@Override
+				public void feedbackReceived(PointingActionFeedback fb) {
+					placements_fb = fb;
+				}
+	
+				@Override
+				public void resultReceived(PointingActionResult result) {
+					placements_result = result;
+				}
+	
+				@Override
+				public void statusReceived(GoalStatusArray arg0) {}
+			});
+			
 			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"), perspectives_msgs.FactArrayStamped._TYPE);
-
+	
 			facts_sub.addMessageListener(new MessageListener<perspectives_msgs.FactArrayStamped>() {
 				
-
+	
 				public void onNewMessage(FactArrayStamped facts) {
 					synchronized (perceptions) {
 						perceptions.clear();
@@ -160,26 +181,10 @@ public class RosNode extends AbstractNodeMain {
 				}
 			});
 			
-
-			ActionClientListener<PointingActionFeedback, PointingActionResult> client_listener 
-			= new ActionClientListener<PointingActionFeedback, PointingActionResult>(){
-
-				public void feedbackReceived(PointingActionFeedback arg0) {}
-
-				public void resultReceived(PointingActionResult result) {
-					get_placements_result = result;
-				}
-
-				public void statusReceived(GoalStatusArray arg0) {}
-
-
-			};
-			get_placements_ac.attachListener(client_listener);
 		} catch (ParameterNotFoundException e) {
 			logger.severe("Parameter not found exception : "+e.getMessage());
 			throw new RosRuntimeException(e);
 		}
-		
 	}
 	
 	public HashMap<String, Boolean> init_service_clients() {
@@ -201,7 +206,7 @@ public class RosNode extends AbstractNodeMain {
 	}
 	
 	private boolean create_service_client(String key, String srv_name) {
-		boolean status;
+		boolean status = false;
 		URI ls = msc.lookupService(srv_name);
 		if (ls.toString().isEmpty()) {
 			service_clients.put(key, null);
@@ -209,6 +214,7 @@ public class RosNode extends AbstractNodeMain {
 		}else {
 	        ServiceClient<Message, Message> serv_client;
 			try {
+				logger.info("connect to "+srv_name);
 				service_types.put(key, get_srv_type(srv_name));
 				serv_client = connectedNode.newServiceClient(srv_name, service_types.get(key));
 				service_clients.put(key, serv_client);	
@@ -216,7 +222,9 @@ public class RosNode extends AbstractNodeMain {
 			}catch (ServiceNotFoundException e) {
 				logger.severe("Service not found exception : "+e.getMessage());
 				throw new RosRuntimeException(e);
-			} 
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 		return status;
 	}
@@ -403,25 +411,25 @@ public class RosNode extends AbstractNodeMain {
 		});
 	}
 
-	public void call_svp_planner(String target_ld, String direction_ld, String human) {
-		get_placements_result = null;
+	public boolean call_svp_planner(String target_ld, String direction_ld, String human) {
+		placements_result = null;
+		placements_fb = null;
 		boolean serverStarted = get_placements_ac.waitForActionServerToStart(new Duration(10));
 		// TODO send info to supervisor agent
 		if (serverStarted) {
 			logger.info("Action server started.\n");
+			PointingActionGoal goal_msg;
+			goal_msg = get_placements_ac.newGoalMessage();
+			PointingGoal svp_goal = goal_msg.getGoal();
+			svp_goal.setHuman(human);
+			svp_goal.setDirectionLandmark(direction_ld);
+			svp_goal.setTargetLandmark(target_ld);
+			goal_msg.setGoal(svp_goal);
+			get_placements_ac.sendGoal(goal_msg);
+			return true;
 		} else {
 			logger.info("No actionlib svp server found ");
-		}
-		PointingActionGoal goal_msg;
-		goal_msg = get_placements_ac.newGoalMessage();
-		PointingGoal svp_goal = goal_msg.getGoal();
-		svp_goal.setHuman(human);
-		svp_goal.setDirectionLandmark(direction_ld);
-		svp_goal.setTargetLandmark(target_ld);
-		goal_msg.setGoal(svp_goal);
-		get_placements_ac.sendGoal(goal_msg);
-		while(get_placements_ac.getGoalState() != ClientState.DONE) {
-			sleep(100);
+			return false;
 		}
 	}
 	
@@ -435,11 +443,14 @@ public class RosNode extends AbstractNodeMain {
 	}
 
 
-	public PointingActionResult get_get_placements_result() {
-		return get_placements_result;
+	public PointingActionResult get_placements_result() {
+		return placements_result;
 	}
 	
-	
+	public PointingActionFeedback getPlacements_fb() {
+		return placements_fb;
+	}
+
 	public HasMeshResponse getHas_mesh_resp() {
 		return has_mesh_resp;
 	}

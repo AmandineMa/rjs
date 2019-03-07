@@ -19,6 +19,7 @@ import msg_srv_impl.RouteImpl;
 import msg_srv_impl.SemanticRouteResponseImpl;
 import ontologenius_msgs.OntologeniusServiceResponse;
 import perspectives_msgs.HasMeshResponse;
+import pointing_planner_msgs.PointingActionFeedback;
 import pointing_planner_msgs.PointingActionResult;
 import pointing_planner_msgs.VisibilityScoreResponse;
 import route_verbalization_msgs.VerbalizeRegionRouteResponse;
@@ -167,40 +168,58 @@ public class RobotAgArch extends ROSAgArch {
 				String target = params.get(0);
 				String direction = params.get(1);
 				String human = params.get(2);
-				m_rosnode.call_svp_planner(target, direction, human);
-				PointingActionResult placements_result;
-				do {
-					placements_result = m_rosnode.get_get_placements_result();
-				}while(placements_result == null);
-				if(placements_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
-					try {
-						Pose robot_pose = placements_result.getResult().getRobotPose().getPose();
-						Pose human_pose = placements_result.getResult().getHumanPose().getPose();
-						getTS().getAg().addBel(Literal.parseLiteral("robot_pos("+robot_pose.getPosition().getX()+","
-																				+robot_pose.getPosition().getY()+","
-																				+robot_pose.getPosition().getZ()+")"));
-						getTS().getAg().addBel(Literal.parseLiteral("human_pos("+human_pose.getPosition().getX()+","
-																				+human_pose.getPosition().getY()+","
-																				+human_pose.getPosition().getZ()+")"));
-						int nb_ld_to_point = placements_result.getResult().getPointedLandmarks().size();
-						if(nb_ld_to_point == 0) {
-							getTS().getAg().addBel(Literal.parseLiteral("ld_to_point(None)"));
-						} else if(nb_ld_to_point==1) {
-							getTS().getAg().addBel(Literal.parseLiteral("ld_to_point("+placements_result.getResult().getPointedLandmarks().get(0)+")"));
-						} else if(nb_ld_to_point==2){
-							getTS().getAg().addBel(Literal.parseLiteral("ld_to_point("+placements_result.getResult().getPointedLandmarks().get(0)+","
-																				  	  +placements_result.getResult().getPointedLandmarks().get(1)+")"));
+				
+				if(m_rosnode.call_svp_planner(target, direction, human)) {
+					PointingActionResult placements_result;
+					PointingActionFeedback placements_fb;
+					do {
+						placements_result = m_rosnode.get_placements_result();
+						placements_fb = m_rosnode.getPlacements_fb();
+						if(placements_fb != null) {
+							try {
+								getTS().getAg().addBel(Literal.parseLiteral("fb(svp_planner, "+placements_fb.getFeedback().getState()+")"));
+							} catch (RevisionFailedException e) {
+								e.printStackTrace();
+							}
 						}
-					} catch (RevisionFailedException e) {
-						e.printStackTrace();
+						sleep(200);
+					}while(placements_result == null);
+					
+					if(placements_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
+						try {
+							Pose robot_pose = placements_result.getResult().getRobotPose().getPose();
+							Pose human_pose = placements_result.getResult().getHumanPose().getPose();
+							getTS().getAg().addBel(Literal.parseLiteral("robot_pos("+robot_pose.getPosition().getX()+","
+																					+robot_pose.getPosition().getY()+","
+																					+robot_pose.getPosition().getZ()+")"));
+							getTS().getAg().addBel(Literal.parseLiteral("human_pos("+human_pose.getPosition().getX()+","
+																					+human_pose.getPosition().getY()+","
+																					+human_pose.getPosition().getZ()+")"));
+							int nb_ld_to_point = placements_result.getResult().getPointedLandmarks().size();
+							if(nb_ld_to_point == 0) {
+								getTS().getAg().addBel(Literal.parseLiteral("ld_to_point(None)"));
+							} else if(nb_ld_to_point==1) {
+								getTS().getAg().addBel(Literal.parseLiteral("ld_to_point("+placements_result.getResult().getPointedLandmarks().get(0)+")"));
+							} else if(nb_ld_to_point==2){
+								getTS().getAg().addBel(Literal.parseLiteral("ld_to_point("+placements_result.getResult().getPointedLandmarks().get(0)+","
+																					  	  +placements_result.getResult().getPointedLandmarks().get(1)+")"));
+							}
+						} catch (RevisionFailedException e) {
+							e.printStackTrace();
+						}
+						action.setResult(true);
+			        	actionExecuted(action);
+					}else {
+						action.setResult(false);
+						action.setFailureReason(new Atom("svp_failure"), "SVP planner goal status :"+placements_result.getStatus().getStatus());
+						actionExecuted(action);
 					}
-					action.setResult(true);
-		        	actionExecuted(action);
 				}else {
 					action.setResult(false);
-					action.setFailureReason(new Atom("svp_failure"), "SVP planner goal status :"+placements_result.getStatus().getStatus());
+					action.setFailureReason(new Atom("svp_srv_not_found"), "SVP planner action server not found");
 					actionExecuted(action);
 				}
+				
 			}else if(action_name.equals("has_mesh")) {
 				// to remove the extra ""
 				String param = action.getActionTerm().getTerm(0).toString();

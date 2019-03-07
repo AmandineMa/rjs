@@ -56,7 +56,10 @@ public class SupervisorAgArch extends ROSAgArch {
 				}else if(action_name.equals("startROSNode")){
 					m_rosnode = new RosNode("node_test");
 					nodeMainExecutor.execute(m_rosnode, nodeConfiguration);
-					sleep(500);
+					while(m_rosnode.getConnectedNode() == null) {
+						sleep(100);
+					}
+					m_rosnode.init();
 					action.setResult(true);
 		        	actionExecuted(action);
 		        	

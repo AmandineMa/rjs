@@ -1,0 +1,2 @@
+export CATKIN_PATH=/home/amayima/Projets-robot/MuMMER/Supervision
+source ${CATKIN_PATH}/devel/setup.bash

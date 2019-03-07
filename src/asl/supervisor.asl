@@ -5,6 +5,7 @@
 /* Initial goals */
 
 !start.
+//!test.
 
 /* Plans */
 //TODO check si les srv, action servers sont connectés
@@ -29,3 +30,5 @@
 	.wait(3000);
 	!retry_init_services.
 	
+
++!test : true <- .wait(500); !test.

@@ -193,7 +193,7 @@ robot_place("robot_infodesk").
 	text2speech(Human, ToSay).
 
 //+!make_human_move : too_north <- .send(human, achieve, step_forward); .wait({stepped_forward}, 2000).
-
+//+!test : true <- get_placements("burger_king","door_h20",human).
 
 //+!guiding(X, Place): interactant(X) & isPerceiving(X) <- 
 //	!get_optimal_route(Place);

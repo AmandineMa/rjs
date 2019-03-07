@@ -2,6 +2,8 @@ package supervisor;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 import org.ros.node.ConnectedNode;
@@ -16,11 +18,26 @@ public class ROSAgArch extends MindInspectorAgArch {
 	
 	static protected RosNode m_rosnode;
 	
+	protected ExecutorService executor;
+	
 	private int percept_id = -1;
 	@SuppressWarnings("unused")
 	protected Logger logger = Logger.getLogger(ROSAgArch.class.getName());
 	
 	
+	public ROSAgArch() {
+		super();
+		executor = Executors.newFixedThreadPool(4);
+	}
+	
+
+	@Override
+	public void stop() {
+		executor.shutdownNow();
+		super.stop();
+	}
+
+
 	@Override
 	public void init() {
 		setupMindInspector("gui(cycle,html,history)");    

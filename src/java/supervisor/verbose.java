@@ -16,12 +16,18 @@ public class verbose extends DefaultInternalAction {
             switch ((int)n.solve()) {
             case 0:
                 ts.getLogger().setLevel(Level.SEVERE);
+                ts.getSettings().setVerbose(0);
+                ts.getAg().setTS(ts);
                 break;
             case 1:
                 ts.getLogger().setLevel(Level.INFO);
+                ts.getSettings().setVerbose(1);
+                ts.getAg().setTS(ts);
                 break;
             case 2:
                 ts.getLogger().setLevel(Level.FINE);
+                ts.getSettings().setVerbose(2);
+                ts.getAg().setTS(ts);
                 System.out.println("*****");
                 break;
             }

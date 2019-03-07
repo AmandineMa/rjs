@@ -62,7 +62,6 @@ public class SupervisorAgArch extends ROSAgArch {
 		        	
 				}else if(action_name.equals("initServices")){
 					HashMap<String, Boolean> services_status = m_rosnode.init_service_clients();
-					sleep(10000);
 					action.setResult(true);
 					for(Entry<String, Boolean> entry : services_status.entrySet()) {
 						try { //TODO regarder pourquoi bloquant

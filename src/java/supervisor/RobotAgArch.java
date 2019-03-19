@@ -1,6 +1,7 @@
 package supervisor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -342,10 +343,66 @@ public class RobotAgArch extends ROSAgArch {
 					action.setFailureReason(new Atom("route_verba_failed"), "the route verbalization service failed");
 				}
 				actionExecuted(action);
+			} else if(action_name.equals("get_hatp_plan")){
+				String task_name = action.getActionTerm().getTerm(0).toString();
+				task_name = task_name.replaceAll("^\"|\"$", "");
+				if(action.getActionTerm().getArity() > 1) {
+					@SuppressWarnings("unchecked")
+					List<Term> parameters_temp = (List<Term>) action.getActionTerm().getTerm(1);
+					List<String> parameters = new ArrayList<>();
+					for(Term t : parameters_temp) {
+						parameters.add(t.toString());
+					}
+					m_rosnode.call_hatp_planner(task_name, "plan", parameters);
+				}else {
+					m_rosnode.call_hatp_planner(task_name, "plan");
+				}
+				hatp_msgs.Plan plan;
+				do {
+					plan = m_rosnode.getHatp_planner_resp();
+					sleep(100);
+				} while(plan == null);
+				if(plan.getReport().equals("OK")) {
+					action.setResult(true);
+					try {
+						for(hatp_msgs.Task task : plan.getTasks()) {
+							String agents = array_2_str_array(task.getAgents());
+							if(!task.getParameters().isEmpty()) {
+								String parameters = array_2_str_array(task.getParameters());
+								getTS().getAg().addBel(Literal.parseLiteral("task("+task.getId()+","+task.getType()+","
+										+task.getName()+","+agents+","+parameters+","+task.getCost()+")"));
+							}else {
+								getTS().getAg().addBel(Literal.parseLiteral("task("+task.getId()+","+task.getType()+","
+																			+task.getName()+","+agents+","+task.getCost()+")"));
+							}					
+						}
+						for(hatp_msgs.StreamNode stream : plan.getStreams()) {
+							String belief = "stream("+stream.getTaskId();
+							if(stream.getPredecessors().length != 0) {
+								String pred = array_2_str_array(stream.getPredecessors());
+								belief = belief+","+pred;
+							}
+							if(stream.getSuccessors().length != 0) {
+								String succ = array_2_str_array(stream.getSuccessors());
+								belief = belief+","+succ;
+							}
+							belief = belief+")";
+							getTS().getAg().addBel(Literal.parseLiteral(belief));
+						}
+					} catch (RevisionFailedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}else {
+					action.setResult(false);
+					action.setFailureReason(new Atom("no_plan_found"), "hatp planner could not find any feasible plan");
+				}
+				actionExecuted(action);
 			} 
 			else {
 					action.setResult(false);
 					action.setFailureReason(new Atom("act_not_found"), "no action "+action_name+" is implemented");
+					actionExecuted(action);
 				}
 				
 			}
@@ -354,6 +411,31 @@ public class RobotAgArch extends ROSAgArch {
     	
     }
     
+    private String array_2_str_array(List<String> array) {
+    	String str_array = new String();
+    	for(String str : array) {
+			if(str_array.isEmpty()) {
+				str_array = str;
+			}else {
+				str_array = str_array+","+str;
+			}
+		}
+    	str_array = "["+str_array+"]";
+    	return str_array;
+    }
+    
+    private String array_2_str_array(int[] array) {
+    	String str_array = new String();
+    	for(int i : array) {
+			if(str_array.isEmpty()) {
+				str_array = String.valueOf(i);
+			}else {
+				str_array = str_array+","+String.valueOf(i);
+			}
+		}
+    	str_array = "["+str_array+"]";
+    	return str_array;
+    }
     
     public RouteImpl select_best_route(List<SemanticRouteResponse> routes_resp_list) {
     	RouteImpl best_route = new RouteImpl();

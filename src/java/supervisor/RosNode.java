@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,8 @@ import actionlib_msgs.GoalStatusArray;
 import deictic_gestures_msgs.PointAtRequest;
 import deictic_gestures_msgs.PointAtResponse;
 import geometry_msgs.PointStamped;
+import hatp_msgs.PlanningRequestRequest;
+import hatp_msgs.PlanningRequestResponse;
 import msg_srv_impl.SemanticRouteResponseImpl;
 import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceRequest;
@@ -93,6 +96,7 @@ public class RosNode extends AbstractNodeMain {
 	private SpeakToResponse speak_to_resp;
 	private PointAtResponse point_at_resp;
 	private VerbalizeRegionRouteResponse verbalization_resp;
+	private hatp_msgs.Plan hatp_planner_resp;
 	private PointingActionResult placements_result;
 	private PointingActionFeedback placements_fb;
 
@@ -410,6 +414,35 @@ public class RosNode extends AbstractNodeMain {
 			}
 		});
 	}
+	
+	public void call_hatp_planner(String task, String type) {
+		call_hatp_planner(task, type, new ArrayList<String>());
+	}
+	
+	public void call_hatp_planner(String task, String type, List<String> parameters) {
+		hatp_planner_resp = null;
+		final PlanningRequestRequest request = (PlanningRequestRequest) service_clients.get("hatp_planner").newMessage();
+		hatp_msgs.Request r_request = connectedNode.getTopicMessageFactory().newFromType(hatp_msgs.Request._TYPE);
+		r_request.setTask(task);
+		r_request.setType(type);
+		if(!parameters.isEmpty()) {
+			r_request.setParameters(parameters);
+		}
+		request.setRequest(r_request);
+		service_clients.get("hatp_planner").call(request, new ServiceResponseListener<Message>() {
+
+			@Override
+			public void onSuccess(Message response) {
+				PlanningRequestResponse resp = (PlanningRequestResponse) response;
+				hatp_planner_resp = resp.getSolution();
+			}
+
+			@Override
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+			}
+		});
+	}
 
 	public boolean call_svp_planner(String target_ld, String direction_ld, String human) {
 		placements_result = null;
@@ -470,6 +503,10 @@ public class RosNode extends AbstractNodeMain {
 
 	public VerbalizeRegionRouteResponse getVerbalization_resp() {
 		return verbalization_resp;
+	}
+
+	public hatp_msgs.Plan getHatp_planner_resp() {
+		return hatp_planner_resp;
 	}
 
 	public Multimap<String, SimpleFact> getPerceptions() {

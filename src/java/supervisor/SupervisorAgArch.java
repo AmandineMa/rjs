@@ -67,7 +67,7 @@ public class SupervisorAgArch extends ROSAgArch {
 					HashMap<String, Boolean> services_status = m_rosnode.init_service_clients();
 					action.setResult(true);
 					for(Entry<String, Boolean> entry : services_status.entrySet()) {
-						try { //TODO regarder pourquoi bloquant
+						try {
 							if(entry.getValue()) {
 								getTS().getAg().addBel(Literal.parseLiteral("connected_srv("+entry.getKey()+")"));
 							}else {

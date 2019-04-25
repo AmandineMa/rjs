@@ -7,8 +7,9 @@ MAS supervisor {
 //	executionControl: jason.control.ExecutionControlGUI
 
 	agents:
+		history;
 //		human [verbose=2] beliefBaseClass supervisor.TimeBB agentArchClass supervisor.HumanAgArch;
-		supervisor [verbose=2] agentArchClass supervisor.SupervisorAgArch beliefBaseClass supervisor.TimeBB;
+		supervisor [verbose=1] agentArchClass supervisor.SupervisorAgArch beliefBaseClass supervisor.TimeBB;
 //		robot [verbose=2]
 //			  beliefBaseClass supervisor.TimeBB
 //			  agentArchClass supervisor.RobotAgArch;

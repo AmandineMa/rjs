@@ -33,15 +33,17 @@ import org.ros.rosjava.tf.pubsub.TransformListener;
 
 import com.github.rosjava_actionlib.ActionClient;
 import com.github.rosjava_actionlib.ActionClientListener;
-import com.github.rosjava_actionlib.ClientState;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
-import actionlib_msgs.GoalStatus;
 import actionlib_msgs.GoalStatusArray;
 import deictic_gestures_msgs.PointAtRequest;
 import deictic_gestures_msgs.PointAtResponse;
+import dialogue_as.dialogue_actionActionFeedback;
+import dialogue_as.dialogue_actionActionGoal;
+import dialogue_as.dialogue_actionActionResult;
+import dialogue_as.dialogue_actionGoal;
 import geometry_msgs.PointStamped;
 import hatp_msgs.PlanningRequestRequest;
 import hatp_msgs.PlanningRequestResponse;
@@ -88,6 +90,7 @@ public class RosNode extends AbstractNodeMain {
 	private HashMap <String, ServiceClient<Message, Message>> service_clients;
 	private HashMap <String, String> service_types;
 	private ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult> get_placements_ac;
+	private ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult> get_human_answer_ac;
 	private Subscriber<perspectives_msgs.FactArrayStamped> facts_sub;
 	private OntologeniusServiceResponse onto_individual_resp;
 	private SemanticRouteResponseImpl get_route_resp;
@@ -99,6 +102,8 @@ public class RosNode extends AbstractNodeMain {
 	private hatp_msgs.Plan hatp_planner_resp;
 	private PointingActionResult placements_result;
 	private PointingActionFeedback placements_fb;
+	private dialogue_actionActionResult listening_result;
+	private dialogue_actionActionFeedback listening_fb; 
 
 	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
 	private volatile int percept_id = 0;
@@ -133,8 +138,8 @@ public class RosNode extends AbstractNodeMain {
 			service_types = new HashMap <String, String>();
 			services_map = (HashMap<String, String>) parameters.getMap("/guiding/services");
 			
-			get_placements_ac = new ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult>
-			(connectedNode, parameters.getString("/guiding/action_servers/pointing_planner"), PointingActionGoal._TYPE, PointingActionFeedback._TYPE, PointingActionResult._TYPE);
+			get_placements_ac = new ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult>(
+					connectedNode, parameters.getString("/guiding/action_servers/pointing_planner"), PointingActionGoal._TYPE, PointingActionFeedback._TYPE, PointingActionResult._TYPE);
 			// too many useless loginfo in the class ActionClient (modified ActionClient by amdia to add the setLogLevel method)
 			get_placements_ac.setLogLevel(Level.OFF);
 			
@@ -152,6 +157,38 @@ public class RosNode extends AbstractNodeMain {
 	
 				@Override
 				public void statusReceived(GoalStatusArray arg0) {}
+			});
+			
+			get_human_answer_ac = new ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult>(
+					connectedNode, parameters.getString("/guiding/action_servers/dialogue"), dialogue_actionActionGoal._TYPE, dialogue_actionActionFeedback._TYPE, dialogue_actionActionResult._TYPE);
+			
+			get_human_answer_ac.setLogLevel(Level.OFF);
+			
+			get_human_answer_ac.attachListener(new ActionClientListener<dialogue_actionActionFeedback, dialogue_actionActionResult>() {
+
+				@Override
+				public void feedbackReceived(dialogue_actionActionFeedback fb) {
+					listening_fb = fb;
+				}
+
+				@Override
+				public void resultReceived(dialogue_actionActionResult result) {
+					listening_result = result;
+					if(result.getStatus().getStatus()==actionlib_msgs.GoalStatus.SUCCEEDED) {
+						logger.info("result succeeded :"+result.getResult().getSubject());
+					}
+					if(result.getStatus().getStatus()==actionlib_msgs.GoalStatus.PREEMPTED) {
+						logger.info("result preempted");
+					}
+					
+					
+				}
+
+				@Override
+				public void statusReceived(GoalStatusArray arg0) {
+					// TODO Auto-generated method stub
+					
+				}
 			});
 			
 			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"), perspectives_msgs.FactArrayStamped._TYPE);
@@ -450,7 +487,7 @@ public class RosNode extends AbstractNodeMain {
 		boolean serverStarted = get_placements_ac.waitForActionServerToStart(new Duration(10));
 		// TODO send info to supervisor agent
 		if (serverStarted) {
-			logger.info("Action server started.\n");
+			logger.info("SVP Planner action server started.\n");
 			PointingActionGoal goal_msg;
 			goal_msg = get_placements_ac.newGoalMessage();
 			PointingGoal svp_goal = goal_msg.getGoal();
@@ -462,6 +499,39 @@ public class RosNode extends AbstractNodeMain {
 			return true;
 		} else {
 			logger.info("No actionlib svp server found ");
+			return false;
+		}
+	}
+	
+	public boolean call_dialogue_as(List<String> subjects) {
+		return call_dialogue_as(subjects, new ArrayList<String>());
+	}
+	
+	public boolean call_dialogue_as(List<String> subjects, List<String> verbs) {
+		listening_fb = null;
+		listening_result =  null;
+		logger.info("wait to start");
+		boolean serverStarted = get_human_answer_ac.waitForActionServerToStart(new Duration(10));
+		if(serverStarted) {
+			logger.info("dialogue started");
+			dialogue_actionActionGoal goal_msg;
+			goal_msg = get_human_answer_ac.newGoalMessage();
+			dialogue_actionGoal listen_goal = goal_msg.getGoal();
+			if(!subjects.isEmpty()) {
+				listen_goal.setSubjects(subjects);
+			}else {
+				listen_goal.setEnableOnlyVerb(true);
+			}
+			if(!verbs.isEmpty()) {
+				listen_goal.setVerbs(verbs);
+			}else {
+				listen_goal.setEnableOnlySubject(true);
+			}
+			goal_msg.setGoal(listen_goal);
+			get_human_answer_ac.sendGoal(goal_msg);
+			return true;
+		}else {
+			logger.info("No actionlib dialogue server found ");
 			return false;
 		}
 	}
@@ -482,6 +552,14 @@ public class RosNode extends AbstractNodeMain {
 	
 	public PointingActionFeedback getPlacements_fb() {
 		return placements_fb;
+	}
+
+	public dialogue_actionActionResult getListening_result() {
+		return listening_result;
+	}
+
+	public dialogue_actionActionFeedback getListening_fb() {
+		return listening_fb;
 	}
 
 	public HasMeshResponse getHas_mesh_resp() {

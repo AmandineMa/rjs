@@ -23,7 +23,7 @@ guiding:
 #    start_fact: /uwds_ros_bridge/start_fact
 #    end_fact: /uwds_ros_bridge/end_fact
     find_alternate_id: /multimodal_human_monitor/find_alternate_id
-    hatp_planner: /hatp/planner
+#    hatp_planner: /hatp/planner
 #    dialogue_inform: /rpn_supervision_server/inform
 #    dialogue_query: /rpn_supervision_server/query
 
@@ -40,7 +40,7 @@ guiding:
   action_servers:
     move_to: m_move_to
     rotate: m_rotate
-#    dialogue: dialogue_as
+    dialogue: dialogue_as
     pointing_planner: pointing_planner/PointingPlanner
 
   tuning_param:

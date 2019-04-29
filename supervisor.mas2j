@@ -1,18 +1,14 @@
 MAS supervisor {
 
-	infrastructure: Centralised
+	infrastructure: Centralised(threaded,1,5,5)
 
 //	environment: Simu
 	
 //	executionControl: jason.control.ExecutionControlGUI
 
 	agents:
-		history;
-//		human [verbose=2] beliefBaseClass supervisor.TimeBB agentArchClass supervisor.HumanAgArch;
 		supervisor [verbose=1] agentArchClass supervisor.SupervisorAgArch beliefBaseClass supervisor.TimeBB;
-//		robot [verbose=2]
-//			  beliefBaseClass supervisor.TimeBB
-//			  agentArchClass supervisor.RobotAgArch;
+		history [verbose=1] agentArchClass supervisor.ROSAgArch beliefBaseClass supervisor.TimeBB;
 		
 
 	aslSourcePath:

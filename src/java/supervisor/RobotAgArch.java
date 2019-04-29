@@ -13,6 +13,7 @@ import geometry_msgs.Pose;
 import jason.RevisionFailedException;
 import jason.asSemantics.ActionExec;
 import jason.asSemantics.Message;
+import jason.asSemantics.Unifier;
 import jason.asSyntax.Atom;
 import jason.asSyntax.ListTerm;
 import jason.asSyntax.ListTermImpl;
@@ -297,14 +298,25 @@ public class RobotAgArch extends ROSAgArch {
 					String human = action.getActionTerm().getTerm(0).toString();
 					human = human.replaceAll("^\"|\"$", "");
 					Literal bel = (Literal) action.getActionTerm().getTerm(1);
-					String text;
+					String text = "";
 					String bel_functor = bel.getFunctor();
+					String bel_arg = bel.getTerms().get(0).toString();
 					switch(bel_functor) {
 					case "should_look_place": text = new String("Look "+bel.getTerm(0)+" over there"); break;
 					case "should_look_orientation": text = new String("You should look a bit more at the "+bel.getTerm(0)); break;
 					case "able_to_see": text = new String("I note that you must be looking at the place right now"); break;
 					case "route_verbalization" : text = bel.getTerm(0).toString().replaceAll("^\"|\"$", ""); break;
 					case "no_place" : text = new String("The place you asked for does not exist"); break;
+					case "retire" : 
+						switch(bel_arg) {
+						case "unknown_words" : text = new String("You didn't told me a place where I can guide you. "); break;
+						}
+						if(!text.isEmpty()) {
+							text = text + new String("Let's play now!"); break;
+						}else {
+							text = new String("Let's play now!"); break;
+						}
+					case "failure" : text = new String("My component for "+bel_arg+" has crashed"); break;
 					default : action.setResult(false); action.setFailureReason(new Atom("unknown_string"), "no speech to say"); actionExecuted(action); return;
 					}
 					m_rosnode.call_speak_to_srv(human, text);
@@ -361,18 +373,32 @@ public class RobotAgArch extends ROSAgArch {
 						dialogue_actionActionResult listening_result;
 						dialogue_actionActionFeedback listening_fb;
 						dialogue_actionActionFeedback listening_fb_prev = null;
-
+						int count = 0;
 						do {
 							listening_result = m_rosnode.getListening_result();
 							listening_fb = m_rosnode.getListening_fb();
 							if(listening_fb != null & listening_fb != listening_fb_prev) {
-								logger.info("not expected answer");
+								try {
+									getTS().getAg().abolish(Literal.parseLiteral("not_exp_ans(_)"), new Unifier());
+									getTS().getAg().addBel(Literal.parseLiteral("not_exp_ans("+Integer.toString(count)+")["+running_task_name+","+current_human+"]"));
+								} catch (RevisionFailedException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+								count += 1;
 								listening_fb_prev = listening_fb;
 							}
 							sleep(200);
 						}while(listening_result == null);
 						if(listening_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
 							logger.info("human said :"+listening_result.getResult().getSubject());
+							
+							try {
+								getTS().getAg().addBel(Literal.parseLiteral("listen_result("+listening_result.getResult().getSubject()+")["+running_task_name+","+current_human+"]"));
+							} catch (RevisionFailedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
 							action.setResult(true);
 						}else {
 							action.setResult(false);
@@ -380,9 +406,16 @@ public class RobotAgArch extends ROSAgArch {
 							if(listening_result.getStatus().getStatus() == GoalStatus.PREEMPTED)
 								logger.info("dialogue_as preempted");
 						}
+					}else {
+						action.setResult(false);
+						action.setFailureReason(new Atom("dialogue_as_not_found"), "");
 					}
 					actionExecuted(action);
-				} else if(action_name.equals("get_hatp_plan")){
+				} else if(action_name.equals("stop_listen")) {
+					m_rosnode.cancel_goal_dialogue();
+					action.setResult(true);
+					actionExecuted(action);
+				}else if(action_name.equals("get_hatp_plan")){
 					String task_name = action.getActionTerm().getTerm(0).toString();
 					task_name = task_name.replaceAll("^\"|\"$", "");
 					if(action.getActionTerm().getArity() > 1) {

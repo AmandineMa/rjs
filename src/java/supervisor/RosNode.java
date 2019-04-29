@@ -21,6 +21,7 @@ import org.ros.internal.message.Message;
 import org.ros.master.client.MasterStateClient;
 import org.ros.message.Duration;
 import org.ros.message.MessageListener;
+import org.ros.message.Time;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
@@ -33,10 +34,12 @@ import org.ros.rosjava.tf.pubsub.TransformListener;
 
 import com.github.rosjava_actionlib.ActionClient;
 import com.github.rosjava_actionlib.ActionClientListener;
+import com.github.rosjava_actionlib.GoalIDGenerator;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
+import actionlib_msgs.GoalID;
 import actionlib_msgs.GoalStatusArray;
 import deictic_gestures_msgs.PointAtRequest;
 import deictic_gestures_msgs.PointAtResponse;
@@ -104,6 +107,7 @@ public class RosNode extends AbstractNodeMain {
 	private PointingActionFeedback placements_fb;
 	private dialogue_actionActionResult listening_result;
 	private dialogue_actionActionFeedback listening_fb; 
+	private dialogue_actionActionGoal listen_goal_msg;
 
 	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
 	private volatile int percept_id = 0;
@@ -514,9 +518,9 @@ public class RosNode extends AbstractNodeMain {
 		boolean serverStarted = get_human_answer_ac.waitForActionServerToStart(new Duration(10));
 		if(serverStarted) {
 			logger.info("dialogue started");
-			dialogue_actionActionGoal goal_msg;
-			goal_msg = get_human_answer_ac.newGoalMessage();
-			dialogue_actionGoal listen_goal = goal_msg.getGoal();
+			
+			listen_goal_msg = get_human_answer_ac.newGoalMessage();
+			dialogue_actionGoal listen_goal = listen_goal_msg.getGoal();
 			if(!subjects.isEmpty()) {
 				listen_goal.setSubjects(subjects);
 			}else {
@@ -527,13 +531,21 @@ public class RosNode extends AbstractNodeMain {
 			}else {
 				listen_goal.setEnableOnlySubject(true);
 			}
-			goal_msg.setGoal(listen_goal);
-			get_human_answer_ac.sendGoal(goal_msg);
+			listen_goal_msg.setGoal(listen_goal);
+			
+			get_human_answer_ac.sendGoal(listen_goal_msg);
+//			logger.info(listen_goal_msg.getGoalId().toString());
+			logger.info(listen_goal_msg.getGoalId().getId());
+			logger.info(listen_goal_msg.getGoalId().getStamp().toString());
 			return true;
 		}else {
 			logger.info("No actionlib dialogue server found ");
 			return false;
 		}
+	}
+	
+	public void cancel_goal_dialogue() {
+		get_human_answer_ac.sendCancel(listen_goal_msg.getGoalId());
 	}
 	
 

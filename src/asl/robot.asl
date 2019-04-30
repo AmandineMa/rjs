@@ -96,7 +96,9 @@ robot_place("robot_infodesk").
 		?task(_, Human, Param);
 		!speak(Human, no_place(Param));
 		?shop_names(X);
-		listen(X);
+		.concat(X, ["atm", "toilet"], Y);
+		// listen to places in the ontology
+		listen(Y);
 		?listen_result(Word);
 		!get_optimal_route(Word);
 	}.
@@ -117,6 +119,7 @@ robot_place("robot_infodesk").
   		!fail_current_task;
   	}.	
 	
+
 +!handle_atm_toilet(To): true <- 
 	supervisor.toilet_or_atm(To, AorT);
 	// add belief possible_places
@@ -125,7 +128,7 @@ robot_place("robot_infodesk").
 -!handle_atm_toilet(To):true <- true.
 
 	
-+not_exp_ans(4) : true <-
++not_exp_ans(2) : true <-
 	!fail_current_task;
 	stop_listen;
 	!speak(Human, retire(unknown_words)).

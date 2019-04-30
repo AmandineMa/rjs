@@ -1,15 +1,18 @@
 package supervisor;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
+
+import org.ros.message.MessageFactory;
+import org.ros.node.NodeConfiguration;
 
 import actionlib_msgs.GoalStatus;
 import deictic_gestures_msgs.PointAtResponse;
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionResult;
-import geometry_msgs.Pose;
+import geometry_msgs.PoseStamped;
 import jason.RevisionFailedException;
 import jason.asSemantics.ActionExec;
 import jason.asSemantics.Message;
@@ -18,8 +21,12 @@ import jason.asSyntax.Atom;
 import jason.asSyntax.ListTerm;
 import jason.asSyntax.ListTermImpl;
 import jason.asSyntax.Literal;
+import jason.asSyntax.NumberTermImpl;
 import jason.asSyntax.StringTermImpl;
 import jason.asSyntax.Term;
+import move_base_msgs.MoveBaseActionFeedback;
+import move_base_msgs.MoveBaseActionResult;
+import msg_srv_impl.PoseCustom;
 import msg_srv_impl.RouteImpl;
 import msg_srv_impl.SemanticRouteResponseImpl;
 import ontologenius_msgs.OntologeniusServiceResponse;
@@ -182,29 +189,27 @@ public class RobotAgArch extends ROSAgArch {
 					if(m_rosnode.call_svp_planner(target, direction, human)) {
 						PointingActionResult placements_result;
 						PointingActionFeedback placements_fb;
+						PointingActionFeedback placements_fb_prev = null;
 						do {
 							placements_result = m_rosnode.get_placements_result();
 							placements_fb = m_rosnode.getPlacements_fb();
-							if(placements_fb != null) {
+							if(placements_fb != null & placements_fb != placements_fb_prev) {
 								try {
 									getTS().getAg().addBel(Literal.parseLiteral("fb(svp_planner, "+placements_fb.getFeedback().getState()+")["+running_task_name+","+current_human+"]"));
 								} catch (RevisionFailedException e) {
 									e.printStackTrace();
 								}
+								placements_fb_prev = placements_fb;
 							}
 							sleep(200);
 						}while(placements_result == null);
 
 						if(placements_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
 							try {
-								Pose robot_pose = placements_result.getResult().getRobotPose().getPose();
-								Pose human_pose = placements_result.getResult().getHumanPose().getPose();
-								getTS().getAg().addBel(Literal.parseLiteral("robot_pos("+robot_pose.getPosition().getX()+","
-										+robot_pose.getPosition().getY()+","
-										+robot_pose.getPosition().getZ()+")["+running_task_name+","+current_human+"]"));
-								getTS().getAg().addBel(Literal.parseLiteral("human_pos("+human_pose.getPosition().getX()+","
-										+human_pose.getPosition().getY()+","
-										+human_pose.getPosition().getZ()+")["+running_task_name+","+current_human+"]"));
+								PoseCustom robot_pose = new PoseCustom(placements_result.getResult().getRobotPose().getPose());
+								PoseCustom human_pose = new PoseCustom(placements_result.getResult().getHumanPose().getPose());
+								getTS().getAg().addBel(Literal.parseLiteral("robot_pose("+robot_pose.toString()+")["+running_task_name+","+current_human+"]"));
+								getTS().getAg().addBel(Literal.parseLiteral("human_pose("+human_pose.toString()+")["+running_task_name+","+current_human+"]"));
 								int nb_ld_to_point = placements_result.getResult().getPointedLandmarks().size();
 								if(nb_ld_to_point == 0) {
 									getTS().getAg().addBel(Literal.parseLiteral("ld_to_point(None)["+running_task_name+","+current_human+"]"));
@@ -306,7 +311,7 @@ public class RobotAgArch extends ROSAgArch {
 					case "should_look_orientation": text = new String("You should look a bit more at the "+bel.getTerm(0)); break;
 					case "able_to_see": text = new String("I note that you must be looking at the place right now"); break;
 					case "route_verbalization" : text = bel.getTerm(0).toString().replaceAll("^\"|\"$", ""); break;
-					case "no_place" : text = new String("The place you asked for does not exist"); break;
+					case "no_place" : text = new String("The place you asked for does not exist. Do you want to go somewhere else ?"); break;
 					case "retire" : 
 						switch(bel_arg) {
 						case "unknown_words" : text = new String("You didn't told me a place where I can guide you. "); break;
@@ -390,9 +395,7 @@ public class RobotAgArch extends ROSAgArch {
 							}
 							sleep(200);
 						}while(listening_result == null);
-						if(listening_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
-							logger.info("human said :"+listening_result.getResult().getSubject());
-							
+						if(listening_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {						
 							try {
 								getTS().getAg().addBel(Literal.parseLiteral("listen_result("+listening_result.getResult().getSubject()+")["+running_task_name+","+current_human+"]"));
 							} catch (RevisionFailedException e) {
@@ -415,6 +418,50 @@ public class RobotAgArch extends ROSAgArch {
 					m_rosnode.cancel_goal_dialogue();
 					action.setResult(true);
 					actionExecuted(action);
+				} else if(action_name.equals("move_to")) {
+					Iterator<Term> action_term_it =  ((ListTermImpl) action.getActionTerm().getTerm(0)).iterator();
+					List<Double> pose_values = new ArrayList<>();
+					while(action_term_it.hasNext()) {
+						pose_values.add(((NumberTermImpl)action_term_it.next()).solve());
+					}
+					PoseCustom pose = new PoseCustom(pose_values);
+					NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
+					MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+					PoseStamped pose_stamped = messageFactory.newFromType(PoseStamped._TYPE);
+					pose_stamped.setPose(pose.getPose());
+					if(m_rosnode.call_move_to_as(pose_stamped)) {
+						MoveBaseActionResult move_to_result;
+						MoveBaseActionFeedback move_to_fb;
+						do {
+							move_to_result = m_rosnode.getMove_to_result();
+							move_to_fb = m_rosnode.getMove_to_fb();
+							if(move_to_fb != null) {
+								try {
+									getTS().getAg().addBel(Literal.parseLiteral("fb(move_to, "+move_to_fb.getFeedback().getBasePosition().getPose().getPosition().getX()+","+
+											move_to_fb.getFeedback().getBasePosition().getPose().getPosition().getY()+","+
+											move_to_fb.getFeedback().getBasePosition().getPose().getPosition().getZ()+")["+running_task_name+","+current_human+"]"));
+								} catch (RevisionFailedException e) {
+									e.printStackTrace();
+								}
+							}
+							sleep(200);
+						}while(move_to_result == null);
+						if(move_to_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
+							try {
+								getTS().getAg().addBel(Literal.parseLiteral("move_goal_reached"));
+							} catch (RevisionFailedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							action.setResult(true);
+						}else {
+							action.setResult(false);
+							action.setFailureReason(new Atom("move_failed"), "");
+						}
+					}else {
+						action.setResult(false);
+						action.setFailureReason(new Atom("move_to_as_not_found"), "");
+					}
 				}else if(action_name.equals("get_hatp_plan")){
 					String task_name = action.getActionTerm().getTerm(0).toString();
 					task_name = task_name.replaceAll("^\"|\"$", "");

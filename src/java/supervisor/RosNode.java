@@ -20,11 +20,12 @@ import org.ros.exception.ServiceNotFoundException;
 import org.ros.internal.message.Message;
 import org.ros.master.client.MasterStateClient;
 import org.ros.message.Duration;
+import org.ros.message.MessageFactory;
 import org.ros.message.MessageListener;
-import org.ros.message.Time;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
+import org.ros.node.NodeConfiguration;
 import org.ros.node.parameter.ParameterTree;
 import org.ros.node.service.ServiceClient;
 import org.ros.node.service.ServiceResponseListener;
@@ -34,12 +35,10 @@ import org.ros.rosjava.tf.pubsub.TransformListener;
 
 import com.github.rosjava_actionlib.ActionClient;
 import com.github.rosjava_actionlib.ActionClientListener;
-import com.github.rosjava_actionlib.GoalIDGenerator;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
-import actionlib_msgs.GoalID;
 import actionlib_msgs.GoalStatusArray;
 import deictic_gestures_msgs.PointAtRequest;
 import deictic_gestures_msgs.PointAtResponse;
@@ -48,8 +47,13 @@ import dialogue_as.dialogue_actionActionGoal;
 import dialogue_as.dialogue_actionActionResult;
 import dialogue_as.dialogue_actionGoal;
 import geometry_msgs.PointStamped;
+import geometry_msgs.PoseStamped;
 import hatp_msgs.PlanningRequestRequest;
 import hatp_msgs.PlanningRequestResponse;
+import move_base_msgs.MoveBaseActionFeedback;
+import move_base_msgs.MoveBaseActionGoal;
+import move_base_msgs.MoveBaseActionResult;
+import move_base_msgs.MoveBaseGoal;
 import msg_srv_impl.SemanticRouteResponseImpl;
 import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceRequest;
@@ -94,6 +98,7 @@ public class RosNode extends AbstractNodeMain {
 	private HashMap <String, String> service_types;
 	private ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult> get_placements_ac;
 	private ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult> get_human_answer_ac;
+	private ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult> move_to_ac;
 	private Subscriber<perspectives_msgs.FactArrayStamped> facts_sub;
 	private OntologeniusServiceResponse onto_individual_resp;
 	private SemanticRouteResponseImpl get_route_resp;
@@ -108,6 +113,8 @@ public class RosNode extends AbstractNodeMain {
 	private dialogue_actionActionResult listening_result;
 	private dialogue_actionActionFeedback listening_fb; 
 	private dialogue_actionActionGoal listen_goal_msg;
+	private MoveBaseActionResult move_to_result;
+	private MoveBaseActionFeedback move_to_fb;
 
 	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
 	private volatile int percept_id = 0;
@@ -189,11 +196,33 @@ public class RosNode extends AbstractNodeMain {
 				}
 
 				@Override
-				public void statusReceived(GoalStatusArray arg0) {
-					// TODO Auto-generated method stub
+				public void statusReceived(GoalStatusArray arg0) {}
+			});
+			
+			move_to_ac = new ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult>(
+					connectedNode, parameters.getString("/guiding/action_servers/move_to"), MoveBaseActionGoal._TYPE, MoveBaseActionFeedback._TYPE, MoveBaseActionResult._TYPE);
+			
+			move_to_ac.setLogLevel(Level.OFF);
+			
+			move_to_ac.attachListener(new ActionClientListener<MoveBaseActionFeedback, MoveBaseActionResult>() {
+
+				@Override
+				public void feedbackReceived(MoveBaseActionFeedback fb) {
+					move_to_fb = fb;
 					
 				}
+
+				@Override
+				public void resultReceived(MoveBaseActionResult result) {
+					move_to_result = result;
+					
+				}
+
+				@Override
+				public void statusReceived(GoalStatusArray arg0) {
+				}
 			});
+			
 			
 			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"), perspectives_msgs.FactArrayStamped._TYPE);
 	
@@ -507,6 +536,32 @@ public class RosNode extends AbstractNodeMain {
 		}
 	}
 	
+	
+	public boolean call_move_to_as(PoseStamped pose) {
+		move_to_fb = null;
+		move_to_result = null;
+		logger.info("wait to start");
+		boolean serverStarted = move_to_ac.waitForActionServerToStart(new Duration(10));
+		if(serverStarted) {
+			logger.info("move to as started");
+			
+			MoveBaseActionGoal goal_msg;
+			goal_msg = move_to_ac.newGoalMessage();
+			
+			NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
+			MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+			MoveBaseGoal move_to_goal = messageFactory.newFromType(MoveBaseGoal._TYPE);;
+			move_to_goal.setTargetPose(pose);
+			goal_msg.setGoal(move_to_goal);
+			move_to_ac.sendGoal(goal_msg);
+			return true;
+		}else {
+			logger.info("No actionlib move_to server found ");
+			return false;
+		}
+			
+			
+	}
 	public boolean call_dialogue_as(List<String> subjects) {
 		return call_dialogue_as(subjects, new ArrayList<String>());
 	}
@@ -544,6 +599,8 @@ public class RosNode extends AbstractNodeMain {
 		}
 	}
 	
+
+	
 	public void cancel_goal_dialogue() {
 		get_human_answer_ac.sendCancel(listen_goal_msg.getGoalId());
 	}
@@ -572,6 +629,14 @@ public class RosNode extends AbstractNodeMain {
 
 	public dialogue_actionActionFeedback getListening_fb() {
 		return listening_fb;
+	}
+
+	public MoveBaseActionResult getMove_to_result() {
+		return move_to_result;
+	}
+
+	public MoveBaseActionFeedback getMove_to_fb() {
+		return move_to_fb;
 	}
 
 	public HasMeshResponse getHas_mesh_resp() {

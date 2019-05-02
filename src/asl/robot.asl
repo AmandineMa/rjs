@@ -16,8 +16,7 @@ robot_place("robot_infodesk").
 /* Plans */
 
 +!init : true <- 
-	supervisor.verbose(2);
-//	// get shops list from ontology
+	// get shops list from ontology
 	get_onto_individual_info(getType, shop, shops);
 	?shops(Shops);
 	for(.member(X, Shops)){
@@ -52,6 +51,8 @@ robot_place("robot_infodesk").
 
 +!goal_negociation(guiding, Place): true <-
 	!get_optimal_route(Place).
+	
+/******* get route **********/	
 	
 +!get_optimal_route(Place): not failure(get_optimal_route) <-
 	// special handling if the place to go is toilet or atm
@@ -132,6 +133,56 @@ robot_place("robot_infodesk").
 	!fail_current_task;
 	stop_listen;
 	!speak(Human, retire(unknown_words)).
+	
+/*******  go to see target **********/	
+
++!go_to_see_target(Human) : true <- 
+	!get_placements(Human).
+	
++!get_placements(Human): true <-
+	?target_place(TargetLD);
+	// if there is a direction
+	if(.count((direction(_)),I) & I > 0){
+		?direction(Dir);
+		get_placements(TargetLD,Dir,Human);
+	}else{
+		get_placements(TargetLD,"",Human);
+	}
+	!be_at_good_pos(Human).
+	
++!be_at_good_pos(Human) : true <- 
+	?robot_pose(Rframe,Rposit, Rorient);
+	move_to(Rframe,Rposit, Rorient);
+	?human_pose(Hframe,Hposit,_);
+	supervisor.get_transform(map, Human, Point,_);
+	.nth(2, Point, Z);
+	supervisor.replace(2, Hposit, Z, Pointf);
+	look_at(Hframe,Pointf);
+	!wait_human(Human).
+
++!wait_human(Human) : true <- 
+	if(.count((isPerceiving(robot, Human)),I) & I == 0){
+		.wait({+isPerceiving(robot,Human)},4000);
+		
+	}
+	if(.count((dir_to_point(D)),I) & I > 0){
+		can_be_visible(Human, D);
+	}
+	if(.count((target_to_point(T)),I) & I > 0){
+		can_be_visible(Human, T);
+	}.
+	
+-!wait_human(Human)[Failure, code(_),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
+	if(.substring(Error, wait_timeout)){
+		+~here(Human);
+		!speak(Human, come);
+		!wait_human(Human);
+	}elif(.substring(Failure, not_visible)){
+		!speak(Human, move_again);
+		!be_at_good_pos(Human);
+	}.
+	
+/********* **********/		
 	
 +!end_task(Task, Human) : true <-
 	.findall(B[Task,Human,source(X),add_time(Y)],B[Task,Human,source(X),add_time(Y)], L);

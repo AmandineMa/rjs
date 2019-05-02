@@ -9,9 +9,12 @@ import org.ros.message.MessageFactory;
 import org.ros.node.NodeConfiguration;
 
 import actionlib_msgs.GoalStatus;
+import deictic_gestures_msgs.LookAtResponse;
 import deictic_gestures_msgs.PointAtResponse;
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionResult;
+import geometry_msgs.Point;
+import geometry_msgs.PointStamped;
 import geometry_msgs.PoseStamped;
 import jason.RevisionFailedException;
 import jason.asSemantics.ActionExec;
@@ -38,6 +41,7 @@ import route_verbalization_msgs.VerbalizeRegionRouteResponse;
 import semantic_route_description_msgs.Route;
 import semantic_route_description_msgs.SemanticRouteResponse;
 import speech_wrapper_msgs.SpeakToResponse;
+import std_msgs.Header;
 
 
 
@@ -207,17 +211,26 @@ public class RobotAgArch extends ROSAgArch {
 						if(placements_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
 							try {
 								PoseCustom robot_pose = new PoseCustom(placements_result.getResult().getRobotPose().getPose());
+								String r_frame = placements_result.getResult().getRobotPose().getHeader().getFrameId();
 								PoseCustom human_pose = new PoseCustom(placements_result.getResult().getHumanPose().getPose());
-								getTS().getAg().addBel(Literal.parseLiteral("robot_pose("+robot_pose.toString()+")["+running_task_name+","+current_human+"]"));
-								getTS().getAg().addBel(Literal.parseLiteral("human_pose("+human_pose.toString()+")["+running_task_name+","+current_human+"]"));
+								String h_frame = placements_result.getResult().getHumanPose().getHeader().getFrameId();
+								getTS().getAg().addBel(Literal.parseLiteral("robot_pose("+r_frame+","+robot_pose.toString()+")["+running_task_name+","+current_human+"]"));
+								getTS().getAg().addBel(Literal.parseLiteral("human_pose("+h_frame+","+human_pose.toString()+")["+running_task_name+","+current_human+"]"));
 								int nb_ld_to_point = placements_result.getResult().getPointedLandmarks().size();
-								if(nb_ld_to_point == 0) {
-									getTS().getAg().addBel(Literal.parseLiteral("ld_to_point(None)["+running_task_name+","+current_human+"]"));
-								} else if(nb_ld_to_point==1) {
-									getTS().getAg().addBel(Literal.parseLiteral("ld_to_point("+placements_result.getResult().getPointedLandmarks().get(0)+")["+running_task_name+","+current_human+"]"));
-								} else if(nb_ld_to_point==2){
-									getTS().getAg().addBel(Literal.parseLiteral("ld_to_point("+placements_result.getResult().getPointedLandmarks().get(0)+","
-											+placements_result.getResult().getPointedLandmarks().get(1)+")["+running_task_name+","+current_human+"]"));
+								boolean at_least_one = false;
+								for(int i = 0; i < nb_ld_to_point; i++) {
+									String ld = placements_result.getResult().getPointedLandmarks().get(i);
+									if(ld == target) {
+										getTS().getAg().addBel(Literal.parseLiteral("target_to_point("+ld+")["+running_task_name+","+current_human+"]"));
+										at_least_one = true;
+									}
+									else if(ld == direction) {
+										getTS().getAg().addBel(Literal.parseLiteral("dir_to_point("+ld+")["+running_task_name+","+current_human+"]"));
+										at_least_one = true;
+									}
+								}
+								if(!at_least_one) {
+									getTS().getAg().addBel(Literal.parseLiteral("~ld_to_point["+running_task_name+","+current_human+"]"));
 								}
 							} catch (RevisionFailedException e) {
 								e.printStackTrace();
@@ -298,6 +311,38 @@ public class RobotAgArch extends ROSAgArch {
 						action.setFailureReason(new Atom("point_at_failed"), "the pointing failed for "+place);
 					}
 					actionExecuted(action);
+				} else if(action_name.equals("look_at")) {
+						// to remove the extra ""
+						String frame = action.getActionTerm().getTerm(0).toString();
+						frame = frame.replaceAll("^\"|\"$", "");
+						NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
+						MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+						PointStamped point_stamped = messageFactory.newFromType(PointStamped._TYPE);
+					if(action.getActionTerm().getArity() != 1) {
+						ListTermImpl point_term =  ((ListTermImpl) action.getActionTerm().getTerm(1));
+						Point point = messageFactory.newFromType(Point._TYPE);
+						point.setX(((NumberTermImpl)point_term.get(0)).solve());
+						point.setY(((NumberTermImpl)point_term.get(1)).solve());
+						point.setZ(((NumberTermImpl)point_term.get(2)).solve());
+						point_stamped.setPoint(point);
+					}
+					Header header = messageFactory.newFromType(std_msgs.Header._TYPE);
+					header.setFrameId(frame);
+					point_stamped.setHeader(header);
+					m_rosnode.call_look_at_srv(point_stamped);
+					
+					LookAtResponse look_at_resp;
+					do {
+						look_at_resp = m_rosnode.getLook_at_resp();
+						sleep(100);
+					}while(look_at_resp == null);
+					if(look_at_resp.getSuccess()) {
+						action.setResult(true);
+					}else {
+						action.setResult(false);
+						action.setFailureReason(new Atom("look_at_failed"), "the look at failed for "+frame);
+					}
+					actionExecuted(action);
 				} else if(action_name.equals("text2speech")) {
 					// to remove the extra ""
 					String human = action.getActionTerm().getTerm(0).toString();
@@ -312,6 +357,8 @@ public class RobotAgArch extends ROSAgArch {
 					case "able_to_see": text = new String("I note that you must be looking at the place right now"); break;
 					case "route_verbalization" : text = bel.getTerm(0).toString().replaceAll("^\"|\"$", ""); break;
 					case "no_place" : text = new String("The place you asked for does not exist. Do you want to go somewhere else ?"); break;
+					case "come" : text = new String("Please, come in front of me"); break;
+					case "move_again" : text = new String("I am sorry, we are going to move again"); break;
 					case "retire" : 
 						switch(bel_arg) {
 						case "unknown_words" : text = new String("You didn't told me a place where I can guide you. "); break;
@@ -419,8 +466,13 @@ public class RobotAgArch extends ROSAgArch {
 					action.setResult(true);
 					actionExecuted(action);
 				} else if(action_name.equals("move_to")) {
-					Iterator<Term> action_term_it =  ((ListTermImpl) action.getActionTerm().getTerm(0)).iterator();
+					String frame = action.getActionTerm().getTerm(0).toString();
+					Iterator<Term> action_term_it =  ((ListTermImpl) action.getActionTerm().getTerm(1)).iterator();
 					List<Double> pose_values = new ArrayList<>();
+					while(action_term_it.hasNext()) {
+						pose_values.add(((NumberTermImpl)action_term_it.next()).solve());
+					}
+					action_term_it =  ((ListTermImpl) action.getActionTerm().getTerm(2)).iterator();
 					while(action_term_it.hasNext()) {
 						pose_values.add(((NumberTermImpl)action_term_it.next()).solve());
 					}
@@ -428,6 +480,9 @@ public class RobotAgArch extends ROSAgArch {
 					NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
 					MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
 					PoseStamped pose_stamped = messageFactory.newFromType(PoseStamped._TYPE);
+					Header header = messageFactory.newFromType(std_msgs.Header._TYPE);
+					header.setFrameId(frame);
+					pose_stamped.setHeader(header);
 					pose_stamped.setPose(pose.getPose());
 					if(m_rosnode.call_move_to_as(pose_stamped)) {
 						MoveBaseActionResult move_to_result;

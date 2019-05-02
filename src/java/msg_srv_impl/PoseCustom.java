@@ -75,7 +75,7 @@ public class PoseCustom {
 	public String toString() {
 		return "["+position.getX()+","
 				+position.getY()+","
-				+position.getZ()+","
+				+position.getZ()+"],["
 				+orientation.getX()+","
 				+orientation.getY()+","
 				+orientation.getZ()+","

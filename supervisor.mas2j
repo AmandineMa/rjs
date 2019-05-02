@@ -1,6 +1,6 @@
 MAS supervisor {
 
-	infrastructure: Centralised(threaded,1,5,5)
+	infrastructure: Centralised(threaded,1,1,5)
 
 //	environment: Simu
 	
@@ -9,7 +9,7 @@ MAS supervisor {
 	agents:
 		supervisor [verbose=1] agentArchClass supervisor.SupervisorAgArch beliefBaseClass supervisor.TimeBB;
 		history [verbose=1] agentArchClass supervisor.ROSAgArch beliefBaseClass supervisor.TimeBB;
-		
+		robot   [verbose=2] agentArchClass supervisor.RobotAgArch beliefBaseClass supervisor.TimeBB;
 
 	aslSourcePath:
 		"src/asl";

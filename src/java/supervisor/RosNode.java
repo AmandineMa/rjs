@@ -40,12 +40,15 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
 import actionlib_msgs.GoalStatusArray;
+import deictic_gestures_msgs.LookAtRequest;
+import deictic_gestures_msgs.LookAtResponse;
 import deictic_gestures_msgs.PointAtRequest;
 import deictic_gestures_msgs.PointAtResponse;
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionGoal;
 import dialogue_as.dialogue_actionActionResult;
 import dialogue_as.dialogue_actionGoal;
+import geometry_msgs.Point;
 import geometry_msgs.PointStamped;
 import geometry_msgs.PoseStamped;
 import hatp_msgs.PlanningRequestRequest;
@@ -106,6 +109,7 @@ public class RosNode extends AbstractNodeMain {
 	private VisibilityScoreResponse visibility_score_resp;
 	private SpeakToResponse speak_to_resp;
 	private PointAtResponse point_at_resp;
+	private LookAtResponse look_at_resp;
 	private VerbalizeRegionRouteResponse verbalization_resp;
 	private hatp_msgs.Plan hatp_planner_resp;
 	private PointingActionResult placements_result;
@@ -443,6 +447,23 @@ public class RosNode extends AbstractNodeMain {
 		});
 	}
 	
+	public void call_look_at_srv(PointStamped point_stamped) {
+		look_at_resp = null;
+		final LookAtRequest request = (LookAtRequest) service_clients.get("look_at").newMessage();
+		request.setPoint(point_stamped);
+		service_clients.get("look_at").call(request, new ServiceResponseListener<Message>() {
+
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+			}
+
+			public void onSuccess(Message response) {
+				look_at_resp = (LookAtResponse) response;
+			}
+			
+		});
+	}
+	
 	public void call_speak_to_srv(String look_at, String text) {
 		speak_to_resp = null;
 		final SpeakToRequest request = (SpeakToRequest) service_clients.get("speak_to").newMessage();
@@ -654,6 +675,10 @@ public class RosNode extends AbstractNodeMain {
 
 	public PointAtResponse getPoint_at_resp() {
 		return point_at_resp;
+	}
+
+	public LookAtResponse getLook_at_resp() {
+		return look_at_resp;
 	}
 
 	public VerbalizeRegionRouteResponse getVerbalization_resp() {

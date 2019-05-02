@@ -14,7 +14,7 @@
 	startParameterLoaderNode;
 	startROSNode;
 	initServices;
-	.create_agent(robot, "src/asl/robot.asl", [agentArchClass("supervisor.RobotAgArch"), beliefBaseClass("supervisor.TimeBB")]);
+//	.create_agent(robot, "src/asl/robot.asl", [agentArchClass("supervisor.RobotAgArch"), beliefBaseClass("supervisor.TimeBB")]);
 //	.create_agent(interact_hist, "src/asl/interact_hist.asl", [beliefBaseClass("supervisor.TimeBB")]);
 //	.create_agent(human, "src/asl/human.asl", [agentArchClass("supervisor.HumanAgArch"), beliefBaseClass("supervisor.TimeBB")]).
 	.send(robot, achieve, init).

@@ -220,17 +220,18 @@ public class RobotAgArch extends ROSAgArch {
 								boolean at_least_one = false;
 								for(int i = 0; i < nb_ld_to_point; i++) {
 									String ld = placements_result.getResult().getPointedLandmarks().get(i);
-									if(ld == target) {
+									if(ld.equals(target)) {
 										getTS().getAg().addBel(Literal.parseLiteral("target_to_point("+ld+")["+running_task_name+","+current_human+"]"));
 										at_least_one = true;
-									}
-									else if(ld == direction) {
+									}else if(ld.equals(direction)) {
 										getTS().getAg().addBel(Literal.parseLiteral("dir_to_point("+ld+")["+running_task_name+","+current_human+"]"));
 										at_least_one = true;
 									}
 								}
 								if(!at_least_one) {
 									getTS().getAg().addBel(Literal.parseLiteral("~ld_to_point["+running_task_name+","+current_human+"]"));
+								}else {
+									getTS().getAg().addBel(Literal.parseLiteral("ld_to_point["+running_task_name+","+current_human+"]"));
 								}
 							} catch (RevisionFailedException e) {
 								e.printStackTrace();
@@ -350,7 +351,9 @@ public class RobotAgArch extends ROSAgArch {
 					Literal bel = (Literal) action.getActionTerm().getTerm(1);
 					String text = "";
 					String bel_functor = bel.getFunctor();
-					String bel_arg = bel.getTerms().get(0).toString();
+					String bel_arg = null;
+					if(bel.getTerms().size()==1)
+						bel_arg = bel.getTerms().get(0).toString();
 					switch(bel_functor) {
 					case "should_look_place": text = new String("Look "+bel.getTerm(0)+" over there"); break;
 					case "should_look_orientation": text = new String("You should look a bit more at the "+bel.getTerm(0)); break;
@@ -359,7 +362,10 @@ public class RobotAgArch extends ROSAgArch {
 					case "no_place" : text = new String("The place you asked for does not exist. Do you want to go somewhere else ?"); break;
 					case "come" : text = new String("Please, come in front of me"); break;
 					case "move_again" : text = new String("I am sorry, we are going to move again"); break;
+					case "cannot_show" : text = new String("I am sorry, I cannot show you. I hope you will your way"); break;
 					case "retire" : 
+						if(bel_arg == null)
+							throw new IllegalArgumentException("retire speech should have an argument");
 						switch(bel_arg) {
 						case "unknown_words" : text = new String("You didn't told me a place where I can guide you. "); break;
 						}
@@ -517,6 +523,7 @@ public class RobotAgArch extends ROSAgArch {
 						action.setResult(false);
 						action.setFailureReason(new Atom("move_to_as_not_found"), "");
 					}
+					actionExecuted(action);
 				}else if(action_name.equals("get_hatp_plan")){
 					String task_name = action.getActionTerm().getTerm(0).toString();
 					task_name = task_name.replaceAll("^\"|\"$", "");

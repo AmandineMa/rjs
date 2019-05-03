@@ -40,8 +40,8 @@ robot_place("robot_infodesk").
 
 +!guiding(Human, Place): true <- 
 	!goal_negociation(guiding, Place);
-//	!show_landmarks(Human);
-//	!go_to_see_target(RobPose, HumPose);
+	!go_to_see_target(Human);
+	!show_landmarks(Human);
 //	!give_directions.
 	+succeeded[guiding, Human];
 	!end_task(guiding, Human).
@@ -148,7 +148,19 @@ robot_place("robot_infodesk").
 	}else{
 		get_placements(TargetLD,"",Human);
 	}
+	?ld_to_point;
 	!be_at_good_pos(Human).
+	
+-!get_placements(Human)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
+	if(.substring(Code, ld_to_point)){
+		!speak(Human, cannot_show);
+		?task(TaskName, Human, Param);
+		G =.. [TaskName, [Human,Param],[]];
+		!end_task(guiding, Human)
+		.succeed_goal(G);
+	}elif(.substring(Failure, svp_failure)){
+  		!ros_failure(get_optimal_route, Failure, planning);
+  	}.
 	
 +!be_at_good_pos(Human) : true <- 
 	?robot_pose(Rframe,Rposit, Rorient);
@@ -161,14 +173,18 @@ robot_place("robot_infodesk").
 	!wait_human(Human).
 
 +!wait_human(Human) : true <- 
-	if(.count((isPerceiving(robot, Human)),I) & I == 0){
-		.wait({+isPerceiving(robot,Human)},4000);
+	if(.count((isPerceiving(Human)),I) & I == 0){
+		.wait({+isPerceiving(Human)},4000);
 		
 	}
-	if(.count((dir_to_point(D)),I) & I > 0){
+	if(.count((dir_to_point(_)),I) & I > 0){
+		?dir_to_point(D);
+		has_mesh(D);
 		can_be_visible(Human, D);
 	}
-	if(.count((target_to_point(T)),I) & I > 0){
+	if(.count((target_to_point(_)),I) & J > 0){
+		?target_to_point(T);
+		has_mesh(T);
 		can_be_visible(Human, T);
 	}.
 	

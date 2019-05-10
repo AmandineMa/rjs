@@ -1,7 +1,8 @@
 // Internal action code for project supervisor
 
-package supervisor;
+package jia;
 
+import agent.TimeBB;
 import jason.asSemantics.*;
 import jason.asSyntax.*;
 

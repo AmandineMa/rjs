@@ -1,4 +1,4 @@
-package supervisor;
+package arch;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,6 +23,7 @@ import jason.asSyntax.Atom;
 import jason.asSyntax.Literal;
 import jason.asSyntax.LogicalFormula;
 import jason.asSyntax.Term;
+import ros.RosNode;
 
 public class SupervisorAgArch extends ROSAgArch {
 	private NodeMainExecutor nodeMainExecutor = DefaultNodeMainExecutor.newDefault();

@@ -1,6 +1,6 @@
 // Internal action code for project supervisor
 
-package supervisor;
+package jia;
 
 import jason.*;
 import jason.asSemantics.*;

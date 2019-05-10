@@ -1,4 +1,4 @@
-package supervisor;
+package arch;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -9,6 +9,8 @@ import org.ros.message.MessageFactory;
 import org.ros.node.NodeConfiguration;
 
 import actionlib_msgs.GoalStatus;
+import deictic_gestures_msgs.CanLookAtResponse;
+import deictic_gestures_msgs.CanPointAtResponse;
 import deictic_gestures_msgs.LookAtResponse;
 import deictic_gestures_msgs.PointAtResponse;
 import dialogue_as.dialogue_actionActionFeedback;
@@ -42,6 +44,7 @@ import semantic_route_description_msgs.Route;
 import semantic_route_description_msgs.SemanticRouteResponse;
 import speech_wrapper_msgs.SpeakToResponse;
 import std_msgs.Header;
+import utils.Code;
 
 
 
@@ -51,6 +54,7 @@ public class RobotAgArch extends ROSAgArch {
 	private Logger logger = Logger.getLogger(RobotAgArch.class.getName());
 	private String running_task_name;
 	private String current_human;
+	private int max_attempt = 1;
 
 	@Override
 	public void act(final ActionExec action) {
@@ -135,8 +139,8 @@ public class RobotAgArch extends ROSAgArch {
 
 				} else if(action_name.equals("get_onto_individual_info")) {
 					String param = action.getActionTerm().getTerm(0).toString();
-					String individual =  action.getActionTerm().getTerm(1).toString();
-					individual = individual.replaceAll("^\"|\"$", "");
+					String individual_o =  action.getActionTerm().getTerm(1).toString();
+					String individual = individual_o.replaceAll("^\"|\"$", "");
 					String belief_name = action.getActionTerm().getTerm(2).toString();
 					m_rosnode.call_onto_indivual_srv(param, individual);
 					OntologeniusServiceResponse places;
@@ -154,12 +158,12 @@ public class RobotAgArch extends ROSAgArch {
 								if(belief_name.equals("shop_names")||belief_name.equals("shop_name"))
 									getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+places_list.get(0)+")"));
 								else
-									getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+places_list.get(0)+")["+running_task_name+","+current_human+"]"));
+									getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+individual_o+","+places_list.get(0)+")["+running_task_name+","+current_human+"]"));
 							}else {
 								if(belief_name.equals("shop_names")||belief_name.equals("shop_name"))
 									getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+places_list+")"));
 								else
-									getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+places_list+")["+running_task_name+","+current_human+"]"));
+									getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+individual_o+","+places_list+")["+running_task_name+","+current_human+"]"));
 							}
 							action.setResult(true);
 							actionExecuted(action);
@@ -171,14 +175,6 @@ public class RobotAgArch extends ROSAgArch {
 						action.setFailureReason(new Atom("individual_not_found"), individual+" has been not been found in the ontology with the param "+param);
 						actionExecuted(action);
 					} 
-				} else if(action_name.equals("get_human_abilities")) { //TODO to proper implement
-					try {
-						getTS().getAg().addBel(Literal.parseLiteral("persona_asked(old)["+running_task_name+","+current_human+"]"));
-					} catch (RevisionFailedException e) {
-						e.printStackTrace();
-					}
-					action.setResult(true);
-					actionExecuted(action);
 				} else if(action_name.equals("get_placements")) {
 					// to remove the extra ""
 					ArrayList<String> params = new ArrayList<String>();
@@ -190,7 +186,7 @@ public class RobotAgArch extends ROSAgArch {
 					String direction = params.get(1);
 					String human = params.get(2);
 
-					if(m_rosnode.call_svp_planner(target, direction, human)) {
+					if(m_rosnode.call_svp_planner(target, direction, human, max_attempt)) {
 						PointingActionResult placements_result;
 						PointingActionFeedback placements_fb;
 						PointingActionFeedback placements_fb_prev = null;
@@ -344,7 +340,56 @@ public class RobotAgArch extends ROSAgArch {
 						action.setFailureReason(new Atom("look_at_failed"), "the look at failed for "+frame);
 					}
 					actionExecuted(action);
-				} else if(action_name.equals("text2speech")) {
+				} else if(action_name.equals("can_point_at")) {
+					// to remove the extra ""
+					String place = action.getActionTerm().getTerm(0).toString();
+					place = place.replaceAll("^\"|\"$", "");
+					m_rosnode.call_can_point_at_srv(place);
+					CanPointAtResponse can_point_at_resp;
+					do {
+						can_point_at_resp = m_rosnode.getCan_point_at_resp();
+						sleep(100);
+					}while(can_point_at_resp == null);
+					if(can_point_at_resp.getSuccess()) {
+						action.setResult(true);
+					}else {
+						action.setResult(false);
+						action.setFailureReason(new Atom("cannot_point"), "pointing not possible for "+place);
+					}
+					actionExecuted(action);
+				} else if(action_name.equals("can_look_at")) {
+						// to remove the extra ""
+						String frame = action.getActionTerm().getTerm(0).toString();
+						frame = frame.replaceAll("^\"|\"$", "");
+						NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
+						MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+						PointStamped point_stamped = messageFactory.newFromType(PointStamped._TYPE);
+					if(action.getActionTerm().getArity() != 1) {
+						ListTermImpl point_term =  ((ListTermImpl) action.getActionTerm().getTerm(1));
+						Point point = messageFactory.newFromType(Point._TYPE);
+						point.setX(((NumberTermImpl)point_term.get(0)).solve());
+						point.setY(((NumberTermImpl)point_term.get(1)).solve());
+						point.setZ(((NumberTermImpl)point_term.get(2)).solve());
+						point_stamped.setPoint(point);
+					}
+					Header header = messageFactory.newFromType(std_msgs.Header._TYPE);
+					header.setFrameId(frame);
+					point_stamped.setHeader(header);
+					m_rosnode.call_can_look_at_srv(point_stamped);
+					
+					CanLookAtResponse can_look_at_resp;
+					do {
+						can_look_at_resp = m_rosnode.getCan_look_at_resp();
+						sleep(100);
+					}while(can_look_at_resp == null);
+					if(can_look_at_resp.getSuccess()) {
+						action.setResult(true);
+					}else {
+						action.setResult(false);
+						action.setFailureReason(new Atom("cannot_look_at"), "looking not possible for"+frame);
+					}
+					actionExecuted(action);
+				}else if(action_name.equals("text2speech")) {
 					// to remove the extra ""
 					String human = action.getActionTerm().getTerm(0).toString();
 					human = human.replaceAll("^\"|\"$", "");
@@ -352,17 +397,28 @@ public class RobotAgArch extends ROSAgArch {
 					String text = "";
 					String bel_functor = bel.getFunctor();
 					String bel_arg = null;
-					if(bel.getTerms().size()==1)
+					if(bel.getTerms().size()==1) {
 						bel_arg = bel.getTerms().get(0).toString();
+						bel_arg = bel_arg.replaceAll("^\"|\"$", "");
+					}
 					switch(bel_functor) {
-					case "should_look_place": text = new String("Look "+bel.getTerm(0)+" over there"); break;
-					case "should_look_orientation": text = new String("You should look a bit more at the "+bel.getTerm(0)); break;
+					case "ask_stairs": text = new String("Are you able to climb stairs ?"); break;
 					case "able_to_see": text = new String("I note that you must be looking at the place right now"); break;
-					case "route_verbalization" : text = bel.getTerm(0).toString().replaceAll("^\"|\"$", ""); break;
+					case "route_verbalization" : text = bel_arg; break;
+					case "route_verbalization_n_vis" : text = "in this direction, "+bel_arg; break;
 					case "no_place" : text = new String("The place you asked for does not exist. Do you want to go somewhere else ?"); break;
 					case "come" : text = new String("Please, come in front of me"); break;
 					case "move_again" : text = new String("I am sorry, we are going to move again"); break;
+					case "ask_explain_again" : text = new String("Should I explain you again ?"); break;
 					case "cannot_show" : text = new String("I am sorry, I cannot show you. I hope you will your way"); break;
+					case "cannot_tell_seen" : text = new String("I think you haven't seen "+bel_arg+". Have you ?"); break;
+					case "ask_show_again" : text = new String("Should I show you again ?"); break;
+					case "tell_seen" : text = new String("I can tell that you've seen "+bel_arg); break;
+					case "visible_target" : text = new String("Look, "+bel_arg+" is there"); break;
+					case "not_visible_target" : text = new String("Look, "+bel_arg+" is in this direction"); break;
+					case "hope_find_way" : text = new String("I hope you will find your way"); break;
+					case "ask_understand" : text = new String("Did you understand ?"); break;
+					case "happy_end" : text = new String("I am happy that I was able to help you."); break;
 					case "retire" : 
 						if(bel_arg == null)
 							throw new IllegalArgumentException("retire speech should have an argument");
@@ -423,11 +479,18 @@ public class RobotAgArch extends ROSAgArch {
 					}
 					actionExecuted(action);
 				} else if(action_name.equals("listen")) {
+					String question = action.getActionTerm().getTerm(0).toString();
 					ArrayList<String> words = new ArrayList<String>();
-					for(Term term : (ListTermImpl)action.getActionTerm().getTerms().get(0)) {
+					for(Term term : (ListTermImpl)action.getActionTerm().getTerms().get(1)) {
 						words.add(term.toString().replaceAll("^\"|\"$", ""));
 					}
-					if(m_rosnode.call_dialogue_as(words)) {
+					if(m_rosnode.call_dialogue_as(words, max_attempt)) {
+						try {
+							getTS().getAg().addBel(Literal.parseLiteral("listening["+running_task_name+","+current_human+"]"));
+						} catch (RevisionFailedException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
 						dialogue_actionActionResult listening_result;
 						dialogue_actionActionFeedback listening_fb;
 						dialogue_actionActionFeedback listening_fb_prev = null;
@@ -450,7 +513,7 @@ public class RobotAgArch extends ROSAgArch {
 						}while(listening_result == null);
 						if(listening_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {						
 							try {
-								getTS().getAg().addBel(Literal.parseLiteral("listen_result("+listening_result.getResult().getSubject()+")["+running_task_name+","+current_human+"]"));
+								getTS().getAg().addBel(Literal.parseLiteral("listen_result("+question+","+listening_result.getResult().getSubject()+")["+running_task_name+","+current_human+"]"));
 							} catch (RevisionFailedException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
@@ -465,6 +528,12 @@ public class RobotAgArch extends ROSAgArch {
 					}else {
 						action.setResult(false);
 						action.setFailureReason(new Atom("dialogue_as_not_found"), "");
+					}
+					try {
+						getTS().getAg().abolish(Literal.parseLiteral("listening"), new Unifier());
+					} catch (RevisionFailedException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
 					}
 					actionExecuted(action);
 				} else if(action_name.equals("stop_listen")) {
@@ -490,7 +559,7 @@ public class RobotAgArch extends ROSAgArch {
 					header.setFrameId(frame);
 					pose_stamped.setHeader(header);
 					pose_stamped.setPose(pose.getPose());
-					if(m_rosnode.call_move_to_as(pose_stamped)) {
+					if(m_rosnode.call_move_to_as(pose_stamped, max_attempt)) {
 						MoveBaseActionResult move_to_result;
 						MoveBaseActionFeedback move_to_fb;
 						do {
@@ -517,7 +586,7 @@ public class RobotAgArch extends ROSAgArch {
 							action.setResult(true);
 						}else {
 							action.setResult(false);
-							action.setFailureReason(new Atom("move_failed"), "");
+							action.setFailureReason(new Atom("move_to_failed"), "");
 						}
 					}else {
 						action.setResult(false);

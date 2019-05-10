@@ -1,4 +1,4 @@
-package supervisor;
+package ros;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -40,6 +40,11 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
 import actionlib_msgs.GoalStatusArray;
+import deictic_gestures_msgs.CanLookAtRequest;
+import deictic_gestures_msgs.CanLookAtResponse;
+import deictic_gestures_msgs.CanPointAt;
+import deictic_gestures_msgs.CanPointAtRequest;
+import deictic_gestures_msgs.CanPointAtResponse;
 import deictic_gestures_msgs.LookAtRequest;
 import deictic_gestures_msgs.LookAtResponse;
 import deictic_gestures_msgs.PointAtRequest;
@@ -78,6 +83,8 @@ import semantic_route_description_msgs.SemanticRouteResponse;
 import speech_wrapper_msgs.SpeakToRequest;
 import speech_wrapper_msgs.SpeakToResponse;
 import std_msgs.Header;
+import utils.Code;
+import utils.SimpleFact;
 
 /***
  * ROS node to be used by Jason
@@ -110,6 +117,8 @@ public class RosNode extends AbstractNodeMain {
 	private SpeakToResponse speak_to_resp;
 	private PointAtResponse point_at_resp;
 	private LookAtResponse look_at_resp;
+	private CanPointAtResponse can_point_at_resp;
+	private CanLookAtResponse can_look_at_resp;
 	private VerbalizeRegionRouteResponse verbalization_resp;
 	private hatp_msgs.Plan hatp_planner_resp;
 	private PointingActionResult placements_result;
@@ -464,6 +473,44 @@ public class RosNode extends AbstractNodeMain {
 		});
 	}
 	
+	public void call_can_point_at_srv(String frame) {
+		can_point_at_resp = null;
+		final CanPointAtRequest request = (CanPointAtRequest) service_clients.get("can_point_at").newMessage();
+		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
+		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
+		header.setFrameId(frame);
+		point.setHeader(header);
+		request.setPoint(point);
+		service_clients.get("can_point_at").call(request, new ServiceResponseListener<Message>() {
+
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+			}
+
+			public void onSuccess(Message response) {
+				can_point_at_resp = (CanPointAtResponse) response;
+			}
+			
+		});
+	}
+	
+	public void call_can_look_at_srv(PointStamped point_stamped) {
+		can_look_at_resp = null;
+		final CanLookAtRequest request = (CanLookAtRequest) service_clients.get("can_look_at").newMessage();
+		request.setPoint(point_stamped);
+		service_clients.get("can_look_at").call(request, new ServiceResponseListener<Message>() {
+
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+			}
+
+			public void onSuccess(Message response) {
+				can_look_at_resp = (CanLookAtResponse) response;
+			}
+			
+		});
+	}
+
 	public void call_speak_to_srv(String look_at, String text) {
 		speak_to_resp = null;
 		final SpeakToRequest request = (SpeakToRequest) service_clients.get("speak_to").newMessage();
@@ -535,89 +582,104 @@ public class RosNode extends AbstractNodeMain {
 		});
 	}
 
-	public boolean call_svp_planner(String target_ld, String direction_ld, String human) {
+	public boolean call_svp_planner(String target_ld, String direction_ld, String human, int max_attempt) {
 		placements_result = null;
 		placements_fb = null;
-		boolean serverStarted = get_placements_ac.waitForActionServerToStart(new Duration(10));
-		// TODO send info to supervisor agent
-		if (serverStarted) {
-			logger.info("SVP Planner action server started.\n");
-			PointingActionGoal goal_msg;
-			goal_msg = get_placements_ac.newGoalMessage();
-			PointingGoal svp_goal = goal_msg.getGoal();
-			svp_goal.setHuman(human);
-			svp_goal.setDirectionLandmark(direction_ld);
-			svp_goal.setTargetLandmark(target_ld);
-			goal_msg.setGoal(svp_goal);
-			get_placements_ac.sendGoal(goal_msg);
-			return true;
-		} else {
-			logger.info("No actionlib svp server found ");
-			return false;
-		}
+		boolean server_started;
+		int count = 0;
+		logger.info("wait to start svp planner");
+		do {
+			server_started = get_placements_ac.waitForActionServerToStart(new Duration(3));
+			// TODO send info to supervisor agent
+			if (server_started) {
+				logger.info("SVP Planner action server started.\n");
+				PointingActionGoal goal_msg;
+				goal_msg = get_placements_ac.newGoalMessage();
+				PointingGoal svp_goal = goal_msg.getGoal();
+				svp_goal.setHuman(human);
+				svp_goal.setDirectionLandmark(direction_ld);
+				svp_goal.setTargetLandmark(target_ld);
+				goal_msg.setGoal(svp_goal);
+				get_placements_ac.sendGoal(goal_msg);
+				return true;
+			} else {
+				count += 1;
+				logger.info("No actionlib svp server found ");
+			}
+		}while(!server_started & count < max_attempt);
+		return false;
 	}
 	
 	
-	public boolean call_move_to_as(PoseStamped pose) {
+	public boolean call_move_to_as(PoseStamped pose, int max_attempt) {
 		move_to_fb = null;
 		move_to_result = null;
-		logger.info("wait to start");
-		boolean serverStarted = move_to_ac.waitForActionServerToStart(new Duration(10));
-		if(serverStarted) {
-			logger.info("move to as started");
-			
-			MoveBaseActionGoal goal_msg;
-			goal_msg = move_to_ac.newGoalMessage();
-			
-			NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
-			MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
-			MoveBaseGoal move_to_goal = messageFactory.newFromType(MoveBaseGoal._TYPE);;
-			move_to_goal.setTargetPose(pose);
-			goal_msg.setGoal(move_to_goal);
-			move_to_ac.sendGoal(goal_msg);
-			return true;
-		}else {
-			logger.info("No actionlib move_to server found ");
-			return false;
-		}
-			
+		logger.info("wait to start move_to");
+		boolean server_started;
+		int count = 0;
+		do {
+			server_started = move_to_ac.waitForActionServerToStart(new Duration(3));
+			if(server_started) {
+				logger.info("move to as started");
+				
+				MoveBaseActionGoal goal_msg;
+				goal_msg = move_to_ac.newGoalMessage();
+				
+				NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
+				MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+				MoveBaseGoal move_to_goal = messageFactory.newFromType(MoveBaseGoal._TYPE);;
+				move_to_goal.setTargetPose(pose);
+				goal_msg.setGoal(move_to_goal);
+				move_to_ac.sendGoal(goal_msg);
+				return true;
+			}else {
+				logger.info("No actionlib move_to server found ");
+				count += 1;
+			}
+		}while(!server_started & count < max_attempt);
+		return false;	
 			
 	}
-	public boolean call_dialogue_as(List<String> subjects) {
-		return call_dialogue_as(subjects, new ArrayList<String>());
+	public boolean call_dialogue_as(List<String> subjects, int max_attempt) {
+		return call_dialogue_as(subjects, new ArrayList<String>(), max_attempt);
 	}
 	
-	public boolean call_dialogue_as(List<String> subjects, List<String> verbs) {
+	public boolean call_dialogue_as(List<String> subjects, List<String> verbs, int max_attempt) {
 		listening_fb = null;
 		listening_result =  null;
-		logger.info("wait to start");
-		boolean serverStarted = get_human_answer_ac.waitForActionServerToStart(new Duration(10));
-		if(serverStarted) {
-			logger.info("dialogue started");
-			
-			listen_goal_msg = get_human_answer_ac.newGoalMessage();
-			dialogue_actionGoal listen_goal = listen_goal_msg.getGoal();
-			if(!subjects.isEmpty()) {
-				listen_goal.setSubjects(subjects);
+		logger.info("wait to start dialogue_as");
+		boolean server_started;
+		int count = 0;
+		do {
+			server_started = get_human_answer_ac.waitForActionServerToStart(new Duration(3));
+			if(server_started) {
+				logger.info("dialogue started");
+				
+				listen_goal_msg = get_human_answer_ac.newGoalMessage();
+				dialogue_actionGoal listen_goal = listen_goal_msg.getGoal();
+				if(!subjects.isEmpty()) {
+					listen_goal.setSubjects(subjects);
+				}else {
+					listen_goal.setEnableOnlyVerb(true);
+				}
+				if(!verbs.isEmpty()) {
+					listen_goal.setVerbs(verbs);
+				}else {
+					listen_goal.setEnableOnlySubject(true);
+				}
+				listen_goal_msg.setGoal(listen_goal);
+				
+				get_human_answer_ac.sendGoal(listen_goal_msg);
+	//			logger.info(listen_goal_msg.getGoalId().toString());
+				logger.info(listen_goal_msg.getGoalId().getId());
+				logger.info(listen_goal_msg.getGoalId().getStamp().toString());
+				return true;
 			}else {
-				listen_goal.setEnableOnlyVerb(true);
+				count += 1;
+				logger.info("No actionlib dialogue server found ");
 			}
-			if(!verbs.isEmpty()) {
-				listen_goal.setVerbs(verbs);
-			}else {
-				listen_goal.setEnableOnlySubject(true);
-			}
-			listen_goal_msg.setGoal(listen_goal);
-			
-			get_human_answer_ac.sendGoal(listen_goal_msg);
-//			logger.info(listen_goal_msg.getGoalId().toString());
-			logger.info(listen_goal_msg.getGoalId().getId());
-			logger.info(listen_goal_msg.getGoalId().getStamp().toString());
-			return true;
-		}else {
-			logger.info("No actionlib dialogue server found ");
-			return false;
-		}
+		}while(!server_started & count < max_attempt);
+		return false;	
 	}
 	
 
@@ -679,6 +741,14 @@ public class RosNode extends AbstractNodeMain {
 
 	public LookAtResponse getLook_at_resp() {
 		return look_at_resp;
+	}
+
+	public CanPointAtResponse getCan_point_at_resp() {
+		return can_point_at_resp;
+	}
+
+	public CanLookAtResponse getCan_look_at_resp() {
+		return can_look_at_resp;
 	}
 
 	public VerbalizeRegionRouteResponse getVerbalization_resp() {

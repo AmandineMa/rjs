@@ -1,4 +1,4 @@
-package supervisor;
+package jia;
 
 import jason.asSemantics.*;
 import jason.asSyntax.*;

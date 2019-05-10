@@ -1,4 +1,4 @@
-package supervisor;
+package agent;
 
 import jason.asSemantics.*;
 import jason.asSyntax.*;

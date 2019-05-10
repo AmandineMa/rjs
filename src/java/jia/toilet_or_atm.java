@@ -1,6 +1,6 @@
 // Internal action code for project supervisor
 
-package supervisor;
+package jia;
 
 //import java.util.logging.Logger;
 
@@ -19,9 +19,9 @@ public class toilet_or_atm extends DefaultInternalAction {
     	String param = args[0].toString();
 		param = param.replaceAll("^\"|\"$", "");
         if(param.equals("atm")) {
-        	return un.unifies(args[1], new ObjectTermImpl("atm"));
+        	return un.unifies(args[1], new StringTermImpl("atm"));
         }else if(param.equals("toilets")) {
-        	return un.unifies(args[1], new ObjectTermImpl("toilets"));
+        	return un.unifies(args[1], new StringTermImpl("toilets"));
         }
         else {
         	return false;

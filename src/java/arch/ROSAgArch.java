@@ -1,4 +1,4 @@
-package supervisor;
+package arch;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,8 +11,8 @@ import org.ros.rosjava.tf.TransformTree;
 
 import jason.architecture.MindInspectorAgArch;
 import jason.asSyntax.Literal;
-import supervisor.RosNode;
-import supervisor.SimpleFact;
+import ros.RosNode;
+import utils.SimpleFact;
 
 public class ROSAgArch extends MindInspectorAgArch {
 	

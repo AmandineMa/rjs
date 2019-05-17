@@ -287,6 +287,12 @@ public class RobotAgArch extends ROSAgArch {
 							e.printStackTrace();
 						}
 					}else {
+						try {
+							getTS().getAg().addBel(Literal.parseLiteral("~canBeVisibleFor("+place+","+human+")["+running_task_name+","+current_human+"]"));
+						} catch (RevisionFailedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 						action.setResult(false);
 						action.setFailureReason(new Atom("not_visible"), place+" is not visible");
 					}
@@ -402,6 +408,9 @@ public class RobotAgArch extends ROSAgArch {
 						bel_arg = bel_arg.replaceAll("^\"|\"$", "");
 					}
 					switch(bel_functor) {
+					case "where_are_u": text = new String("Where are you ? I cannot see you"); break;
+					case "found_again": text = new String("Ok I can see you again"); break;
+					case "cannot_find": text = new String("I cannot find you, sorry"); break;
 					case "ask_stairs": text = new String("Are you able to climb stairs ?"); break;
 					case "able_to_see": text = new String("I note that you must be looking at the place right now"); break;
 					case "route_verbalization" : text = bel_arg; break;

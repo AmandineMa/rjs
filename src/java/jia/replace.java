@@ -8,7 +8,12 @@ import jason.asSyntax.*;
 
 public class replace extends DefaultInternalAction {
 
-    @Override
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	@Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
     	// TODO check args types and implement for other element than double
     	 ListTerm result = (ListTerm)args[1].clone();

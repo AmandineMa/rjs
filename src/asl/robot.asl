@@ -3,7 +3,6 @@
 /* Initial beliefs and rules */
 
 
-
 /* Initial goals */
 
 
@@ -17,9 +16,6 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	        "burger king","atm","daddy s diner","pancho villa","intersport","marco polo","marimekko outlet",
 	        "zizzi","starbucks","thai papaya"]).	
 //persona_asked(lambda).   
-
-//!guiding(human).
-//!test.
 
 /* Plans */
 
@@ -46,9 +42,11 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	+task(Label, Human, Param)[Label,Human];
 	set_task_infos(Label, Human);
 	!Plan.
+	
+^!guiding(Human, Place)[state(started)] : not started <- +started; !monitoring(Human).
 
 +!guiding(Human, Place): true <- 
-	!get_optimal_route(Place);
+	!get_optimal_route(Human,Place);
 	!go_to_see_target(Human);
 	!show_landmarks(Human);
 	+succeeded[guiding, Human];
@@ -57,10 +55,80 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 -!guiding(Human,Place) : true <-
 	!end_task(guiding, Human).
 	
+/******* monitoring **********/	
+
+^!monitoring(Human)[state(S)] : S == started | S == resumed <- 
+	+monitoring(Human).
+
+^!monitoring(Human)[state(suspended)[reason(R)]] : not look_for_human(Human) <- 
+	if(.substring(suspended,R)){
+		-monitoring(Human);
+	}.
+	
+^!monitoring(Human)[state(S)] : S == finished | S == failed <- 
+	-monitoring(Human).	
+
++!monitoring(Human) : true <-
+//	tracking(Human);
+	.wait(1000);
+	!monitoring(Human).
+	
+-isPerceiving(Human) : monitoring(Human) <-
+	.wait(3000);
+	!look_for_human(Human).
+
+// when monitoring has been suspended by look_for_human	
++isPerceiving(Human) : (monitoring(Human) & .suspended(monitoring(Human),U)) <- 
+	.succeed_goal(look_for_human(Human));
+	!speak(Human,found_again); 
+	.resume(monitoring(Human)).
+
++!look_for_human(Human) : isPerceiving(Human) <- 
+	-look_for_human(Human);
+	.resume(monitoring(Human));
+	.resume(guiding(Human,_));
+	jia.reset_att_counter(look_for_human).
+
+@lfh[max_attempts(3)] +!look_for_human(Human) : not isPerceiving(Human) <- 
+	+look_for_human(Human);
+	jia.suspend_all(monitoring(_));
+	// TODO suspend all ongoing tasks
+	.suspend(guiding(Human,_));
+//	look_for_human(Human);
+	-look_for_human(Human);
+	.resume(monitoring(Human));
+	.resume(guiding(Human,_));
+	jia.reset_att_counter(look_for_human).
+
+-!look_for_human(Human) : isPerceiving(Human) <- 
+	-look_for_human(Human);
+	.resume(monitoring(Human));
+	.resume(guiding(Human,_));
+	jia.reset_att_counter(look_for_human).
+	
+-!look_for_human(Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : not isPerceiving(Human) <- 
+	if(.substring(Error,max_attempts)){
+		!speak(Human,cannot_find); 
+		!end_task(_, Human);
+	}else{
+		!speak(Human,where_are_u);
+		.wait(2000);
+		!look_for_human(Human);
+	}.	
+
 	
 /******* get route **********/	
+
+^!get_optimal_route(Human,_)[state(S)] : S == started | S = resumed <- .resume(monitoring(Human)). 
+
+//^!get_optimal_route(Human,_)[state(suspended)[reason(R)]] <- 
+//	if(.substring(suspended,R)){
+//		.suspend(monitoring(Human));
+//	}
+//	.
+//^!get_optimal_route(Human,_)[state(finished)] <- .suspend(monitoring(Human)).
 	
-+!get_optimal_route(Place): true <-
++!get_optimal_route(Human,Place): true <-
 	// special handling if the place to go is toilet or atm
 	!handle_atm_toilet(Place);
 	// there should be one belief possible_places if it toilet or atm and there is no if it is something else
@@ -136,7 +204,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 -!get_optimal_route[Failure, error(Error), code(Code), _, _, _]: true <-
 	!drop_current_task(get_optimal_route, Failure, Code).
 	
-+!handle_atm_toilet(To): true <- 
++!handle_atm_toilet(To): true <-
 	jia.toilet_or_atm(To, AorT);
 	// add belief possible_places
 	get_onto_individual_info(getType, AorT, possible_places).	
@@ -145,9 +213,15 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	if(not .substring(ia_failed, Error)){
 		!drop_current_task(handle_atm_toilet, Failure, Code);
 	}.
-
 	
 /*******  go to see target **********/	
+
+^!go_to_see_target(Human)[state(S)] : S == started | S = resumed <- jia.suspend_all(monitoring(_)). 
+//^!go_to_see_target(Human)[state(suspended)[reason(R)]] <- 
+//	if(.substring(suspended,R)){
+//		jia.suspend_all(monitoring(_));
+//	}.
+^!go_to_see_target(Human)[state(S)] : S == finished | S = failed <- .resume(monitoring(Human)).
 
 +!go_to_see_target(Human) : true <- 
 	!get_placements(Human);
@@ -216,7 +290,15 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		!drop_current_task(wait_human, Failure, Code);
 	}.
 	
-/*******  show landmarks **********/	
+/*******  show landmarks **********/
+
+^!point_look_at(Human, TargetPlace)[state(started)] <- jia.suspend_all(monitoring(_)). 
+^!point_look_at(Human, TargetPlace)[state(resumed)] <- jia.suspend_all(monitoring(_)).
+^!point_look_at(Human, TargetPlace)[state(suspended)[reason(R)]] <- 
+	if(.substring(suspended,R)){
+		jia.suspend_all(monitoring(_));
+	}.
+^!point_look_at(Human, TargetPlace)[state(finished)] <- jia.suspend_all(monitoring(_)).
 
 +!show_landmarks(Human) : true <- 
 	!show_target(Human);
@@ -344,10 +426,14 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (direction_to_point(D) &
 	!drop_current_task(verbalization, Failure, Code).
 
 +should_check_target_seen(Human,Ld) : true <-
+	.send(Human,tell,state(waiting_for_robot_to_point(Ld)));
 	.send(Human,achieve,communicate_belief(isLookingAt(Ld))).
 	
 -should_check_target_seen(Human,Ld) : true <-
 	.send(Human,achieve,stop_communicate_belief(isLookingAt(Ld))).
+	
++isLookingAt(Ld)[source(Human)] : (Ld == D & direction(D)) | (Ld == T & target_place(T)) <- 
+	.send(Human,untell,state(waiting_for_robot_to_point(Ld))).
 		
 /********* **********/		
 	
@@ -355,13 +441,16 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (direction_to_point(D) &
 	+end_task(Task, Human)[TaskName,Human];
 	.findall(B[Task,Human,source(X),add_time(Y)],B[Task,Human,source(X),add_time(Y)], L);
 	.send(history, tell, L);
+	jia.reset_att_counter;
 	.abolish(_[Task,Human]).	
 	
 // Utils
 +!speak(Human, ToSay) : true <-
-//	.send(Human, tell, ToSay);
+	.send(Human, tell, ToSay);
 	text2speech(Human, ToSay).
 	
+-!speak(Human, ToSay) : true <-	true.
+
 +end_task(Task, Human) : listening <- stop_listen.
 	
 +not_exp_ans(2) : true <-

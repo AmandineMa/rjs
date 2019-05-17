@@ -1,11 +1,8 @@
 // Agent supervisor in project supervisor
 
 /* Initial beliefs and rules */
-
 /* Initial goals */
 !start.
-//!test.
-
 
 /* Plans */
 //TODO check si les srv, action servers sont connectés

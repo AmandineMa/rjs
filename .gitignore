@@ -1,5 +1,6 @@
 bin
 build
+lib_not_used
 .project
 .classpath
 

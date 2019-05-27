@@ -7,7 +7,7 @@ MAS supervisor {
 //	executionControl: jason.control.ExecutionControlGUI
 
 	agents:
-//		test_max_attempts[verbose=1] agentArchClass arch.SupervisorAgArch beliefBaseClass agent.TimeBB agentClass agent.LimitedAgent;
+		interac [verbose=2] agentArchClass arch.InteractAgArch beliefBaseClass agent.TimeBB;
 		supervisor [verbose=1] agentArchClass arch.SupervisorAgArch beliefBaseClass agent.TimeBB;
 		history [verbose=1] agentArchClass arch.ROSAgArch beliefBaseClass agent.TimeBB;
 		robot   [verbose=2] agentArchClass arch.RobotAgArch beliefBaseClass agent.TimeBB agentClass agent.LimitedAgent;

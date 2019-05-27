@@ -20,7 +20,7 @@ public class ROSAgArch extends MindInspectorAgArch {
 	
 	protected ExecutorService executor;
 	
-	private int percept_id = -1;
+	protected int percept_id = -1;
 
 	protected Logger logger = Logger.getLogger(ROSAgArch.class.getName());
 	

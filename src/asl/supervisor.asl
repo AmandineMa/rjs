@@ -11,6 +11,7 @@
 	startParameterLoaderNode;
 	startROSNode;
 	initServices;
+	.send(interac, achieve,start).
 	.send(robot, achieve, init).
 
 -!start [Failure, error(ErrorId), error_msg(Msg), code(CodeBody), code_src(CodeSrc), code_line(CodeLine)]: true <-

@@ -9,6 +9,8 @@ import java.util.logging.Logger;
 import org.ros.node.ConnectedNode;
 import org.ros.rosjava.tf.TransformTree;
 
+import com.google.common.collect.Multimap;
+
 import jason.architecture.MindInspectorAgArch;
 import jason.asSyntax.Literal;
 import ros.RosNode;
@@ -49,13 +51,16 @@ public class ROSAgArch extends MindInspectorAgArch {
 		Collection<Literal> l = new ArrayList<Literal>();
 		if(m_rosnode != null) {
 			if(percept_id != m_rosnode.getPercept_id()) {
-				Collection<SimpleFact> perceptions = new ArrayList<SimpleFact>(m_rosnode.getPerceptions().get(getAgName()));
-				if(perceptions != null) {
-					for(SimpleFact percept : perceptions) {
-						if(percept.getObject().isEmpty()) {
-							l.add(Literal.parseLiteral(percept.getPredicate()));
-						}else {
-							l.add(Literal.parseLiteral(percept.getPredicate()+"("+percept.getObject()+")"));
+				Multimap<String,SimpleFact> mm = m_rosnode.getPerceptions();
+				synchronized (mm) {
+					Collection<SimpleFact> perceptions = new ArrayList<SimpleFact>(mm.get(getAgName()));
+					if(perceptions != null) {
+						for(SimpleFact percept : perceptions) {
+							if(percept.getObject().isEmpty()) {
+								l.add(Literal.parseLiteral(percept.getPredicate()));
+							}else {
+								l.add(Literal.parseLiteral(percept.getPredicate()+"("+percept.getObject()+")"));
+							}
 						}
 					}
 				}

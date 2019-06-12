@@ -23,7 +23,7 @@ public class InteractAgArch extends ROSAgArch {
 						for(String agent : perceptions.keySet()) {
 							for(SimpleFact percept : perceptions.get(agent)) {
 								if(agent.contains("human")) {
-									if(percept.getPredicate().equals("isLookingAt")
+									if(percept.getPredicate().equals("canSee")
 											|| percept.getPredicate().equals("isSpeakingTo")
 											|| percept.getPredicate().equals("isClose")
 											|| percept.getPredicate().equals("isInFrontOf")) {

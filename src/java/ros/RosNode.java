@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,13 +33,17 @@ import org.ros.node.service.ServiceResponseListener;
 import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
+import org.yaml.snakeyaml.DumperOptions;
 
 import com.github.rosjava_actionlib.ActionClient;
 import com.github.rosjava_actionlib.ActionClientListener;
+import com.github.rosjava_actionlib.ActionServer;
+import com.github.rosjava_actionlib.ActionServerListener;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
+import actionlib_msgs.GoalID;
 import actionlib_msgs.GoalStatusArray;
 import deictic_gestures_msgs.CanLookAtRequest;
 import deictic_gestures_msgs.CanLookAtResponse;
@@ -56,6 +61,9 @@ import dialogue_as.dialogue_actionGoal;
 import geometry_msgs.Point;
 import geometry_msgs.PointStamped;
 import geometry_msgs.PoseStamped;
+import guiding_as_msgs.taskActionFeedback;
+import guiding_as_msgs.taskActionGoal;
+import guiding_as_msgs.taskActionResult;
 import hatp_msgs.PlanningRequestRequest;
 import hatp_msgs.PlanningRequestResponse;
 import move_base_msgs.MoveBaseActionFeedback;
@@ -78,6 +86,10 @@ import pointing_planner_msgs.VisibilityScoreRequest;
 import pointing_planner_msgs.VisibilityScoreResponse;
 import route_verbalization_msgs.VerbalizeRegionRouteRequest;
 import route_verbalization_msgs.VerbalizeRegionRouteResponse;
+import rpn_recipe_planner_msgs.SuperInformRequest;
+import rpn_recipe_planner_msgs.SuperInformResponse;
+import rpn_recipe_planner_msgs.SuperQueryRequest;
+import rpn_recipe_planner_msgs.SuperQueryResponse;
 import semantic_route_description_msgs.SemanticRouteRequest;
 import semantic_route_description_msgs.SemanticRouteResponse;
 import speech_wrapper_msgs.SpeakToRequest;
@@ -106,6 +118,9 @@ public class RosNode extends AbstractNodeMain {
 	HashMap<String, String> services_map;
 	private HashMap <String, ServiceClient<Message, Message>> service_clients;
 	private HashMap <String, String> service_types;
+	private ActionServer<taskActionGoal, taskActionFeedback, taskActionResult> guiding_as;
+	private taskActionGoal new_guiding_goal = null;
+	private Stack<taskActionGoal> stack_guiding_goals;
 	private ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult> get_placements_ac;
 	private ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult> get_human_answer_ac;
 	private ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult> move_to_ac;
@@ -120,6 +135,8 @@ public class RosNode extends AbstractNodeMain {
 	private CanPointAtResponse can_point_at_resp;
 	private CanLookAtResponse can_look_at_resp;
 	private VerbalizeRegionRouteResponse verbalization_resp;
+	private SuperInformResponse d_inform_resp;
+	private SuperQueryResponse d_query_resp;
 	private hatp_msgs.Plan hatp_planner_resp;
 	private PointingActionResult placements_result;
 	private PointingActionFeedback placements_fb;
@@ -161,6 +178,24 @@ public class RosNode extends AbstractNodeMain {
 			service_clients = new HashMap<String, ServiceClient<Message, Message>>();
 			service_types = new HashMap <String, String>();
 			services_map = (HashMap<String, String>) parameters.getMap("/guiding/services");
+			stack_guiding_goals = new Stack<taskActionGoal>();
+			guiding_as = new ActionServer<>(connectedNode, "/guiding_task", taskActionGoal._TYPE, taskActionFeedback._TYPE, taskActionResult._TYPE);
+			guiding_as.attachListener(new ActionServerListener<taskActionGoal>() {
+
+				@Override
+				public void goalReceived(taskActionGoal goal) {}
+
+				@Override
+				public void cancelReceived(GoalID id) {
+					new_guiding_goal = null;
+				}
+
+				@Override
+				public boolean acceptGoal(taskActionGoal goal) {
+					stack_guiding_goals.push(goal);
+					return true;
+				}
+			});
 			
 			get_placements_ac = new ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult>(
 					connectedNode, parameters.getString("/guiding/action_servers/pointing_planner"), PointingActionGoal._TYPE, PointingActionFeedback._TYPE, PointingActionResult._TYPE);
@@ -435,7 +470,7 @@ public class RosNode extends AbstractNodeMain {
 		});
 	}
 	
-	public void call_point_at_srv(String frame) {
+	public void call_point_at_srv(String frame, boolean with_head, boolean with_base) {
 		point_at_resp = null;
 		final PointAtRequest request = (PointAtRequest) service_clients.get("point_at").newMessage();
 		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
@@ -443,6 +478,8 @@ public class RosNode extends AbstractNodeMain {
 		header.setFrameId(frame);
 		point.setHeader(header);
 		request.setPoint(point);
+		request.setWithBase(with_base);
+		request.setWithHead(with_head);
 		service_clients.get("point_at").call(request, new ServiceResponseListener<Message>() {
 
 			public void onFailure(RemoteException e) {
@@ -456,10 +493,11 @@ public class RosNode extends AbstractNodeMain {
 		});
 	}
 	
-	public void call_look_at_srv(PointStamped point_stamped) {
+	public void call_look_at_srv(PointStamped point_stamped, boolean with_base) {
 		look_at_resp = null;
 		final LookAtRequest request = (LookAtRequest) service_clients.get("look_at").newMessage();
 		request.setPoint(point_stamped);
+		request.setWithBase(with_base);
 		service_clients.get("look_at").call(request, new ServiceResponseListener<Message>() {
 
 			public void onFailure(RemoteException e) {
@@ -552,6 +590,54 @@ public class RosNode extends AbstractNodeMain {
 			}
 		});
 	}
+	
+	public void call_dialogue_inform_srv(String sentence_code) {
+		call_dialogue_inform_srv(sentence_code,  "");
+	}
+	
+	public void call_dialogue_inform_srv(String sentence_code, String param) {
+		d_inform_resp = null;
+		final SuperInformRequest request = (SuperInformRequest) service_clients.get("dialogue_inform").newMessage();
+		request.setStatus(sentence_code);
+		request.setStatus(param);
+		service_clients.get("dialogue_inform").call(request, new ServiceResponseListener<Message>() {
+
+			@Override
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+			}
+
+			@Override
+			public void onSuccess(Message response) {
+				// empty
+				d_inform_resp = (SuperInformResponse) response;
+			}
+		});
+	}
+	
+	public void call_dialogue_query_srv(String sentence_code) {
+		call_dialogue_query_srv(sentence_code,  "");
+	}
+	
+	public void call_dialogue_query_srv(String sentence_code, String param) {
+		d_query_resp = null;
+		final SuperQueryRequest request = (SuperQueryRequest) service_clients.get("dialogue_query").newMessage();
+		request.setStatus(sentence_code);
+		request.setStatus(param);
+		service_clients.get("dialogue_query").call(request, new ServiceResponseListener<Message>() {
+
+			@Override
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+			}
+
+			@Override
+			public void onSuccess(Message response) {
+				d_query_resp = (SuperQueryResponse) response;
+			}
+		});
+	}
+	
 	
 	public void call_hatp_planner(String task, String type) {
 		call_hatp_planner(task, type, new ArrayList<String>());
@@ -685,9 +771,22 @@ public class RosNode extends AbstractNodeMain {
 
 	
 	public void cancel_goal_dialogue() {
-		get_human_answer_ac.sendCancel(listen_goal_msg.getGoalId());
+		if(get_human_answer_ac != null & listen_goal_msg != null)
+			get_human_answer_ac.sendCancel(listen_goal_msg.getGoalId());
 	}
 	
+	public taskActionGoal getNew_guiding_goal() {
+		return new_guiding_goal;
+	}
+
+	public void setNew_guiding_goal(taskActionGoal current_guiding_goal) {
+		this.new_guiding_goal = current_guiding_goal;
+	}
+
+	public Stack<taskActionGoal> getStack_guiding_goals() {
+		return stack_guiding_goals;
+	}
+
 
 	public OntologeniusServiceResponse get_onto_individual_resp() {
 		return onto_individual_resp;
@@ -729,10 +828,17 @@ public class RosNode extends AbstractNodeMain {
 	public VisibilityScoreResponse getVisibility_score_resp() {
 		return visibility_score_resp;
 	}
-	
 
 	public SpeakToResponse getSpeak_to_resp() {
 		return speak_to_resp;
+	}
+
+	public SuperInformResponse getD_inform_resp() {
+		return d_inform_resp;
+	}
+
+	public SuperQueryResponse getD_query_resp() {
+		return d_query_resp;
 	}
 
 	public PointAtResponse getPoint_at_resp() {
@@ -778,6 +884,10 @@ public class RosNode extends AbstractNodeMain {
 	
 	public TransformTree getTfTree() {
 		return tfl.getTree();
+	}
+
+	public ParameterTree getParameters() {
+		return parameters;
 	}
 
 	void sleep(long msec) {

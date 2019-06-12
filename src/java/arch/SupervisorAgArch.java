@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Stack;
 
 import org.ros.helpers.ParameterLoaderNode;
 import org.ros.internal.loader.CommandLineLoader;
@@ -14,8 +15,11 @@ import org.ros.node.DefaultNodeMainExecutor;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
 
+import com.github.rosjava_actionlib.GoalIDGenerator;
 import com.google.common.collect.Lists;
 
+import actionlib_msgs.GoalID;
+import guiding_as_msgs.taskActionGoal;
 import jason.RevisionFailedException;
 import jason.asSemantics.ActionExec;
 import jason.asSemantics.Unifier;
@@ -29,6 +33,8 @@ public class SupervisorAgArch extends ROSAgArch {
 	private NodeMainExecutor nodeMainExecutor = DefaultNodeMainExecutor.newDefault();
 	private NodeConfiguration nodeConfiguration;
 	private ParameterLoaderNode parameterLoaderNode;
+	private taskActionGoal current_guiding_goal;
+	private GoalIDGenerator goalIDGenerator;
 	
 	public void init() {
 		super.init();
@@ -61,6 +67,7 @@ public class SupervisorAgArch extends ROSAgArch {
 						sleep(100);
 					}
 					m_rosnode.init();
+					goalIDGenerator = new GoalIDGenerator(getConnectedNode());
 					action.setResult(true);
 		        	actionExecuted(action);
 		        	
@@ -107,6 +114,29 @@ public class SupervisorAgArch extends ROSAgArch {
 							logger.info("Belief could not be added to the belief base :"+e.getMessage());
 						}
 					}
+					actionExecuted(action);
+				}else if(action_name.equals("check_guiding_goal")) {
+					Stack<taskActionGoal> stack = m_rosnode.getStack_guiding_goals();
+					if(!stack.empty()) {
+						taskActionGoal goal = stack.peek();
+						if(goal != current_guiding_goal) {
+							try {
+								GoalID goalID = goal.getGoalId();
+								if(goal.getGoalId().getId().isEmpty()) {
+									goalIDGenerator.generateID(goalID);
+								}								
+								getTS().getAg().addBel(Literal.parseLiteral("guiding_goal(\""+goal.getGoalId().getId()+"\","+goal.getGoal().getPersonFrame()+","+goal.getGoal().getPlaceFrame()+")"));
+							} catch (RevisionFailedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							current_guiding_goal = goal;
+						}
+					}
+					action.setResult(true);
+					actionExecuted(action);
+				}else if(action_name.equals("set_guiding_result")){
+					action.setResult(true);
 					actionExecuted(action);
 				}
 				

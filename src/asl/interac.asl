@@ -17,6 +17,8 @@
 // Select the first potential interactant added to the BB to become an interactant,  if there is no interactant already
 +isPotInteractant(X) : not chosen_interactant(_) <- +chosen_interactant(X).
 
+// si personne n'est pas chosen et n'est plus close, l'enlever des potInteractant
+
 +chosen_interactant(X) : true <-
 	// TODO handle fb from approach, in case the distance increase
 //	approach(X);

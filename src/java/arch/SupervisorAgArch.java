@@ -1,5 +1,7 @@
 package arch;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,7 +42,16 @@ public class SupervisorAgArch extends ROSAgArch {
 		super.init();
 		List<String> emptyArgv = Lists.newArrayList("EmptyList");
 		CommandLineLoader loader = new CommandLineLoader(emptyArgv);
+		URI masterUri = null;
+		
 		nodeConfiguration = loader.build();	
+		try {
+			masterUri = new URI("http://localhost:11311");
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		nodeConfiguration.setMasterUri(masterUri);
 	}
 	
 	@Override
@@ -125,7 +136,7 @@ public class SupervisorAgArch extends ROSAgArch {
 								if(goal.getGoalId().getId().isEmpty()) {
 									goalIDGenerator.generateID(goalID);
 								}								
-								getTS().getAg().addBel(Literal.parseLiteral("guiding_goal(\""+goal.getGoalId().getId()+"\","+goal.getGoal().getPersonFrame()+","+goal.getGoal().getPlaceFrame()+")"));
+								getTS().getAg().addBel(Literal.parseLiteral("guiding_goal(\""+goal.getGoalId().getId()+"\","+goal.getGoal().getPersonFrame()+",\""+goal.getGoal().getPlaceFrame()+"\")"));
 							} catch (RevisionFailedException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();

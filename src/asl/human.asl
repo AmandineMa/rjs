@@ -1,7 +1,7 @@
 // Agent human in project supervisor
 
 /* Initial beliefs and rules */
-isLookingAt("burger_king").
+//isLookingAt("burger_king").
 /* Initial goals */
 
 

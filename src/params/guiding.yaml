@@ -13,11 +13,11 @@ guiding:
     route_verbalization: /route_verbalization/verbalizePlace
     get_individual_info: /ontologenius/individual
     is_visible: /pointing_planner/visibility_score
-    can_look_at: /deictic_gestures/can_look_at
-    look_at: /deictic_gestures/look_at
-    can_point_at: /deictic_gestures/can_point_at
-    point_at: /deictic_gestures/point_at
-    rest_arm: /deictic_gestures/rest_arm
+#    can_look_at: /deictic_gestures/can_look_at
+#    look_at: /deictic_gestures/look_at
+#    can_point_at: /deictic_gestures/can_point_at
+#    point_at: /deictic_gestures/point_at
+#    rest_arm: /deictic_gestures/rest_arm
     has_mesh: /uwds_ros_bridge/has_mesh
     monitor_humans: /multimodal_human_monitor/monitor_humans
 #    start_fact: /uwds_ros_bridge/start_fact

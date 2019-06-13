@@ -1,9 +1,8 @@
 // TODO a voir monitoring piloté par les differents asl
-^!guiding_goal_negociation(ID, Human,_)[state(S)] : S == started | S = resumed <- .resume(monitoring(Human)). 
+//^!guiding_goal_negociation(ID, Human,_)[state(S)] : S == started | S = resumed <- .resume(monitoring(Human)). 
 	
 +!guiding_goal_negociation(ID, Human,Place): true <-
-	set_task_infos(guiding_goal_negociation, Human);
-	+guiding_goal_negociation(ID, Human, Place);
+	+guiding_goal_negociation;
 	// special handling if the place to go is toilet or atm
 	!handle_atm_toilet(Place);
 	// there should be one belief possible_places if it toilet or atm and there is no if it is something else
@@ -18,10 +17,8 @@
 		// L is a list of list and normally with only one list, the one we get at index 0
 		.nth(0, L, To);
 	}
-//	+guiding_goal(Human,To);
-//	.send(supervisor, tell, guiding_goal(Human, To));
-	-guiding_goal_negociation(ID, Human, Place);
-	!guiding(ID, Human, Place).
+	+guiding_goal_nego(Place,To);
+	-guiding_goal_negociation.
 	
 +!handle_atm_toilet(To): true <-
 	jia.toilet_or_atm(To, AorT);
@@ -35,7 +32,7 @@
 	
 // recovery plan
 +!guiding_goal_negociation(ID, Human) : individual_not_found(Individual) <-
-		!speak(Human, no_place(Individual));
+		!speak(ID, no_place(Individual));
 		?shop_names(X);
 		.concat(X, ["atm", "toilet"], Y);
 		// listen to places in the ontology
@@ -45,8 +42,10 @@
 		-individual_not_found(Individual);
 		!guiding_goal_negociation(ID, Human, Word).
 		
-+not_exp_ans(4) : guiding_goal_negociation(ID, Human,_) <-
++not_exp_ans(4) : guiding_goal_negociation <-
+	-guiding_goal_negociation;
 	.drop_desire(guiding_goal_negociation(ID, Human,_));
+	!speak(ID,max_sorry); 
 	!drop_current_task(ID, max_attempts, "multiple wrong answers", max_attempts).
 
 // in case of the original plan failure	
@@ -55,6 +54,7 @@
 		+individual_not_found(Place);
 	  	!guiding_goal_negociation(ID, Human);
   	}else{
+  		-guiding_goal_negociation;
   		!drop_current_task(ID, guiding_goal_negociation, Failure, Code); 
   	}.
 	

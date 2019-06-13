@@ -13,7 +13,6 @@
 	initServices;
 	!check_guiding_goal.
 //	.send(interac, achieve,start).
-//	.send(robot, achieve, init).
 
 -!start [Failure, error(ErrorId), error_msg(Msg), code(CodeBody), code_src(CodeSrc), code_line(CodeLine)]: true <-
 	if(.substring(Failure, "srv_not_connected")){
@@ -42,14 +41,14 @@
 	
 +init_over(failed) : true <- .print("robot initialisation failed").
 
-+guiding_goal(ID,Human, Target) : true <- 
++guiding_goal(ID,Human, Target) : not current_guiding_goal(ID) <- 
 	if(.count((current_guiding_goal(_)),I) & I > 0){
 		?current_guiding_goal(IDprev);
 		.send(robot, tell, suspend(IDprev));
 		+suspended_guiding_goal(IDprev);
 		-current_guiding_goal(IDprev);
 	}
-	.send(robot, achieve, guiding_goal_negociation(ID, Human, Target));
+	.send(robot, achieve, guiding_task(ID, Human, Target));
 	+current_guiding_goal(ID).
 
 -guiding_goal(_,_,_) : suspended_guiding_goal(_) <-
@@ -63,9 +62,14 @@
 	-suspended_guiding_goal(ID);
 	+current_guiding_goal(ID).
 
++updated_guiding_goal(ID, Human, PlaceNego) : true <-
+	-guiding_goal(ID,_,_)[add_time(_),source(self)];
+	+guiding_goal(ID, Human, PlaceNego).
+
 +end_task(Success, ID) : true <-
 	-current_guiding_goal(ID);
 	// TODO comportement coherent ? obligé d'ajouter les annots à cause des terms du belief qui l'oblige à aller à la ligne 959 de agent
+	// belief ne disparait pas de la gui mais n'est plus dans la bb (testé avec ?guiding_goal(ID,_,_)[add_time(_),source(self)] avant et après la suppression du fait)
 	-guiding_goal(ID,_,_)[add_time(_),source(self)];
 	set_guiding_result(Success, ID).
 	

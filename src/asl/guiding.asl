@@ -47,12 +47,9 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 ^!guiding(Human, Place)[state(started)] : not started <- +started; !monitoring(Human).
 
 +!guiding(ID, Human, Place): true <-
-	+task(ID, guiding, Human, Place)[X];
 	!get_optimal_route(ID);
 	!go_to_see_target(ID);
 	!show_landmarks(ID);
-	+end_task(succeeded, ID)[ID];
-	.send(supervisor, tell, end_task(succeeded, ID));
 	!clean_task(ID).
 	
 -!guiding(ID, Human, Place) : true <-
@@ -144,7 +141,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	tf.get_transform(map, Human, Point,_);
 	.nth(2, Point, Z);
 	jia.replace(2, Hposit, Z, Pointf);
-	look_at(Hframe,Pointf,true);
+//	look_at(Hframe,Pointf,true);
 	!wait_human(ID).
 	
 -!be_at_good_pos(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
@@ -255,7 +252,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 @pl_l[max_attempts(3)]+!point_look_at(ID, Ld) : landmark_to_see(Ld) <-
 	?task(ID, guiding, Human, _);
 	+should_check_target_seen(Human,Ld);
-	point_at(Ld,false,true);
+//	point_at(Ld,false,true);
 	-should_check_target_seen(Human,Ld);
 	?(canSee(Ld)[source(Human)] | hasSeen(Ld)[source(Human)]);
 	?verba_name(Ld,Verba);
@@ -263,8 +260,8 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		
 
 @pl_nl[max_attempts(3)]+!point_look_at(ID, Ld) : not landmark_to_see(Ld) <-
-	?task(ID, guiding, Human, _);
-	point_at(Ld,false,true).
+	?task(ID, guiding, Human, _).
+//	point_at(Ld,false,true).
 
 
 -!point_look_at(ID, Ld)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
@@ -331,39 +328,16 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 
 +should_check_target_seen(Human,Ld) : true <-
 	.send(Human,tell,state(waiting_for_robot_to_point(Ld)));
-	.send(Human,achieve,communicate_belief(isLookingAt(Ld))).
+	.send(Human,achieve,communicate_belief(canSee(Ld))).
 	
 -should_check_target_seen(Human,Ld) : true <-
-	.send(Human,achieve,stop_communicate_belief(isLookingAt(Ld))).
+	.send(Human,achieve,stop_communicate_belief(canSee(Ld))).
 	
-+isLookingAt(Ld)[source(Human)] : (Ld == D & direction(D)) | (Ld == T & target_place(T)) <- 
++canSee(Ld)[source(Human)] : (Ld == D & direction(D)) | (Ld == T & target_place(T)) <- 
 	.send(Human,untell,state(waiting_for_robot_to_point(Ld))).
 		
 /********* **********/		
-	
-+!clean_task(ID) : true <-
-	?task(ID, Task, Human, Param);
-//	+end_task(Task, Human)[ID];
-	.findall(B[ID,source(X),add_time(Y)],B[ID,source(X),add_time(Y)], L);
-//	?task(_,_,_,Param);
-//	if(.count(succeeded,I) & I > 0){
-//		.send(supervisor, tell, end_task(Task, Human, Param, true));
-//	}else{
-//		.send(supervisor, tell, end_task(Task, Human, Param, false));
-//	}
-	.send(history, tell, L);
-	jia.reset_att_counter;
-	.abolish(_[ID]).	
-	
-// Utils
-+!speak(ID, ToSay) : true <-
-	?task(ID, _, Human, _);
-	.send(Human, tell, ToSay);
-	text2speech(Human, ToSay).
-	
--!speak(ID, ToSay) : true <-	true.
 
-+end_task(_, _) : listening <- stop_listen.
 
 // TODO : differencier les cas des differents listening	
 //+not_exp_ans(2) : true <-
@@ -380,34 +354,6 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 //	G =.. [TaskName, [Human,Param],[]];
 //  	.fail_goal(G).
   	
-+!drop_current_task(ID, Subgoal, Failure, Code) : true <-
-	?task(ID, Task, Human, Param);
- 	if(.substring(Failure, dialogue_as_failed)){
- 		.print(STOP_LISTEN);
- 		stop_listen;
- 	}
- 	if(.substring(Failure, dialogue_as_failed) | .substring(Failure, dialogue_as_not_found)){
- 		Speech = "listening";
- 	}elif(.substring(Failure, route_verba_failed)){
- 		Speech = "verbalization";
- 	}elif(.substring(move_to, Failure)){
- 		Speech = "moving";
- 	}elif(.substring(svp, Failure)){
- 		Speech = "planning";
- 	}elif(.substring(Failure, individual_not_found)){
- 		Speech = "ontology";
- 	}elif(.substring(verbalization, Failure)){
- 		Speech = "verbalization";
- 	}elif(.substring(self, Failure)){
- 		Speech = "my self";
- 	}
-	.print("error with ",Code);
-  	+failure(Subgoal, Failure, Code)[ID];
-  	+end_task(failed, ID)[ID];
-  	.send(supervisor, tell, end_task(failed, ID));
-  	.send(supervisor, tell, failure(ID, Subgoal, Failure, Code));
-  	!speak(ID, failure(Speech));
-  	G =.. [Task, [ID,Human,Param],[]];
-  	.fail_goal(G).
+
 //	!drop_current_task.	
   	

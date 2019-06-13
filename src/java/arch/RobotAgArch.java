@@ -436,6 +436,7 @@ public class RobotAgArch extends ROSAgArch {
 					case "ask_show_again" : text = new String("Should I show you again ?"); break;
 					case "sl_sorry" : text = new String("I am sorry if you did not understand. I won't explain one more time."); break;
 					case "pl_sorry" : text = new String("I am sorry if you did not see. I won't show you again."); break;
+					case "max_sorry" : text = new String("I am sorry, I give up, you asked me too many times something that I don't know."); break;
 					case "tell_seen" : text = new String("I can tell that you've seen "+bel_arg); break;
 					case "visible_target" : text = new String("Look, "+bel_arg+" is there"); break;
 					case "not_visible_target" : text = new String("Look, "+bel_arg+" is in this direction"); break;

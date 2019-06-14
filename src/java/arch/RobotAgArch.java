@@ -31,6 +31,7 @@ import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
 import jason.asSyntax.StringTermImpl;
 import jason.asSyntax.Term;
+import javafx.util.Pair;
 import move_base_msgs.MoveBaseActionFeedback;
 import move_base_msgs.MoveBaseActionResult;
 import msg_srv_impl.PoseCustom;
@@ -148,7 +149,7 @@ public class RobotAgArch extends ROSAgArch {
 					String individual_o =  action.getActionTerm().getTerm(1).toString();
 					String individual = individual_o.replaceAll("^\"|\"$", "");
 					String belief_name = action.getActionTerm().getTerm(2).toString();
-					m_rosnode.call_onto_indivual_srv(param, individual);
+					m_rosnode.call_onto_individual_srv(param, individual);
 					OntologeniusServiceResponse places;
 					do {
 						places = m_rosnode.get_onto_individual_resp();
@@ -414,11 +415,14 @@ public class RobotAgArch extends ROSAgArch {
 					String bel_arg = null;
 					if(bel.getTerms().size()==1) {
 						bel_arg = bel.getTerms().get(0).toString();
-						bel_arg = bel_arg.replaceAll("^\"|\"$", "");
+						bel_arg = bel_arg.replaceAll("^\"|\"$", "").replaceAll("\\[", "").replaceAll("\\]",""); 
 					}
 					boolean hwu_dial = m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu");
 
 					switch(bel_functor) {
+					case "thinking": text = new String("Wait, I'm thinking"); break;
+					case "list_places": text = new String("There are "+bel_arg); break;
+					case "closest": text = new String("The closest ones are "+bel_arg); break;
 					case "where_are_u": text = new String("Where are you ? I cannot see you"); break;
 					case "found_again": text = new String("Ok I can see you again"); break;
 					case "cannot_find": text = new String("I cannot find you, sorry"); break;
@@ -772,6 +776,38 @@ public class RobotAgArch extends ROSAgArch {
 		}
 
 		return best_route;
+
+	}
+	
+	public RouteImpl[] select_2_best_routes(List<SemanticRouteResponse> routes_resp_list) {
+		RouteImpl[] best_routes = new RouteImpl[2];
+		float min_cost1 = Float.MAX_VALUE;
+		float min_cost2 = Float.MAX_VALUE;
+		int list_size = routes_resp_list.size();
+		if (list_size > 2) {
+			for (SemanticRouteResponse route_resp : routes_resp_list) {
+				List<Route> routes = route_resp.getRoutes();
+				float[] costs = route_resp.getCosts();
+				List<String> goals = route_resp.getGoals();
+
+				for (int i = 0; i < routes.size(); i++) {
+					if (costs[i] < min_cost1) {
+						min_cost2 = min_cost1;
+						best_routes[0].setRoute(routes.get(i).getRoute());
+						best_routes[0].setGoal(goals.get(i));
+						min_cost1 = costs[i];
+					}else if (costs[i] < min_cost2) {
+						min_cost2 = costs[i];
+						best_routes[1].setRoute(routes.get(i).getRoute());
+						best_routes[1].setGoal(goals.get(i));
+					}
+				}
+			}
+		}else {
+			return null;
+		}
+
+		return best_routes;
 
 	}
 

@@ -1,33 +1,54 @@
 // TODO a voir monitoring piloté par les differents asl
 //^!guiding_goal_negociation(ID, Human,_)[state(S)] : S == started | S = resumed <- .resume(monitoring(Human)). 
+all_places(false).
 	
 +!guiding_goal_negociation(ID, Human,Place): true <-
 	+guiding_goal_negociation;
-	// special handling if the place to go is toilet or atm
-	!handle_atm_toilet(Place);
-	// there should be one belief possible_places if it toilet or atm and there is no if it is something else
-	.findall(X, possible_places(Place,X), L);
-	// if it is not toilet or atm
-	if(.empty(L)){
-		// get the corresponding name in the ontology	
-		get_onto_individual_info(find, Place, onto_place);
-		?onto_place(Place,To);
-	// if we got a list of toilets or a list of atms
-	} else{
-		// L is a list of list and normally with only one list, the one we get at index 0
-		.nth(0, L, To);
+	if(jia.word_class(find, Place, Class)){
+		jia.word_class(find, Place, Class);
+		jia.word_individual(getType, Class, Places);
+		?robot_place(From);
+		if(.substring(Class, atm) | .substring(Class, toilets)){
+			jia.compute_route(From, Places, lambda, false, 1, Route);
+			+Route;
+			Route =.. [route, [PlaceOnto, R]];
+		}elif(all_places(X) & X == true){
+			jia.verba_name(Places, PlacesVerba);
+			!speak(ID, list_places(PlacesVerba));
+			listen(list_places,PlacesVerba);
+			?listen_result(list_places,Goal);
+			!guiding_goal_negociation(ID, Human,Goal);
+			.succeed_goal(guiding_goal_negociation(ID, Human,Place));
+		}elif(.list(Places)){
+			!speak(ID, thinking);
+			jia.compute_route(From, Places, lambda, false, 2, Routes);
+			.nth(0, Routes, Route1);
+			Route1 =.. [_, [Offer1, R1], []];
+			.nth(1, Routes, Route2);
+			Route2 =.. [_, [Offer2, R2], []];
+			Offers = [Offer1, Offer2];
+			jia.verba_name(Offers, OffersVerba);
+			!speak(ID, closest(OffersVerba));
+			listen(closest,OffersVerba);
+			?listen_result(closest,Goal);
+			!guiding_goal_negociation(ID, Human,Goal);
+			.succeed_goal(guiding_goal_negociation(ID, Human,Place));
+		}
+	}else{
+		jia.word_individual(find, Place, PlaceOnto);
 	}
-	+guiding_goal_nego(Place,To);
+	jia.word_individual(getName, PlaceOnto, PlaceName);
+	+guiding_goal_nego(PlaceName, PlaceOnto);
 	-guiding_goal_negociation.
 	
-+!handle_atm_toilet(To): true <-
-	jia.toilet_or_atm(To, AorT);
++!define_word_class(To): true <-
+	jia.word_class(To, Class);
 	// add belief possible_places
-	get_onto_individual_info(getType, AorT, possible_places).	
+	jia.word_individual(getType, Places).	
 
--!handle_atm_toilet(To)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] :true <- 
+-!define_word_class(To)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] :true <- 
 	if(not .substring(ia_failed, Error)){
-		!drop_current_task(ID, handle_atm_toilet, Failure, Code);
+		!drop_current_task(ID, define_word_class, Failure, Code);
 	}.
 	
 // recovery plan

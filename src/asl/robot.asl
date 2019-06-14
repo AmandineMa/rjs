@@ -5,7 +5,10 @@
 { include("guiding.asl")}
 
 +!guiding_task(ID, Human,Place) : true <-
-	.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
+	.all_names(Agents);
+	if(not .member(Human, Agents)){
+		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
+	}
 	+task(ID, guiding_task, Human, Place)[ID];
 	!guiding_goal_negociation(ID, Human,Place);
 	?guiding_goal_nego(PlaceNego, PlaceFrame);
@@ -14,7 +17,7 @@
 		-task(ID, guiding_task, Human, Place)[ID];
 		+task(ID, guiding_task, Human, PlaceNego)[ID];
 	}
-	!guiding(ID, Human, PlaceFrame);
+//	!guiding(ID, Human, PlaceFrame);
 	+end_task(succeeded, ID)[ID];
 	.send(supervisor, tell, end_task(succeeded, ID)).
 

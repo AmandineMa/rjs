@@ -8,7 +8,7 @@ isPerceiving(human).
 
 // TODO handle when place to go already frame name
 //place_asked("burger king").
-robot_place("robot_infodesk").
+robot_place("pepper_infodesk").
 shops(["thai_papaya","starbucks","zizzi","marimekko_outlet","marco_polo","intersport","pancho_villa",
 	   "daddys_diner","atm_2","atm_1","burger_king","funpark","hairstore","reima","ilopilleri","linkosuo",
 	   "gina","h_m","hiustalo"]).

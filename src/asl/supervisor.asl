@@ -14,6 +14,10 @@
 	!check_guiding_goal.
 //	.send(interac, achieve,start).
 
++!get(Place) : true <-
+	jia.word_class(Place, Class).
+	
+
 -!start [Failure, error(ErrorId), error_msg(Msg), code(CodeBody), code_src(CodeSrc), code_line(CodeLine)]: true <-
 	if(.substring(Failure, "srv_not_connected")){
 		!retry_init_services;

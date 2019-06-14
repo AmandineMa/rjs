@@ -8,7 +8,7 @@ MAS supervisor {
 
 	agents:
 		interac [verbose=1] agentArchClass arch.InteractAgArch beliefBaseClass agent.TimeBB;
-		supervisor [verbose=2] agentArchClass arch.SupervisorAgArch beliefBaseClass agent.TimeBB;
+		supervisor [verbose=1] agentArchClass arch.SupervisorAgArch beliefBaseClass agent.TimeBB;
 		history [verbose=1] agentArchClass arch.ROSAgArch beliefBaseClass agent.TimeBB;
 		robot   [verbose=2] agentArchClass arch.RobotAgArch beliefBaseClass agent.TimeBB agentClass agent.LimitedAgent;
 //		human   [verbose=1] agentArchClass arch.HumanAgArch beliefBaseClass agent.TimeBB;

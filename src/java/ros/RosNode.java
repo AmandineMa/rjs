@@ -126,6 +126,7 @@ public class RosNode extends AbstractNodeMain {
 	private ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult> move_to_ac;
 	private Subscriber<perspectives_msgs.FactArrayStamped> facts_sub;
 	private OntologeniusServiceResponse onto_individual_resp;
+	private OntologeniusServiceResponse onto_class_resp;
 	private SemanticRouteResponseImpl get_route_resp;
 	private HasMeshResponse has_mesh_resp;
 	private VisibilityScoreResponse visibility_score_resp;
@@ -380,7 +381,7 @@ public class RosNode extends AbstractNodeMain {
 		return type;
 	}
 
-	public void call_onto_indivual_srv(String action, String param) {
+	public void call_onto_individual_srv(String action, String param) {
 		onto_individual_resp = null;
 		final OntologeniusServiceRequest request = (OntologeniusServiceRequest) service_clients.get("get_individual_info").newMessage();
 		request.setAction(action);
@@ -395,6 +396,33 @@ public class RosNode extends AbstractNodeMain {
 				}else {
 					onto_individual_resp.setCode((short) Code.OK.getCode());
 					onto_individual_resp.setValues(((OntologeniusServiceResponse) response).getValues());
+				}
+				
+			}
+
+			@Override
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+				
+			}
+		});
+	}
+	
+	public void call_onto_class_srv(String action, String param) {
+		onto_class_resp = null;
+		final OntologeniusServiceRequest request = (OntologeniusServiceRequest) service_clients.get("get_class_info").newMessage();
+		request.setAction(action);
+		request.setParam(param);
+		service_clients.get("get_class_info").call(request, new ServiceResponseListener<Message>() {
+
+			@Override
+			public void onSuccess(Message response) {
+				onto_class_resp = connectedNode.getServiceResponseMessageFactory().newFromType(OntologeniusService._TYPE);
+				if(((OntologeniusServiceResponse) response).getValues().isEmpty()) {
+					onto_class_resp.setCode((short) Code.ERROR.getCode());
+				}else {
+					onto_class_resp.setCode((short) Code.OK.getCode());
+					onto_class_resp.setValues(((OntologeniusServiceResponse) response).getValues());
 				}
 				
 			}
@@ -790,6 +818,10 @@ public class RosNode extends AbstractNodeMain {
 
 	public OntologeniusServiceResponse get_onto_individual_resp() {
 		return onto_individual_resp;
+	}
+
+	public OntologeniusServiceResponse getOnto_class_resp() {
+		return onto_class_resp;
 	}
 
 	public SemanticRouteResponseImpl get_get_route_resp() {

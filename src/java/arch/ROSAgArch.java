@@ -75,6 +75,11 @@ public class ROSAgArch extends MindInspectorAgArch {
 		return m_rosnode.getConnectedNode();
 	}
 	
+	
+	public static RosNode getM_rosnode() {
+		return m_rosnode;
+	}
+
 	public TransformTree getTfTree() {
 		return m_rosnode.getTfTree();
 	}

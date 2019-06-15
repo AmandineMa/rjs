@@ -12,6 +12,7 @@ guiding:
     get_route: /semantic_route_description/get_route
     route_verbalization: /route_verbalization/verbalizePlace
     get_individual_info: /ontologenius/individual
+    get_class_info: /ontologenius/class
     is_visible: /pointing_planner/visibility_score
 #    can_look_at: /deictic_gestures/can_look_at
 #    look_at: /deictic_gestures/look_at

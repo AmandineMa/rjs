@@ -14,10 +14,11 @@
 	?guiding_goal_nego(PlaceNego, PlaceFrame);
 	if(Place \== PlaceNego){
 		.send(supervisor, tell, updated_guiding_goal(ID, Human, PlaceNego));
-		-task(ID, guiding_task, Human, Place)[ID];
-		+task(ID, guiding_task, Human, PlaceNego)[ID];
+		
 	}
-//	!guiding(ID, Human, PlaceFrame);
+	-task(ID, guiding_task, Human, Place)[ID];
+	+task(ID, guiding_task, Human, PlaceFrame)[ID];
+	!guiding(ID, Human, PlaceFrame);
 	+end_task(succeeded, ID)[ID];
 	.send(supervisor, tell, end_task(succeeded, ID)).
 

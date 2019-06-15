@@ -2,6 +2,8 @@
 
 package jia;
 
+import java.util.List;
+
 import arch.ROSAgArch;
 
 //import java.util.logging.Logger;
@@ -29,7 +31,8 @@ public class word_class extends DefaultInternalAction {
 			places = ROSAgArch.getM_rosnode().getOnto_class_resp();
 			sleep(100);
 		}while(places == null);
-		
+		short c = places.getCode() ;
+		List<String> l = places.getValues();
 		if(places.getCode() == Code.OK.getCode() & !places.getValues().isEmpty()) {
         	return un.unifies(args[2], new StringTermImpl(places.getValues().get(0)));
         }else {

@@ -31,7 +31,6 @@ import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
 import jason.asSyntax.StringTermImpl;
 import jason.asSyntax.Term;
-import javafx.util.Pair;
 import move_base_msgs.MoveBaseActionFeedback;
 import move_base_msgs.MoveBaseActionResult;
 import msg_srv_impl.PoseCustom;
@@ -421,7 +420,7 @@ public class RobotAgArch extends ROSAgArch {
 
 					switch(bel_functor) {
 					case "thinking": text = new String("Wait, I'm thinking"); break;
-					case "list_places": text = new String("There are "+bel_arg); break;
+					case "list_places": text = new String("There are "+bel_arg+". Which one do you want to go to ?"); break;
 					case "closest": text = new String("The closest ones are "+bel_arg); break;
 					case "where_are_u": text = new String("Where are you ? I cannot see you"); break;
 					case "found_again": text = new String("Ok I can see you again"); break;

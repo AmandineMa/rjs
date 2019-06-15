@@ -48,8 +48,8 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 
 +!guiding(ID, Human, Place): true <-
 	!get_optimal_route(ID);
-	!go_to_see_target(ID);
-	!show_landmarks(ID);
+//	!go_to_see_target(ID);
+//	!show_landmarks(ID);
 	!clean_task(ID).
 	
 -!guiding(ID, Human, Place) : true <-
@@ -59,7 +59,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 /******* get route **********/	
 
 +!get_optimal_route(ID): true <-
-	?task(ID, guiding, Human, Place);
+	?task(ID, guiding_task, Human, Place);
 	// compute a route with Place which can be a place or a list of places
 	// if it s a list of places, compute_route select the place with the smallest cost
 	?robot_place(From);
@@ -104,7 +104,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 ^!go_to_see_target(ID)[state(S)] : S == finished | S = failed <- .resume(monitoring(Human)).
 
 +!go_to_see_target(ID) : true <- 
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	!get_placements(ID);
 	?ld_to_point;
 	!be_at_good_pos(ID).
@@ -115,7 +115,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	}.
 	
 +!get_placements(ID): true <-
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	?target_place(TargetLD);
 	// if there is a direction
 	if(.count((direction(_)),I) & I > 0){
@@ -134,7 +134,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
   	}.
 	
 +!be_at_good_pos(ID) : true <- 
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	?robot_pose(Rframe,Rposit, Rorient);
 	move_to(Rframe,Rposit, Rorient);
 	?human_pose(Hframe,Hposit,_);
@@ -148,7 +148,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	!drop_current_task(ID, be_at_good_pos, Failure, Code).
 
 +!wait_human(ID) : true <- 
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	if(.count((isPerceiving(Human)),I) & I == 0){
 		.wait({+isPerceiving(Human)},4000);
 		-~here(Human);
@@ -165,7 +165,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	}.
 	
 -!wait_human(ID)[Failure, code(_),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	if(.substring(Error, wait_timeout)){
 		+~here(Human);
 		!speak(ID, come);
@@ -188,7 +188,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 ^!point_look_at(ID)[state(finished)] <- jia.suspend_all(monitoring(_)).
 
 @sl[max_attempts(3)]+!show_landmarks(ID) : true <- 
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	!show_target(ID);
 	!show_direction(ID);
 	!speak(ID, ask_understand);
@@ -239,7 +239,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	jia.reset_att_counter(point_look_at).
 
 -!show_direction(ID)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	if(.substring(can_transform, Code)){
 		?direction(D);
 		!verbalization(Human, D);
@@ -250,7 +250,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == Ld).
 
 @pl_l[max_attempts(3)]+!point_look_at(ID, Ld) : landmark_to_see(Ld) <-
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	+should_check_target_seen(Human,Ld);
 //	point_at(Ld,false,true);
 	-should_check_target_seen(Human,Ld);
@@ -260,12 +260,12 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		
 
 @pl_nl[max_attempts(3)]+!point_look_at(ID, Ld) : not landmark_to_see(Ld) <-
-	?task(ID, guiding, Human, _).
+	?task(ID, guiding_task, Human, _).
 //	point_at(Ld,false,true).
 
 
 -!point_look_at(ID, Ld)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	if(.substring(test_goal_failed, Error)){
 		!ask_seen(ID,Ld);
 	}elif(.substring(Error,max_attempts)){
@@ -275,7 +275,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	}.
 	
 +!ask_seen(ID, Ld) : true <-
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	?verba_name(Ld,Verba);
 	!speak(ID, cannot_tell_seen(Verba));
 	listen(cannot_tell_seen,["yes","no"]);
@@ -296,23 +296,23 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
   	!drop_current_task(ID, ask_seen, Failure, Code).	
 
 +!verbalization(ID, Place) : target_to_point(T) & T == Place & direction(_) <-
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	?verba_name(Place, Name);
 	!speak(ID, visible_target(Name)).
 	
 +!verbalization(ID, Place) : not target_to_point(_) &  direction(D) & Place \== D <-
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	?verba_name(Place, Name);
 	!speak(ID, not_visible_target(Name)).
 
 +!verbalization(ID, Place) : ( direction(D) & Place == D & dir_to_point(D)) | (target_to_point(T) & T == Place & not direction(_)) <-
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	!get_verba(ID);
 	?verbalization(RouteVerba);
 	!speak(ID, route_verbalization(RouteVerba)).
 
 +!verbalization(ID, Place) : ( direction(D) & Place == D & not dir_to_point(D) ) | ( not target_to_point(_) & not direction(_)) <-
-	?task(ID, guiding, Human, _);
+	?task(ID, guiding_task, Human, _);
 	!get_verba(ID);
 	?verbalization(RouteVerba);
 	!speak(ID, route_verbalization_n_vis(RouteVerba)).

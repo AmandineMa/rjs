@@ -72,12 +72,15 @@ public class compute_route extends DefaultInternalAction {
 			
 			if(n_routes == 1) {
 				RouteImpl route = select_best_route(routes);
-				ListTermImpl route_list = new ListTermImpl();
-				route_list.addAll(route.getRoute());
-				Structure struct = new Structure("route");
-				struct.addTerm(new StringTermImpl(route.getGoal()));
-				struct.addTerm(route_list);
-				return un.unifies(args[5], struct);
+				ListTerm route_list = new ListTermImpl();
+				String s_route_list = route.getRoute().stream()
+						  .map(s -> "\"" + s + "\"")
+						  .collect(Collectors.joining(", "));
+				route_list = ListTermImpl.parseList("["+s_route_list+"]");
+				LiteralImpl l = new LiteralImpl("route");
+				l.addTerm(new StringTermImpl(route.getGoal()));
+				l.addTerm(route_list);
+				return un.unifies(args[5], l);
 			}else if(n_routes == 2) {
 				RouteImpl[] best_routes;
 				best_routes = select_2_best_routes(routes);
@@ -88,20 +91,20 @@ public class compute_route extends DefaultInternalAction {
 						  .map(s -> "\"" + s + "\"")
 						  .collect(Collectors.joining(", "));
 				route_list = ListTermImpl.parseList("["+s_route_list+"]");
-				Structure struct = new Structure("route");
-				struct.addTerm(new StringTermImpl(best_routes[0].getGoal()));
-				struct.addTerm(route_list);
-				list.add(struct);
+				LiteralImpl l = new LiteralImpl("route");
+				l.addTerm(new StringTermImpl(best_routes[0].getGoal()));
+				l.addTerm(route_list);
+				list.add(l);
 				// route 1
 				route_list = new ListTermImpl();
 				s_route_list = best_routes[1].getRoute().stream()
 						  .map(s -> "\"" + s + "\"")
 						  .collect(Collectors.joining(", "));
 				route_list = ListTermImpl.parseList("["+s_route_list+"]");
-				struct = new Structure("route");
-				struct.addTerm(new StringTermImpl(best_routes[1].getGoal()));
-				struct.addTerm(route_list);
-				list.add(struct);
+				l = new LiteralImpl("route");
+				l.addTerm(new StringTermImpl(best_routes[1].getGoal()));
+				l.addTerm(route_list);
+				list.add(l);
 				return un.unifies(args[5], list);
 			}else {
 				return false;

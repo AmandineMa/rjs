@@ -1,6 +1,6 @@
 // TODO a voir monitoring piloté par les differents asl
 //^!guiding_goal_negociation(ID, Human,_)[state(S)] : S == started | S = resumed <- .resume(monitoring(Human)). 
-all_places(false).
+all_places(true).
 	
 +!guiding_goal_negociation(ID, Human,Place): true <-
 	+guiding_goal_negociation;
@@ -10,8 +10,7 @@ all_places(false).
 		?robot_place(From);
 		if(.substring(Class, atm) | .substring(Class, toilets)){
 			jia.compute_route(From, Places, lambda, false, 1, Route);
-			+Route;
-			Route =.. [route, [PlaceOnto, R]];
+			Route =.. [route, [PlaceOnto, R], []];
 		}elif(all_places(X) & X == true){
 			jia.verba_name(Places, PlacesVerba);
 			!speak(ID, list_places(PlacesVerba));
@@ -41,15 +40,6 @@ all_places(false).
 	+guiding_goal_nego(PlaceName, PlaceOnto);
 	-guiding_goal_negociation.
 	
-+!define_word_class(To): true <-
-	jia.word_class(To, Class);
-	// add belief possible_places
-	jia.word_individual(getType, Places).	
-
--!define_word_class(To)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] :true <- 
-	if(not .substring(ia_failed, Error)){
-		!drop_current_task(ID, define_word_class, Failure, Code);
-	}.
 	
 // recovery plan
 +!guiding_goal_negociation(ID, Human) : individual_not_found(Individual) <-
@@ -71,7 +61,7 @@ all_places(false).
 
 // in case of the original plan failure	
 -!guiding_goal_negociation(ID, Human, Place)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)]: true <-
-	if(.substring(Failure, individual_not_found)){
+	if(.substring(word_individual, Code)){
 		+individual_not_found(Place);
 	  	!guiding_goal_negociation(ID, Human);
   	}else{

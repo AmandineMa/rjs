@@ -141,7 +141,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	tf.get_transform(map, Human, Point,_);
 	.nth(2, Point, Z);
 	jia.replace(2, Hposit, Z, Pointf);
-//	look_at(Hframe,Pointf,true);
+	look_at(Hframe,Pointf,true);
 	!wait_human(ID).
 	
 -!be_at_good_pos(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
@@ -252,7 +252,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 @pl_l[max_attempts(3)]+!point_look_at(ID, Ld) : landmark_to_see(Ld) <-
 	?task(ID, guiding_task, Human, _);
 	+should_check_target_seen(Human,Ld);
-//	point_at(Ld,false,true);
+	point_at(Ld,false,true);
 	-should_check_target_seen(Human,Ld);
 	?(canSee(Ld)[source(Human)] | hasSeen(Ld)[source(Human)]);
 	?verba_name(Ld,Verba);
@@ -260,8 +260,8 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		
 
 @pl_nl[max_attempts(3)]+!point_look_at(ID, Ld) : not landmark_to_see(Ld) <-
-	?task(ID, guiding_task, Human, _).
-//	point_at(Ld,false,true).
+	?task(ID, guiding_task, Human, _);
+	point_at(Ld,false,true).
 
 
 -!point_look_at(ID, Ld)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-

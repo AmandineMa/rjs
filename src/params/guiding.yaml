@@ -8,22 +8,22 @@ guiding:
 
   services:
     stand_pose: /naoqi_driver/robot_posture/go_to_posture
-    speak_to: /speech_wrapper/speak_to
+    speak_to: /speech_wrapper/speaking_attention_point
     get_route: /semantic_route_description/get_route
     route_verbalization: /route_verbalization/verbalizePlace
     get_individual_info: /ontologenius/individual
     get_class_info: /ontologenius/class
     is_visible: /pointing_planner/visibility_score
 #    can_look_at: /deictic_gestures/can_look_at
-#    look_at: /deictic_gestures/look_at
+    look_at: /deictic_gestures/look_at
 #    can_point_at: /deictic_gestures/can_point_at
-#    point_at: /deictic_gestures/point_at
+    point_at: /deictic_gestures/point_at
 #    rest_arm: /deictic_gestures/rest_arm
     has_mesh: /uwds_ros_bridge/has_mesh
-    monitor_humans: /multimodal_human_monitor/monitor_humans
+#    monitor_humans: /multimodal_human_monitor/monitor_humans
 #    start_fact: /uwds_ros_bridge/start_fact
 #    end_fact: /uwds_ros_bridge/end_fact
-    find_alternate_id: /multimodal_human_monitor/find_alternate_id
+#    find_alternate_id: /multimodal_human_monitor/find_alternate_id
 #    hatp_planner: /hatp/planner
 #    dialogue_inform: /rpn_supervision_server/inform
 #    dialogue_query: /rpn_supervision_server/query
@@ -34,13 +34,13 @@ guiding:
 
   topics:
     current_facts: /base/current_facts
-    coord_signals: /head_manager/head_coordination_signals
+#    coord_signals: /head_manager/head_coordination_signals
 #    debug_pp: /supervision/pointing_planner
 #    debug_rot: /supervision/rotation
 
   action_servers:
     move_to: m_move_to
-    rotate: m_rotate
+#    rotate: m_rotate
     dialogue: dialogue_as
     pointing_planner: pointing_planner/PointingPlanner
 

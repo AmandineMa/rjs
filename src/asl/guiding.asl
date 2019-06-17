@@ -9,12 +9,42 @@ isPerceiving(human).
 // TODO handle when place to go already frame name
 //place_asked("burger king").
 robot_place("pepper_infodesk").
-shops(["thai_papaya","starbucks","zizzi","marimekko_outlet","marco_polo","intersport","pancho_villa",
-	   "daddys_diner","atm_2","atm_1","burger_king","funpark","hairstore","reima","ilopilleri","linkosuo",
-	   "gina","h_m","hiustalo"]).
-shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","reima","hairstore","funpark",
-	        "burger king","atm","daddy s diner","pancho villa","intersport","marco polo","marimekko outlet",
-	        "zizzi","starbucks","thai papaya"]).	
+//shops(["thai_papaya","starbucks","zizzi","marimekko_outlet","marco_polo","intersport","pancho_villa",
+//	   "daddys_diner","atm_2","atm_1","burger_king","funpark","hairstore","reima","ilopilleri","linkosuo",
+//	   "gina","h_m","hiustalo"]).
+//shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","reima","hairstore","funpark",
+//	        "burger king","atm","daddy s diner","pancho villa","intersport","marco polo","marimekko outlet",
+//	        "zizzi","starbucks","thai papaya"]).	
+shop_names(["Faunatar","Musti ja Mirri","DNA","Marimekko Outlet","fonum","Telia","koo kenka","Digiman","lahi tapiola",
+	"kultajousi","Kultaporssi","Sinelli","zones by sarkanniemi","tommy hilfiger","Pelaamo","Brother Clothing","Saunalahti",
+	"kristyle","Reima","swamp","Masku","click shoe","pentik","BR-lelut","top-sport","kyosho","Swamp Music","Bjorn Borg","unikulma",
+	"gina tricot","Partioaitta","Iittala Outlet","intersport","Hairlekiini","Ideapark Sport Areena","Linda Mode","Stadium","Prisma",
+	"shoe store","Name It","fortum","PiiPoo","information desk","sunwok","suomalainen kirjakauppa","Banking machine","Daddy s Diner",
+	"Minimani","hemtex","eurokangas","Avain- ja suutarityo Helsky","Aitoleipa","cm hiustalo","instrumentarium","Lagoon Fish Foot Spa",
+	"sticky wingers","alko","Oma Saastopankki","Kalastus Suomi","Arnolds","cafe de lisa","Coyote Grill","glitter","finnlandia",
+	"Sievi Shop","easy fit traingin","thai papaya","Cubus","clas ohlson","finla","Netrauta","life","Logistiikkakeskus",
+	"flying tiger copenhagen","kicks","hiljainen huone","hairstore","Lumo-puoti","kahvila ilopilleri","toys r us","Tekniskamagasinet",
+	"ur penn","nissen","body shop","Timanttiset","kauneus- ja jalkahoitola manna","Ti-Ti Nallen Koti","Budget Sport","easyfit",
+	"Mummola Lahjapuoti","Power","Apteekki","vero moda","hovi kebab","Din Sko","juvesport","kotipizza rolls expert","change","Sub Way",
+	"rax","Hesburger","only","pancho villa","tanssiopisto","Stahlberg","marco polo","kukkakauppa","Gant","cafe linkosuo","kirjaporssi",
+	"Burger King","atm","jesper junior","ballot","halonen","pukimo","guess","NP","Gerry Weber","Zizzi","hennes mauritz","superdry",
+	"farkkujen tehtaanmyymala","kapp ahl","lindex","river co","New Yorker","esprit","your face and rils","Mango","vila","carlings",
+	"Dressman","Bik Bok","Dressmann XL","aleksi 13"]).
+shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango","Your_Face_and_Rils","Esprit_Ideapark","New_Yorker",
+	"River_and_Co","Lindex","KappAhl","Farkkujen_Tehtaanmyymala","Superdry","Hennes_and_Mauritz","Zizzi","Gerry_Weber","NP","Guess",
+	"Pukimo","Halonen","Ballot","Jesper_Junior","gf_atm_west","Burger_King","Kirjaporssi","Cafe_Linkosuo","Gant","Kukkakauppa","Marco_Polo",
+	"Spice_Ice","Tanssiopisto","Pancho_Villa","only_2","Hesburger","Rax","SubWay","Change","Kotipizza_and_Rolls_Expert","Juvesport","Din_Sko",
+	"HoviKebab","Vero_Moda,_JandJ","Apteekki_Ideapark","Power","Mummola_Lahjapuoti","Easyfit","gf_atm_east","Budget_Sport","Ti_Ti_Nallen_Koti",
+	"Kauneus__ja_jalkahoitola_Manna","Timanttiset","Body_Shop","Nissen","Ur_and_Penn","Tekniskamagasinet","Toys_R_Us","Kahvila_Ilopilleri",
+	"Lumo_puoti","HairStore","Hiljainen_huone","Kicks","Flying_Tiger_Copenhagen","Logistiikkakeskus","Life","Netrauta","Finla","Clas_Ohlson","Cubus",
+	"Thai_Papaya","Easy_Fit_Traingin","Sievi_Shop","Finnlandia","Glitter","Coyote_Grill","Cafe_de_Lisa","Arnolds","Kalastus_Suomi","Oma_Saastopankki",
+	"Alko","Sticky_Wingers","Lagoon_Fish_Foot_Spa","Instrumentarium","CM_Hiustalo","only","Aitoleipa","Avain__ja_suutarityo_Helsky","Eurokangas",
+	"Hemtex","Minimani","Bella_Roma_and_Daddys_Diner","Banking_machine","Suomalainen_Kirjakauppa","SunWok","Information_desk","PiiPoo","Fortum",
+	"Name_It","Shoe_Store","Prisma","Stadium","Linda_Mode","Ideapark_Sport_Areena","Hairlekiini","Intersport_Ideapark","Iittala_Outlet","Partioaitta",
+	"Gina_Tricot","Unikulma","Bjorn_Borg","Swamp_Music","Kyosho_Ideapark","Top_Sport","BR_lelut","Pentik","Click_Shoe","Masku","swamp","Reima","Kristyle",
+	"Saunalahti","Brother_Clothing","Pelaamo","Tommy_Hilfiger","Zones_by_Sarkanniemi","Sinelli","Kultaporssi","Kultajousi","LahiTapiola_Service_desk","Digiman",
+	"KOO_Kenka","Telia","Fonum","Marimekko_Outlet","DNA","Musti_ja_Mirri","Faunatar"]).	        
+	    
 //persona_asked(lambda).   
 
 /* Plans */
@@ -48,8 +78,8 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 
 +!guiding(ID, Human, Place): true <-
 	!get_optimal_route(ID);
-//	!go_to_see_target(ID);
-//	!show_landmarks(ID);
+	!go_to_see_target(ID);
+	!show_landmarks(ID);
 	!clean_task(ID).
 	
 -!guiding(ID, Human, Place) : true <-

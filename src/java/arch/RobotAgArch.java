@@ -36,11 +36,12 @@ import move_base_msgs.MoveBaseActionResult;
 import msg_srv_impl.PoseCustom;
 import msg_srv_impl.RouteImpl;
 import msg_srv_impl.SemanticRouteResponseImpl;
+import nao_interaction_msgs.SayResponse;
 import ontologenius_msgs.OntologeniusServiceResponse;
 import perspectives_msgs.HasMeshResponse;
-import pointing_planner_msgs.PointingActionFeedback;
-import pointing_planner_msgs.PointingActionResult;
-import pointing_planner_msgs.VisibilityScoreResponse;
+import pointing_planner.PointingActionFeedback;
+import pointing_planner.PointingActionResult;
+import pointing_planner.VisibilityScoreResponse;
 import route_verbalization_msgs.VerbalizeRegionRouteResponse;
 import rpn_recipe_planner_msgs.SuperQueryResponse;
 import semantic_route_description_msgs.Route;
@@ -191,6 +192,7 @@ public class RobotAgArch extends ROSAgArch {
 					String target = params.get(0);
 					String direction = params.get(1);
 					String human = params.get(2);
+					int tar_is_dir = Integer.parseInt(params.get(3));
 
 					if(m_rosnode.call_svp_planner(target, direction, human, max_attempt)) {
 						PointingActionResult placements_result;
@@ -222,12 +224,19 @@ public class RobotAgArch extends ROSAgArch {
 								boolean at_least_one = false;
 								for(int i = 0; i < nb_ld_to_point; i++) {
 									String ld = placements_result.getResult().getPointedLandmarks().get(i);
-									if(ld.equals(target)) {
-										getTS().getAg().addBel(Literal.parseLiteral("target_to_point(\""+ld+"\")["+task_id+"]"));
-										at_least_one = true;
-									}else if(ld.equals(direction)) {
-										getTS().getAg().addBel(Literal.parseLiteral("dir_to_point(\""+ld+"\")["+task_id+"]"));
-										at_least_one = true;
+									if(tar_is_dir == 0) {
+										if(ld.equals(target)) {
+											getTS().getAg().addBel(Literal.parseLiteral("target_to_point(\""+ld+"\")["+task_id+"]"));
+											at_least_one = true;
+										}else if(ld.equals(direction)) {
+											getTS().getAg().addBel(Literal.parseLiteral("dir_to_point(\""+ld+"\")["+task_id+"]"));
+											at_least_one = true;
+										}
+									}else {
+										if(ld.equals(target)) {
+											getTS().getAg().addBel(Literal.parseLiteral("dir_to_point(\""+ld+"\")["+task_id+"]"));
+											at_least_one = true;
+										}
 									}
 								}
 								if(!at_least_one) {
@@ -308,7 +317,7 @@ public class RobotAgArch extends ROSAgArch {
 					String frame = action.getActionTerm().getTerm(0).toString();
 					frame = frame.replaceAll("^\"|\"$", "");
 					boolean with_head = Boolean.parseBoolean(action.getActionTerm().getTerm(1).toString());
-					boolean with_base = Boolean.parseBoolean(action.getActionTerm().getTerm(1).toString());
+					boolean with_base = Boolean.parseBoolean(action.getActionTerm().getTerm(2).toString());
 					m_rosnode.call_point_at_srv(frame, with_head, with_base);
 					PointAtResponse point_at_resp;
 					do {
@@ -421,7 +430,7 @@ public class RobotAgArch extends ROSAgArch {
 					switch(bel_functor) {
 					case "thinking": text = new String("Wait, I'm thinking"); break;
 					case "list_places": text = new String("There are "+bel_arg+". Which one do you want to go to ?"); break;
-					case "closest": text = new String("The closest ones are "+bel_arg); break;
+					case "closest": text = new String("The closest ones are "+bel_arg+". Which one do you want to go to ?"); break;
 					case "where_are_u": text = new String("Where are you ? I cannot see you"); break;
 					case "found_again": text = new String("Ok I can see you again"); break;
 					case "cannot_find": text = new String("I cannot find you, sorry"); break;
@@ -494,17 +503,18 @@ public class RobotAgArch extends ROSAgArch {
 						action.setResult(true);
 					}else {
 						m_rosnode.call_speak_to_srv(human, text);
-						SpeakToResponse speak_to_resp;
+						SayResponse speak_to_resp;
 						do {
 							speak_to_resp = m_rosnode.getSpeak_to_resp();
 							sleep(100);
 						}while(speak_to_resp == null);
-						if(speak_to_resp.getSuccess()) {
-							action.setResult(true);
-						}else {
-							action.setResult(false);
-							action.setFailureReason(new Atom("speak_to_failed"), "the speech service failed");
-						}
+//						if(speak_to_resp.getSuccess()) {
+//							action.setResult(true);
+//						}else {
+//							action.setResult(false);
+//							action.setFailureReason(new Atom("speak_to_failed"), "the speech service failed");
+//						}
+						action.setResult(true);
 					}
 					actionExecuted(action);
 				} else if(action_name.equals("get_route_verbalization")) {

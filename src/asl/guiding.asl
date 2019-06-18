@@ -1,7 +1,7 @@
 // Agent robot in project supervisor
 
 /* Initial beliefs and rules */
-isPerceiving(human).
+//isPerceiving(human).
 
 /* Initial goals */
 
@@ -78,7 +78,7 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 
 +!guiding(ID, Human, Place): true <-
 	!get_optimal_route(ID);
-	!go_to_see_target(ID);
+//	!go_to_see_target(ID);
 	!show_landmarks(ID);
 	!clean_task(ID).
 	
@@ -144,16 +144,26 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 		!drop_current_task(ID, go_to_see_target, Failure, Code);
 	}.
 	
-+!get_placements(ID): true <-
++!get_placements(ID): not no_mesh <-
 	?task(ID, guiding_task, Human, _);
 	?target_place(TargetLD);
-	// if there is a direction
-	if(.count((direction(_)),I) & I > 0){
-		?direction(Dir);
-		get_placements(TargetLD,Dir,Human);
+	.concat("robot/merged/", Human, HTF);
+	if(jia.has_mesh(TargetLD)){
+		// if there is a direction
+		if(.count((direction(_)),I) & I > 0){
+			?direction(Dir);
+			if(jia.has_mesh(Dir)){
+				get_placements(TargetLD,Dir,HTF,0);
+			}
+		}else{
+			get_placements(TargetLD,"",HTF,0);
+		}
 	}else{
-		get_placements(TargetLD,"",Human);
+		if(jia.has_mesh(Dir)){
+			get_placements(Dir,"",HTF,1)
+		}
 	}.
+	
 
 //TODO to see if we drop the task when svp fail, why not continue the task without moving ?	
 -!get_placements(ID)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_), source(self)] : true <-
@@ -168,7 +178,8 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	?robot_pose(Rframe,Rposit, Rorient);
 	move_to(Rframe,Rposit, Rorient);
 	?human_pose(Hframe,Hposit,_);
-	tf.get_transform(map, Human, Point,_);
+	.concat("robot/merged/", Human, HTF);
+	tf.get_transform(map, HTF, Point,_);
 	.nth(2, Point, Z);
 	jia.replace(2, Hposit, Z, Pointf);
 	look_at(Hframe,Pointf,true);
@@ -185,12 +196,10 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	}
 	if(.count((dir_to_point(_)),I) & I > 0){
 		?dir_to_point(D);
-		has_mesh(D);
 		can_be_visible(Human, D);
 	}
 	if(.count((target_to_point(_)),J) & J > 0){
 		?target_to_point(T);
-		has_mesh(T);
 		can_be_visible(Human, T);
 	}.
 	
@@ -259,11 +268,13 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 -!show_target(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
 	if(not .substring(can_transform, Code)){
 		!drop_current_task(ID, show_target, Failure, Code);
+	}else{
+		!verbalization(ID, TargetPlace);
 	}.
 	
 +!show_direction(ID) : true <-
 	?direction(D);
-	tf.can_transform(map, D);
+	tf.can_transform(map, TargetPlace);
 	!verbalization(ID, D);
 	!point_look_at(ID, D);
 	jia.reset_att_counter(point_look_at).
@@ -300,6 +311,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!ask_seen(ID,Ld);
 	}elif(.substring(Error,max_attempts)){
 		!speak(ID,pl_sorry); 
+		jia.reset_att_counter(point_look_at);
 	}else{
 		!drop_current_task(ID, point_look_at, Failure, Code);
 	}.

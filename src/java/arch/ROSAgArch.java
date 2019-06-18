@@ -11,12 +11,13 @@ import org.ros.rosjava.tf.TransformTree;
 
 import com.google.common.collect.Multimap;
 
+import jason.architecture.AgArch;
 import jason.architecture.MindInspectorAgArch;
 import jason.asSyntax.Literal;
 import ros.RosNode;
 import utils.SimpleFact;
 
-public class ROSAgArch extends MindInspectorAgArch {
+public class ROSAgArch extends AgArch {
 	
 	static protected RosNode m_rosnode;
 	
@@ -42,7 +43,7 @@ public class ROSAgArch extends MindInspectorAgArch {
 
 	@Override
 	public void init() {
-		setupMindInspector("gui(cycle,html,history)");    
+//		setupMindInspector("gui(cycle,html,history)");    
 	} 
 	
 	

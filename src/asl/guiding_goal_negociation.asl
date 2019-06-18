@@ -1,6 +1,6 @@
 // TODO a voir monitoring piloté par les differents asl
 //^!guiding_goal_negociation(ID, Human,_)[state(S)] : S == started | S = resumed <- .resume(monitoring(Human)). 
-all_places(true).
+all_places(false).
 	
 +!guiding_goal_negociation(ID, Human,Place): true <-
 	+guiding_goal_negociation;

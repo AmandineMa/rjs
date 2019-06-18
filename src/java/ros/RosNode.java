@@ -71,6 +71,8 @@ import move_base_msgs.MoveBaseActionGoal;
 import move_base_msgs.MoveBaseActionResult;
 import move_base_msgs.MoveBaseGoal;
 import msg_srv_impl.SemanticRouteResponseImpl;
+import nao_interaction_msgs.SayRequest;
+import nao_interaction_msgs.SayResponse;
 import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceRequest;
 import ontologenius_msgs.OntologeniusServiceResponse;
@@ -78,12 +80,12 @@ import perspectives_msgs.Fact;
 import perspectives_msgs.FactArrayStamped;
 import perspectives_msgs.HasMeshRequest;
 import perspectives_msgs.HasMeshResponse;
-import pointing_planner_msgs.PointingActionFeedback;
-import pointing_planner_msgs.PointingActionGoal;
-import pointing_planner_msgs.PointingActionResult;
-import pointing_planner_msgs.PointingGoal;
-import pointing_planner_msgs.VisibilityScoreRequest;
-import pointing_planner_msgs.VisibilityScoreResponse;
+import pointing_planner.PointingActionFeedback;
+import pointing_planner.PointingActionGoal;
+import pointing_planner.PointingActionResult;
+import pointing_planner.PointingGoal;
+import pointing_planner.VisibilityScoreRequest;
+import pointing_planner.VisibilityScoreResponse;
 import route_verbalization_msgs.VerbalizeRegionRouteRequest;
 import route_verbalization_msgs.VerbalizeRegionRouteResponse;
 import rpn_recipe_planner_msgs.SuperInformRequest;
@@ -130,7 +132,8 @@ public class RosNode extends AbstractNodeMain {
 	private SemanticRouteResponseImpl get_route_resp;
 	private HasMeshResponse has_mesh_resp;
 	private VisibilityScoreResponse visibility_score_resp;
-	private SpeakToResponse speak_to_resp;
+//	private SpeakToResponse speak_to_resp;
+	private SayResponse speak_to_resp;
 	private PointAtResponse point_at_resp;
 	private LookAtResponse look_at_resp;
 	private CanPointAtResponse can_point_at_resp;
@@ -248,29 +251,29 @@ public class RosNode extends AbstractNodeMain {
 				public void statusReceived(GoalStatusArray arg0) {}
 			});
 			
-			move_to_ac = new ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult>(
-					connectedNode, parameters.getString("/guiding/action_servers/move_to"), MoveBaseActionGoal._TYPE, MoveBaseActionFeedback._TYPE, MoveBaseActionResult._TYPE);
-			
-			move_to_ac.setLogLevel(Level.OFF);
-			
-			move_to_ac.attachListener(new ActionClientListener<MoveBaseActionFeedback, MoveBaseActionResult>() {
-
-				@Override
-				public void feedbackReceived(MoveBaseActionFeedback fb) {
-					move_to_fb = fb;
-					
-				}
-
-				@Override
-				public void resultReceived(MoveBaseActionResult result) {
-					move_to_result = result;
-					
-				}
-
-				@Override
-				public void statusReceived(GoalStatusArray arg0) {
-				}
-			});
+//			move_to_ac = new ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult>(
+//					connectedNode, parameters.getString("/guiding/action_servers/move_to"), MoveBaseActionGoal._TYPE, MoveBaseActionFeedback._TYPE, MoveBaseActionResult._TYPE);
+//			
+//			move_to_ac.setLogLevel(Level.OFF);
+//			
+//			move_to_ac.attachListener(new ActionClientListener<MoveBaseActionFeedback, MoveBaseActionResult>() {
+//
+//				@Override
+//				public void feedbackReceived(MoveBaseActionFeedback fb) {
+//					move_to_fb = fb;
+//					
+//				}
+//
+//				@Override
+//				public void resultReceived(MoveBaseActionResult result) {
+//					move_to_result = result;
+//					
+//				}
+//
+//				@Override
+//				public void statusReceived(GoalStatusArray arg0) {
+//				}
+//			});
 			
 			
 			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"), perspectives_msgs.FactArrayStamped._TYPE);
@@ -577,14 +580,36 @@ public class RosNode extends AbstractNodeMain {
 		});
 	}
 
+//	public void call_speak_to_srv(String look_at, String text) {
+//		speak_to_resp = null;
+//		final SpeakToRequest request = (SpeakToRequest) service_clients.get("speak_to").newMessage();
+//		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
+//		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
+//		header.setFrameId(look_at);
+//		point.setHeader(header);
+//		request.setLookAt(point);
+//		request.setText(text);
+//		service_clients.get("speak_to").call(request, new ServiceResponseListener<Message>() {
+//
+//			public void onFailure(RemoteException e) {
+//				throw new RosRuntimeException(e);
+//			}
+//
+//			public void onSuccess(Message response) {
+//				speak_to_resp = (SpeakToResponse) response;
+//			}
+//			
+//		});
+//	}
+	
 	public void call_speak_to_srv(String look_at, String text) {
 		speak_to_resp = null;
-		final SpeakToRequest request = (SpeakToRequest) service_clients.get("speak_to").newMessage();
-		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
-		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
-		header.setFrameId(look_at);
-		point.setHeader(header);
-		request.setLookAt(point);
+		final SayRequest request = (SayRequest) service_clients.get("speak_to").newMessage();
+//		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
+//		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
+//		header.setFrameId(look_at);
+//		point.setHeader(header);
+//		request.setLookAt(point);
 		request.setText(text);
 		service_clients.get("speak_to").call(request, new ServiceResponseListener<Message>() {
 
@@ -593,7 +618,7 @@ public class RosNode extends AbstractNodeMain {
 			}
 
 			public void onSuccess(Message response) {
-				speak_to_resp = (SpeakToResponse) response;
+				speak_to_resp = (SayResponse) response;
 			}
 			
 		});
@@ -861,7 +886,11 @@ public class RosNode extends AbstractNodeMain {
 		return visibility_score_resp;
 	}
 
-	public SpeakToResponse getSpeak_to_resp() {
+//	public SpeakToResponse getSpeak_to_resp() {
+//		return speak_to_resp;
+//	}
+	
+	public SayResponse getSpeak_to_resp() {
 		return speak_to_resp;
 	}
 

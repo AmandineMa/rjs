@@ -61,6 +61,16 @@ public class SupervisorAgArch extends ROSAgArch {
 			@Override
 			public void run() {
 				String action_name = action.getActionTerm().getFunctor();
+				if(action_name.equals("test")) {
+					try {
+						getTS().getAg().addBel(Literal.parseLiteral("dir_to_point"));
+					} catch (RevisionFailedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					action.setResult(true);
+		        	actionExecuted(action);
+				}
 				if(action_name.equals("startParameterLoaderNode")){
 					@SuppressWarnings("serial")
 					List<ParameterLoaderNode.Resource> resourceList = new ArrayList<ParameterLoaderNode.Resource>() {{
@@ -136,7 +146,7 @@ public class SupervisorAgArch extends ROSAgArch {
 								if(goal.getGoalId().getId().isEmpty()) {
 									goalIDGenerator.generateID(goalID);
 								}								
-								getTS().getAg().addBel(Literal.parseLiteral("guiding_goal(\""+goal.getGoalId().getId()+"\","+goal.getGoal().getPersonFrame()+",\""+goal.getGoal().getPlaceFrame()+"\")"));
+								getTS().getAg().addBel(Literal.parseLiteral("guiding_goal(\""+goal.getGoalId().getId()+"\",\""+goal.getGoal().getPersonFrame()+"\",\""+goal.getGoal().getPlaceFrame()+"\")"));
 							} catch (RevisionFailedException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();

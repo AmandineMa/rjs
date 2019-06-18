@@ -84,6 +84,8 @@ import pointing_planner.PointingActionFeedback;
 import pointing_planner.PointingActionGoal;
 import pointing_planner.PointingActionResult;
 import pointing_planner.PointingGoal;
+import pointing_planner.PointingPlannerRequest;
+import pointing_planner.PointingPlannerResponse;
 import pointing_planner.VisibilityScoreRequest;
 import pointing_planner.VisibilityScoreResponse;
 import route_verbalization_msgs.VerbalizeRegionRouteRequest;
@@ -141,6 +143,7 @@ public class RosNode extends AbstractNodeMain {
 	private VerbalizeRegionRouteResponse verbalization_resp;
 	private SuperInformResponse d_inform_resp;
 	private SuperQueryResponse d_query_resp;
+	private PointingPlannerResponse placements_resp;
 	private hatp_msgs.Plan hatp_planner_resp;
 	private PointingActionResult placements_result;
 	private PointingActionFeedback placements_fb;
@@ -201,26 +204,26 @@ public class RosNode extends AbstractNodeMain {
 				}
 			});
 			
-			get_placements_ac = new ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult>(
-					connectedNode, parameters.getString("/guiding/action_servers/pointing_planner"), PointingActionGoal._TYPE, PointingActionFeedback._TYPE, PointingActionResult._TYPE);
-			// too many useless loginfo in the class ActionClient (modified ActionClient by amdia to add the setLogLevel method)
-			get_placements_ac.setLogLevel(Level.OFF);
-			
-			get_placements_ac.attachListener(new ActionClientListener<PointingActionFeedback, PointingActionResult>() {
-	
-				@Override
-				public void feedbackReceived(PointingActionFeedback fb) {
-					placements_fb = fb;
-				}
-	
-				@Override
-				public void resultReceived(PointingActionResult result) {
-					placements_result = result;
-				}
-	
-				@Override
-				public void statusReceived(GoalStatusArray arg0) {}
-			});
+//			get_placements_ac = new ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult>(
+//					connectedNode, parameters.getString("/guiding/action_servers/pointing_planner"), PointingActionGoal._TYPE, PointingActionFeedback._TYPE, PointingActionResult._TYPE);
+//			// too many useless loginfo in the class ActionClient (modified ActionClient by amdia to add the setLogLevel method)
+//			get_placements_ac.setLogLevel(Level.OFF);
+//			
+//			get_placements_ac.attachListener(new ActionClientListener<PointingActionFeedback, PointingActionResult>() {
+//	
+//				@Override
+//				public void feedbackReceived(PointingActionFeedback fb) {
+//					placements_fb = fb;
+//				}
+//	
+//				@Override
+//				public void resultReceived(PointingActionResult result) {
+//					placements_result = result;
+//				}
+//	
+//				@Override
+//				public void statusReceived(GoalStatusArray arg0) {}
+//			});
 			
 			get_human_answer_ac = new ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult>(
 					connectedNode, parameters.getString("/guiding/action_servers/dialogue"), dialogue_actionActionGoal._TYPE, dialogue_actionActionFeedback._TYPE, dialogue_actionActionResult._TYPE);
@@ -691,6 +694,27 @@ public class RosNode extends AbstractNodeMain {
 		});
 	}
 	
+	public void call_svp_planner_srv(String target_ld, String direction_ld, String human) {
+		placements_resp = null;
+		final PointingPlannerRequest request = (PointingPlannerRequest) service_clients.get("pointing_planner").newMessage();
+		request.setTargetLandmark(target_ld);
+		request.setDirectionLandmark(direction_ld);
+		request.setHuman(human);
+		service_clients.get("pointing_planner").call(request, new ServiceResponseListener<Message>() {
+
+			@Override
+			public void onFailure(RemoteException arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void onSuccess(Message response) {
+				placements_resp = (PointingPlannerResponse) response;
+				
+			}
+		});
+	}
 	
 	public void call_hatp_planner(String task, String type) {
 		call_hatp_planner(task, type, new ArrayList<String>());
@@ -860,6 +884,10 @@ public class RosNode extends AbstractNodeMain {
 	
 	public PointingActionFeedback getPlacements_fb() {
 		return placements_fb;
+	}
+	
+	public PointingPlannerResponse getPlacements_resp() {
+		return placements_resp;
 	}
 
 	public dialogue_actionActionResult getListening_result() {

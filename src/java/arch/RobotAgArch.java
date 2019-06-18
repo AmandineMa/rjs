@@ -41,6 +41,7 @@ import ontologenius_msgs.OntologeniusServiceResponse;
 import perspectives_msgs.HasMeshResponse;
 import pointing_planner.PointingActionFeedback;
 import pointing_planner.PointingActionResult;
+import pointing_planner.PointingPlannerResponse;
 import pointing_planner.VisibilityScoreResponse;
 import route_verbalization_msgs.VerbalizeRegionRouteResponse;
 import rpn_recipe_planner_msgs.SuperQueryResponse;
@@ -193,72 +194,111 @@ public class RobotAgArch extends ROSAgArch {
 					String direction = params.get(1);
 					String human = params.get(2);
 					int tar_is_dir = Integer.parseInt(params.get(3));
-
-					if(m_rosnode.call_svp_planner(target, direction, human, max_attempt)) {
-						PointingActionResult placements_result;
-						PointingActionFeedback placements_fb;
-						PointingActionFeedback placements_fb_prev = null;
-						do {
-							placements_result = m_rosnode.get_placements_result();
-							placements_fb = m_rosnode.getPlacements_fb();
-							if(placements_fb != null & placements_fb != placements_fb_prev) {
-								try {
-									getTS().getAg().addBel(Literal.parseLiteral("fb(svp_planner, "+placements_fb.getFeedback().getState()+")["+task_id+"]"));
-								} catch (RevisionFailedException e) {
-									e.printStackTrace();
-								}
-								placements_fb_prev = placements_fb;
-							}
-							sleep(200);
-						}while(placements_result == null);
-
-						if(placements_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
-							try {
-								PoseCustom robot_pose = new PoseCustom(placements_result.getResult().getRobotPose().getPose());
-								String r_frame = placements_result.getResult().getRobotPose().getHeader().getFrameId();
-								PoseCustom human_pose = new PoseCustom(placements_result.getResult().getHumanPose().getPose());
-								String h_frame = placements_result.getResult().getHumanPose().getHeader().getFrameId();
-								getTS().getAg().addBel(Literal.parseLiteral("robot_pose("+r_frame+","+robot_pose.toString()+")["+task_id+"]"));
-								getTS().getAg().addBel(Literal.parseLiteral("human_pose("+h_frame+","+human_pose.toString()+")["+task_id+"]"));
-								int nb_ld_to_point = placements_result.getResult().getPointedLandmarks().size();
-								boolean at_least_one = false;
-								for(int i = 0; i < nb_ld_to_point; i++) {
-									String ld = placements_result.getResult().getPointedLandmarks().get(i);
-									if(tar_is_dir == 0) {
-										if(ld.equals(target)) {
-											getTS().getAg().addBel(Literal.parseLiteral("target_to_point(\""+ld+"\")["+task_id+"]"));
-											at_least_one = true;
-										}else if(ld.equals(direction)) {
-											getTS().getAg().addBel(Literal.parseLiteral("dir_to_point(\""+ld+"\")["+task_id+"]"));
-											at_least_one = true;
-										}
-									}else {
-										if(ld.equals(target)) {
-											getTS().getAg().addBel(Literal.parseLiteral("dir_to_point(\""+ld+"\")["+task_id+"]"));
-											at_least_one = true;
-										}
+					
+					m_rosnode.call_svp_planner_srv(target, direction, human);
+					PointingPlannerResponse placements_result;
+					do {
+						placements_result = m_rosnode.getPlacements_resp();
+						sleep(100);
+					}while(placements_result == null);
+					try {
+						if(!placements_result.getPointedLandmarks().isEmpty()) {
+							PoseCustom robot_pose = new PoseCustom(placements_result.getRobotPose().getPose());
+							String r_frame = placements_result.getRobotPose().getHeader().getFrameId();
+							PoseCustom human_pose = new PoseCustom(placements_result.getHumanPose().getPose());
+							String h_frame = placements_result.getHumanPose().getHeader().getFrameId();
+							getTS().getAg().addBel(Literal.parseLiteral("robot_pose("+r_frame+","+robot_pose.toString()+")["+task_id+"]"));
+							getTS().getAg().addBel(Literal.parseLiteral("human_pose("+h_frame+","+human_pose.toString()+")["+task_id+"]"));
+							int nb_ld_to_point = placements_result.getPointedLandmarks().size();
+							for(int i = 0; i < nb_ld_to_point; i++) {
+								String ld = placements_result.getPointedLandmarks().get(i);
+								if(tar_is_dir == 0) {
+									if(ld.equals(target)) {
+										getTS().getAg().addBel(Literal.parseLiteral("target_to_point(\""+ld+"\")["+task_id+"]"));
+									}else if(ld.equals(direction)) {
+										getTS().getAg().addBel(Literal.parseLiteral("dir_to_point(\""+ld+"\")["+task_id+"]"));
+									}
+								}else {
+									if(ld.equals(target)) {
+										getTS().getAg().addBel(Literal.parseLiteral("dir_to_point(\""+ld+"\")["+task_id+"]"));
 									}
 								}
-								if(!at_least_one) {
-									getTS().getAg().addBel(Literal.parseLiteral("~ld_to_point[\""+task_id+"\"]"));
-								}else {
-									getTS().getAg().addBel(Literal.parseLiteral("ld_to_point[\""+task_id+"\"]"));
-								}
-							} catch (RevisionFailedException e) {
-								e.printStackTrace();
 							}
-							action.setResult(true);
-							actionExecuted(action);
+							getTS().getAg().addBel(Literal.parseLiteral("ld_to_point[\""+task_id+"\"]"));
 						}else {
-							action.setResult(false);
-							action.setFailureReason(new Atom("svp_failure"), "SVP planner goal status :"+placements_result.getStatus().getStatus());
-							actionExecuted(action);
+							getTS().getAg().addBel(Literal.parseLiteral("~ld_to_point[\""+task_id+"\"]"));
 						}
-					}else {
-						action.setResult(false);
-						action.setFailureReason(new Atom("svp_srv_not_found"), "SVP planner action server not found");
-						actionExecuted(action);
+					}catch (RevisionFailedException e) {
+						e.printStackTrace();
 					}
+					action.setResult(true);
+					actionExecuted(action);
+
+//					if(m_rosnode.call_svp_planner(target, direction, human, max_attempt)) {
+//						PointingActionResult placements_result;
+//						PointingActionFeedback placements_fb;
+//						PointingActionFeedback placements_fb_prev = null;
+//						do {
+//							placements_result = m_rosnode.get_placements_result();
+//							placements_fb = m_rosnode.getPlacements_fb();
+//							if(placements_fb != null & placements_fb != placements_fb_prev) {
+//								try {
+//									getTS().getAg().addBel(Literal.parseLiteral("fb(svp_planner, "+placements_fb.getFeedback().getState()+")["+task_id+"]"));
+//								} catch (RevisionFailedException e) {
+//									e.printStackTrace();
+//								}
+//								placements_fb_prev = placements_fb;
+//							}
+//							sleep(200);
+//						}while(placements_result == null);
+
+//						if(placements_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
+//							try {
+//								PoseCustom robot_pose = new PoseCustom(placements_result.getResult().getRobotPose().getPose());
+//								String r_frame = placements_result.getResult().getRobotPose().getHeader().getFrameId();
+//								PoseCustom human_pose = new PoseCustom(placements_result.getResult().getHumanPose().getPose());
+//								String h_frame = placements_result.getResult().getHumanPose().getHeader().getFrameId();
+//								getTS().getAg().addBel(Literal.parseLiteral("robot_pose("+r_frame+","+robot_pose.toString()+")["+task_id+"]"));
+//								getTS().getAg().addBel(Literal.parseLiteral("human_pose("+h_frame+","+human_pose.toString()+")["+task_id+"]"));
+//								int nb_ld_to_point = placements_result.getResult().getPointedLandmarks().size();
+//								boolean at_least_one = false;
+//								for(int i = 0; i < nb_ld_to_point; i++) {
+//									String ld = placements_result.getResult().getPointedLandmarks().get(i);
+//									if(tar_is_dir == 0) {
+//										if(ld.equals(target)) {
+//											getTS().getAg().addBel(Literal.parseLiteral("target_to_point(\""+ld+"\")["+task_id+"]"));
+//											at_least_one = true;
+//										}else if(ld.equals(direction)) {
+//											getTS().getAg().addBel(Literal.parseLiteral("dir_to_point(\""+ld+"\")["+task_id+"]"));
+//											at_least_one = true;
+//										}
+//									}else {
+//										if(ld.equals(target)) {
+//											getTS().getAg().addBel(Literal.parseLiteral("dir_to_point(\""+ld+"\")["+task_id+"]"));
+//											at_least_one = true;
+//										}
+//									}
+//								}
+//								if(!at_least_one) {
+//									getTS().getAg().addBel(Literal.parseLiteral("~ld_to_point[\""+task_id+"\"]"));
+//								}else {
+//									getTS().getAg().addBel(Literal.parseLiteral("ld_to_point[\""+task_id+"\"]"));
+//								}
+//							} catch (RevisionFailedException e) {
+//								e.printStackTrace();
+//							}
+//							action.setResult(true);
+//							actionExecuted(action);
+//						}else {
+//							action.setResult(false);
+//							action.setFailureReason(new Atom("svp_failure"), "SVP planner goal status :"+placements_result.getStatus().getStatus());
+//							actionExecuted(action);
+//						}
+//					}else {
+//						action.setResult(false);
+//						action.setFailureReason(new Atom("svp_srv_not_found"), "SVP planner action server not found");
+//						actionExecuted(action);
+//					}
 
 				}else if(action_name.equals("has_mesh")) {
 					// to remove the extra ""

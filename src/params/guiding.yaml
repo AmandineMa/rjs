@@ -19,6 +19,7 @@ guiding:
     look_at: /deictic_gestures/look_at
 #    can_point_at: /deictic_gestures/can_point_at
     point_at: /deictic_gestures/point_at
+    pointing_planner: /pointing_planner/SVP_Planner
 #    rest_arm: /deictic_gestures/rest_arm
 #    has_mesh: /uwds_ros_bridge/has_mesh
 #    monitor_humans: /multimodal_human_monitor/monitor_humans
@@ -28,7 +29,6 @@ guiding:
 #    hatp_planner: /hatp/planner
 #    dialogue_inform: /rpn_supervision_server/inform
 #    dialogue_query: /rpn_supervision_server/query
-
 #    activate_dialogue: /activate
 #    deactivate_dialogue: /deactivate
      

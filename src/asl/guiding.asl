@@ -78,7 +78,7 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 
 +!guiding(ID, Human, Place): true <-
 	!get_optimal_route(ID);
-//	!go_to_see_target(ID);
+	!go_to_see_target(ID);
 	!show_landmarks(ID);
 	!clean_task(ID).
 	
@@ -147,7 +147,7 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 +!get_placements(ID): not no_mesh <-
 	?task(ID, guiding_task, Human, _);
 	?target_place(TargetLD);
-	.concat("robot/merged/", Human, HTF);
+	.concat("human_", Human, HTF);
 	if(jia.has_mesh(TargetLD)){
 		// if there is a direction
 		if(.count((direction(_)),I) & I > 0){
@@ -178,7 +178,7 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	?robot_pose(Rframe,Rposit, Rorient);
 	move_to(Rframe,Rposit, Rorient);
 	?human_pose(Hframe,Hposit,_);
-	.concat("robot/merged/", Human, HTF);
+	.concat("human_", Human, HTF);
 	tf.get_transform(map, HTF, Point,_);
 	.nth(2, Point, Z);
 	jia.replace(2, Hposit, Z, Pointf);
@@ -260,8 +260,8 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	?target_place(TargetPlace);
 	// if cannot transform, leaves the plan
 	tf.can_transform(map, TargetPlace);
-	!verbalization(ID, TargetPlace);
 	!point_look_at(ID, TargetPlace);
+	!verbalization(ID, TargetPlace);
 	jia.reset_att_counter(point_look_at).
 	
 
@@ -274,16 +274,16 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	
 +!show_direction(ID) : true <-
 	?direction(D);
-	tf.can_transform(map, TargetPlace);
-	!verbalization(ID, D);
+	tf.can_transform(map, D);
 	!point_look_at(ID, D);
+	!verbalization(ID, D);
 	jia.reset_att_counter(point_look_at).
 
 -!show_direction(ID)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
 	?task(ID, guiding_task, Human, _);
 	if(.substring(can_transform, Code)){
 		?direction(D);
-		!verbalization(Human, D);
+		!verbalization(ID, D);
 	}elif(not .substring(test_goal_failed, Error)){
 		!drop_current_task(ID, show_direction, Failure, Code);
 	}.

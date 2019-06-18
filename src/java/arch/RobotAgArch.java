@@ -224,9 +224,9 @@ public class RobotAgArch extends ROSAgArch {
 									}
 								}
 							}
-							getTS().getAg().addBel(Literal.parseLiteral("ld_to_point[\""+task_id+"\"]"));
+							getTS().getAg().addBel(Literal.parseLiteral("ld_to_point["+task_id+"]"));
 						}else {
-							getTS().getAg().addBel(Literal.parseLiteral("~ld_to_point[\""+task_id+"\"]"));
+							getTS().getAg().addBel(Literal.parseLiteral("~ld_to_point["+task_id+"]"));
 						}
 					}catch (RevisionFailedException e) {
 						e.printStackTrace();

@@ -46,7 +46,7 @@ public class SupervisorAgArch extends ROSAgArch {
 		
 		nodeConfiguration = loader.build();	
 		try {
-			masterUri = new URI("http://localhost:11311");
+			masterUri = new URI("http://140.93.6.116:11311");
 		} catch (URISyntaxException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

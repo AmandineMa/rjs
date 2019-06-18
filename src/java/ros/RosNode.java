@@ -30,6 +30,7 @@ import org.ros.node.NodeConfiguration;
 import org.ros.node.parameter.ParameterTree;
 import org.ros.node.service.ServiceClient;
 import org.ros.node.service.ServiceResponseListener;
+import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
@@ -177,7 +178,7 @@ public class RosNode extends AbstractNodeMain {
 			parameters = connectedNode.getParameterTree();
 			URI uri = null;
 			try {
-				uri = new URI("http://localhost:11311");
+				uri = new URI("http://140.93.6.116:11311");
 			} catch (URISyntaxException e) {
 				logger.info("Wrong URI syntax :"+e.getMessage());
 			}
@@ -254,29 +255,29 @@ public class RosNode extends AbstractNodeMain {
 				public void statusReceived(GoalStatusArray arg0) {}
 			});
 			
-//			move_to_ac = new ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult>(
-//					connectedNode, parameters.getString("/guiding/action_servers/move_to"), MoveBaseActionGoal._TYPE, MoveBaseActionFeedback._TYPE, MoveBaseActionResult._TYPE);
-//			
-//			move_to_ac.setLogLevel(Level.OFF);
-//			
-//			move_to_ac.attachListener(new ActionClientListener<MoveBaseActionFeedback, MoveBaseActionResult>() {
-//
-//				@Override
-//				public void feedbackReceived(MoveBaseActionFeedback fb) {
-//					move_to_fb = fb;
-//					
-//				}
-//
-//				@Override
-//				public void resultReceived(MoveBaseActionResult result) {
-//					move_to_result = result;
-//					
-//				}
-//
-//				@Override
-//				public void statusReceived(GoalStatusArray arg0) {
-//				}
-//			});
+			move_to_ac = new ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult>(
+					connectedNode, parameters.getString("/guiding/action_servers/move_to"), MoveBaseActionGoal._TYPE, MoveBaseActionFeedback._TYPE, MoveBaseActionResult._TYPE);
+			
+			move_to_ac.setLogLevel(Level.OFF);
+			
+			move_to_ac.attachListener(new ActionClientListener<MoveBaseActionFeedback, MoveBaseActionResult>() {
+
+				@Override
+				public void feedbackReceived(MoveBaseActionFeedback fb) {
+					move_to_fb = fb;
+					
+				}
+
+				@Override
+				public void resultReceived(MoveBaseActionResult result) {
+					move_to_result = result;
+					
+				}
+
+				@Override
+				public void statusReceived(GoalStatusArray arg0) {
+				}
+			});
 			
 			
 			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"), perspectives_msgs.FactArrayStamped._TYPE);
@@ -374,7 +375,7 @@ public class RosNode extends AbstractNodeMain {
 				String[] tokens = line.split(" ");
 				if(tokens[0].contains("Type")) {
 					type = tokens[1];
-					if(!type.contains("msgs")) {
+					if(!type.contains("msgs") && !srv_name.contains("pointing_planner")) {
 						String[] tokens_type = type.split("/");
 						type = tokens_type[0]+"_msgs/"+tokens_type[1];
 					}
@@ -704,8 +705,7 @@ public class RosNode extends AbstractNodeMain {
 
 			@Override
 			public void onFailure(RemoteException arg0) {
-				// TODO Auto-generated method stub
-				
+				placements_resp.setPointedLandmarks(new ArrayList<String>());
 			}
 
 			@Override

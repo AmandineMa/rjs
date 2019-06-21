@@ -65,41 +65,42 @@ public class RobotAgArch extends ROSAgArch {
 	
 	@Override
 	public void init() {
-//		point_at_status = m_rosnode.getConnectedNode().newSubscriber(m_rosnode.getParameters().getString("guiding/topics/point_at_status"), PointAtStatus._TYPE);
-//		point_at_status.addMessageListener(new MessageListener<PointAtStatus>() {
-//			public void onNewMessage(PointAtStatus status) {
-//				try {
-//				switch(status.getStatus()){
-//				case 0 : getTS().getAg().addBel(Literal.parseLiteral("point_at(idle)")); break;
-//				case 1 : getTS().getAg().addBel(Literal.parseLiteral("point_at(rotate)"));break;
-//				case 2 : getTS().getAg().addBel(Literal.parseLiteral("point_at(point)"));break;
-//				case 3 : getTS().getAg().addBel(Literal.parseLiteral("point_at(finished)"));break;
-//				}
-//				}catch (RevisionFailedException e) {
-//					e.printStackTrace();
-//				}
-//				
-//			}
-//		});
-//		
-//		look_at_status = m_rosnode.getConnectedNode().newSubscriber(m_rosnode.getParameters().getString("guiding/topics/look_at_status"), LookAtStatus._TYPE);
-//		look_at_status.addMessageListener(new MessageListener<LookAtStatus>() {
-//			public void onNewMessage(LookAtStatus status) {
-//				try {
-//				switch(status.getStatus()){
-//				case 0 : getTS().getAg().addBel(Literal.parseLiteral("look_at(idle)"));break;
-//				case 1 : getTS().getAg().addBel(Literal.parseLiteral("look_at(rotate)"));break;
-//				case 2 : getTS().getAg().addBel(Literal.parseLiteral("look_at(look)"));break;
-//				case 3 : getTS().getAg().addBel(Literal.parseLiteral("look_at(finished)"));break;
-//				}
-//				}catch (RevisionFailedException e) {
-//					e.printStackTrace();
-//				}
-//				
-//			}
-//		});
-//		
-//		human_to_monitor = m_rosnode.getConnectedNode().newPublisher(m_rosnode.getParameters().getString("guiding/topics/human_to_monitor"), std_msgs.String._TYPE);
+		point_at_status = m_rosnode.getConnectedNode().newSubscriber(m_rosnode.getParameters().getString("guiding/topics/point_at_status"), PointAtStatus._TYPE);
+		point_at_status.addMessageListener(new MessageListener<PointAtStatus>() {
+			public void onNewMessage(PointAtStatus status) {
+				try {
+				switch(status.getStatus()){
+				case 0 : getTS().getAg().addBel(Literal.parseLiteral("point_at(idle)")); break;
+				case 1 : getTS().getAg().addBel(Literal.parseLiteral("point_at(rotate)"));break;
+				case 2 : getTS().getAg().addBel(Literal.parseLiteral("point_at(point)"));break;
+				case 3 : getTS().getAg().addBel(Literal.parseLiteral("point_at(finished)"));break;
+				}
+				}catch (RevisionFailedException e) {
+					e.printStackTrace();
+				}
+				
+			}
+		});
+		
+		look_at_status = m_rosnode.getConnectedNode().newSubscriber(m_rosnode.getParameters().getString("guiding/topics/look_at_status"), LookAtStatus._TYPE);
+		look_at_status.addMessageListener(new MessageListener<LookAtStatus>() {
+			public void onNewMessage(LookAtStatus status) {
+				try {
+				switch(status.getStatus()){
+				case 0 : getTS().getAg().addBel(Literal.parseLiteral("look_at(idle)"));break;
+				case 1 : getTS().getAg().addBel(Literal.parseLiteral("look_at(rotate)"));break;
+				case 2 : getTS().getAg().addBel(Literal.parseLiteral("look_at(look)"));break;
+				case 3 : getTS().getAg().addBel(Literal.parseLiteral("look_at(finished)"));break;
+				}
+				}catch (RevisionFailedException e) {
+					e.printStackTrace();
+				}
+				
+			}
+		});
+		
+		human_to_monitor = m_rosnode.getConnectedNode().newPublisher(m_rosnode.getParameters().getString("guiding/topics/human_to_monitor"), std_msgs.String._TYPE);
+		
 		
 		super.init();
 	}

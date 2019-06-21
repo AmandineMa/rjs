@@ -48,7 +48,7 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 //persona_asked(lambda).   
 
 /* Plans */
-!guiding("a", human_1, bb).	
+
 +!init : true <- 
 	// get shops list from ontology
 //	get_onto_individual_info(getType, shop, shops);

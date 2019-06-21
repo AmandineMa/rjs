@@ -19,14 +19,14 @@
 		
 	}
 	-task(ID, guiding, Human, Place)[ID];
-	+task(ID, guiding, Human, PlaceFrame)[ID];
-//	.concat("human-", Human, H);
-//	human_to_monitor(H);
-	jia.person_of_interest(H);
+	+task(ID, guiding, Human, PlaceFrame)[ID];	
+	!!person_of_interest(Human);
 	!guiding(ID, Human, PlaceFrame);
 	+end_task(succeeded, ID)[ID];
-	human_to_monitor("");
+  	.succeed_goal(person_of_interest(Human));
 	.send(supervisor, tell, end_task(succeeded, ID)).
+
++!person_of_interest(H) : true <- jia.person_of_interest(H); .wait(500); !person_of_interest(H).
 
 +!drop_current_task(ID, Subgoal, Failure, Code) : true <-
 	?task(ID, Task, Human, Param);

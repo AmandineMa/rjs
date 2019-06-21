@@ -74,7 +74,7 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 //	set_task_infos(Label, Human);
 //	!Plan.
 	
-^!guiding(Human, Place)[state(started)] : not started <- +started; !monitoring(Human).
+^!guiding(ID, Human, Place)[state(started)] : not started <- +started; +monitoring(ID, Human).
 
 +!guiding(ID, Human, Place): true <-
 	!get_optimal_route(ID);
@@ -89,7 +89,7 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 /******* get route **********/	
 
 +!get_optimal_route(ID): true <-
-	?task(ID, guiding_task, Human, Place);
+	?task(ID, guiding, Human, Place);
 	// compute a route with Place which can be a place or a list of places
 	// if it s a list of places, compute_route select the place with the smallest cost
 	?robot_place(From);
@@ -126,15 +126,15 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	
 /*******  go to see target **********/	
 
-^!go_to_see_target(ID)[state(S)] : S == started | S = resumed <- jia.suspend_all(monitoring(_)). 
+^!go_to_see_target(ID)[state(S)] : S == started | S = resumed <- -monitoring(_, _). 
 //^!go_to_see_target(Human)[state(suspended)[reason(R)]] <- 
 //	if(.substring(suspended,R)){
 //		jia.suspend_all(monitoring(_));
 //	}.
-^!go_to_see_target(ID)[state(S)] : S == finished | S = failed <- .resume(monitoring(Human)).
+^!go_to_see_target(ID)[state(S)] : S == finished | S = failed <- ?task(ID, _, Human, _); +monitoring(ID, Human).
 
 +!go_to_see_target(ID) : true <- 
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
 	!get_placements(ID);
 	?ld_to_point;
 	!be_at_good_pos(ID).
@@ -145,13 +145,13 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	}.
 	
 +!get_placements(ID): not no_mesh <-
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
 	?target_place(TargetLD);
 	.concat("human_", Human, HTF);
+	?direction(Dir);
 	if(jia.has_mesh(TargetLD)){
 		// if there is a direction
 		if(.count((direction(_)),I) & I > 0){
-			?direction(Dir);
 			if(jia.has_mesh(Dir)){
 				get_placements(TargetLD,Dir,HTF,0);
 			}
@@ -160,7 +160,7 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 		}
 	}else{
 		if(jia.has_mesh(Dir)){
-			get_placements(Dir,"",HTF,1)
+			get_placements(Dir,"",HTF,1);
 		}
 	}.
 	
@@ -174,7 +174,8 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
   	}.
 	
 +!be_at_good_pos(ID) : true <- 
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
+	!speak(ID, going_to_move);
 	?robot_pose(Rframe,Rposit, Rorient);
 	move_to(Rframe,Rposit, Rorient);
 	?human_pose(Hframe,Hposit,_);
@@ -182,6 +183,7 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	tf.get_transform(map, HTF, Point,_);
 	.nth(2, Point, Z);
 	jia.replace(2, Hposit, Z, Pointf);
+	jia.publish_marker(Hframe, Pointf, blue);
 	look_at(Hframe,Pointf,true);
 	!wait_human(ID).
 	
@@ -189,47 +191,50 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	!drop_current_task(ID, be_at_good_pos, Failure, Code).
 
 +!wait_human(ID) : true <- 
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
 	if(.count((isPerceiving(Human)),I) & I == 0){
 		.wait({+isPerceiving(Human)},4000);
 		-~here(Human);
-	}
-	if(.count((dir_to_point(_)),I) & I > 0){
-		?dir_to_point(D);
-		can_be_visible(Human, D);
-	}
-	if(.count((target_to_point(_)),J) & J > 0){
-		?target_to_point(T);
-		can_be_visible(Human, T);
 	}.
+//	if(.count((dir_to_point(_)),I) & I > 0){
+//		?dir_to_point(D);
+//		.concat("human_", Human, HTF);
+//		can_be_visible(HTF, D);
+//	}
+//	if(.count((target_to_point(_)),J) & J > 0){
+//		?target_to_point(T);
+//		.concat("human_", Human, HTF);
+//		can_be_visible(HTF, T);
+//	}.
 	
 -!wait_human(ID)[Failure, code(_),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
 	if(.substring(Error, wait_timeout)){
 		+~here(Human);
 		!speak(ID, come);
-		!wait_human(Human);
+		!wait_human(ID);
 	}elif(.substring(Failure, not_visible)){
 		!speak(ID, move_again);
-		!be_at_good_pos(Human);
+		!be_at_good_pos(ID);
 	}else{
 		!drop_current_task(ID, wait_human, Failure, Code);
 	}.
 	
 /*******  show landmarks **********/
 
-^!point_look_at(ID, _)[state(started)] <- jia.suspend_all(monitoring(_)). 
-^!point_look_at(ID, _)[state(resumed)] <- jia.suspend_all(monitoring(_)).
-^!point_look_at(ID, _)[state(suspended)[reason(R)]] <- 
-	if(.substring(suspended,R)){
-		jia.suspend_all(monitoring(_));
-	}.
-^!point_look_at(ID)[state(finished)] <- jia.suspend_all(monitoring(_)).
+//^!point_look_at(ID, _)[state(started)] <- jia.suspend_all(monitoring(_)). 
+//^!point_look_at(ID, _)[state(resumed)] <- jia.suspend_all(monitoring(_)).
+//^!point_look_at(ID, _)[state(suspended)[reason(R)]] <- 
+//	if(.substring(suspended,R)){
+//		jia.suspend_all(monitoring(_));
+//	}.
+//^!point_look_at(ID)[state(finished)] <- jia.suspend_all(monitoring(_)).
 
 @sl[max_attempts(3)]+!show_landmarks(ID) : true <- 
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
 	!show_target(ID);
-	!show_direction(ID);
+	!show_direction(ID); 
+	.wait(800);
 	!speak(ID, ask_understand);
 	// TODO add timeout
 	listen(ask_understand,["yes","no"]);
@@ -261,7 +266,6 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	// if cannot transform, leaves the plan
 	tf.can_transform(map, TargetPlace);
 	!point_look_at(ID, TargetPlace);
-	!verbalization(ID, TargetPlace);
 	jia.reset_att_counter(point_look_at).
 	
 
@@ -269,6 +273,7 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	if(not .substring(can_transform, Code)){
 		!drop_current_task(ID, show_target, Failure, Code);
 	}else{
+		?target_place(TargetPlace);
 		!verbalization(ID, TargetPlace);
 	}.
 	
@@ -276,11 +281,10 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	?direction(D);
 	tf.can_transform(map, D);
 	!point_look_at(ID, D);
-	!verbalization(ID, D);
 	jia.reset_att_counter(point_look_at).
 
 -!show_direction(ID)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
 	if(.substring(can_transform, Code)){
 		?direction(D);
 		!verbalization(ID, D);
@@ -291,33 +295,49 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == Ld).
 
 @pl_l[max_attempts(3)]+!point_look_at(ID, Ld) : landmark_to_see(Ld) <-
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
 	+should_check_target_seen(Human,Ld);
 	point_at(Ld,false,true);
+	if(.count((point_at(point)),I) & I == 0){
+		.wait({+point_at(point)},15000);
+	}
+	-point_at(point);
+	!verbalization(ID, Ld);
+	if(.count((point_at(finished)),I2) & I2 == 0){
+		.wait({+point_at(finished)},15000);
+	}
+	-point_at(finished);
 	-should_check_target_seen(Human,Ld);
 	?(canSee(Ld)[source(Human)] | hasSeen(Ld)[source(Human)]);
 	?verba_name(Ld,Verba);
 	!speak(ID, tell_seen(Verba)).
-		
+
 
 @pl_nl[max_attempts(3)]+!point_look_at(ID, Ld) : not landmark_to_see(Ld) <-
-	?task(ID, guiding_task, Human, _);
-	point_at(Ld,false,true).
+	?task(ID, guiding, Human, _);
+	point_at(Ld,false,true);
+	if(.count((point_at(point)),I) & I == 0){
+		.wait({+point_at(point)},15000);
+	}
+	-point_at(point);
+	!verbalization(ID, Ld).
 
 
 -!point_look_at(ID, Ld)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
 	if(.substring(test_goal_failed, Error)){
 		!ask_seen(ID,Ld);
 	}elif(.substring(Error,max_attempts)){
 		!speak(ID,pl_sorry); 
 		jia.reset_att_counter(point_look_at);
+	}elif(.substring(point_at,Code)){
+		!drop_current_task(ID, point_look_at, pointing, Code);
 	}else{
 		!drop_current_task(ID, point_look_at, Failure, Code);
 	}.
 	
 +!ask_seen(ID, Ld) : true <-
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
 	?verba_name(Ld,Verba);
 	!speak(ID, cannot_tell_seen(Verba));
 	listen(cannot_tell_seen,["yes","no"]);
@@ -338,23 +358,23 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
   	!drop_current_task(ID, ask_seen, Failure, Code).	
 
 +!verbalization(ID, Place) : target_to_point(T) & T == Place & direction(_) <-
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
 	?verba_name(Place, Name);
 	!speak(ID, visible_target(Name)).
 	
 +!verbalization(ID, Place) : not target_to_point(_) &  direction(D) & Place \== D <-
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
 	?verba_name(Place, Name);
 	!speak(ID, not_visible_target(Name)).
 
 +!verbalization(ID, Place) : ( direction(D) & Place == D & dir_to_point(D)) | (target_to_point(T) & T == Place & not direction(_)) <-
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
 	!get_verba(ID);
 	?verbalization(RouteVerba);
 	!speak(ID, route_verbalization(RouteVerba)).
 
 +!verbalization(ID, Place) : ( direction(D) & Place == D & not dir_to_point(D) ) | ( not target_to_point(_) & not direction(_)) <-
-	?task(ID, guiding_task, Human, _);
+	?task(ID, guiding, Human, _);
 	!get_verba(ID);
 	?verbalization(RouteVerba);
 	!speak(ID, route_verbalization_n_vis(RouteVerba)).
@@ -380,22 +400,4 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		
 /********* **********/		
 
-
-// TODO : differencier les cas des differents listening	
-//+not_exp_ans(2) : true <-
-//	!drop_current_task;
-//	stop_listen;
-//	!speak(ID, retire(unknown_words)).
-
-//+!drop_current_task : true <-
-//	?task(_, TaskName, Human, Param);
-//	G =.. [TaskName, [Human,Param],[]];
-//  	.fail_goal(G).
-  	
-//+!drop_current_task(TaskName, Human, Param) : task(_,T,_,_) & TaskName == T <-
-//	G =.. [TaskName, [Human,Param],[]];
-//  	.fail_goal(G).
-  	
-
-//	!drop_current_task.	
   	

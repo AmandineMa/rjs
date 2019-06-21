@@ -46,15 +46,18 @@ import com.google.common.collect.Multimaps;
 
 import actionlib_msgs.GoalID;
 import actionlib_msgs.GoalStatusArray;
-import deictic_gestures_msgs.CanLookAtRequest;
-import deictic_gestures_msgs.CanLookAtResponse;
-import deictic_gestures_msgs.CanPointAt;
-import deictic_gestures_msgs.CanPointAtRequest;
-import deictic_gestures_msgs.CanPointAtResponse;
-import deictic_gestures_msgs.LookAtRequest;
-import deictic_gestures_msgs.LookAtResponse;
-import deictic_gestures_msgs.PointAtRequest;
-import deictic_gestures_msgs.PointAtResponse;
+import arch.ROSAgArch;
+import deictic_gestures.CanLookAtRequest;
+import deictic_gestures.CanLookAtResponse;
+import deictic_gestures.CanPointAt;
+import deictic_gestures.CanPointAtRequest;
+import deictic_gestures.CanPointAtResponse;
+import deictic_gestures.LookAtRequest;
+import deictic_gestures.LookAtResponse;
+import deictic_gestures.LookAtStatus;
+import deictic_gestures.PointAtRequest;
+import deictic_gestures.PointAtResponse;
+import deictic_gestures.PointAtStatus;
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionGoal;
 import dialogue_as.dialogue_actionActionResult;
@@ -153,6 +156,7 @@ public class RosNode extends AbstractNodeMain {
 	private dialogue_actionActionGoal listen_goal_msg;
 	private MoveBaseActionResult move_to_result;
 	private MoveBaseActionFeedback move_to_fb;
+	private Publisher<visualization_msgs.Marker> marker_pub;
 
 	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
 	private volatile int percept_id = 0;
@@ -187,6 +191,7 @@ public class RosNode extends AbstractNodeMain {
 			service_types = new HashMap <String, String>();
 			services_map = (HashMap<String, String>) parameters.getMap("/guiding/services");
 			stack_guiding_goals = new Stack<taskActionGoal>();
+			marker_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher("/look_at", visualization_msgs.Marker._TYPE);
 			guiding_as = new ActionServer<>(connectedNode, "/guiding_task", taskActionGoal._TYPE, taskActionFeedback._TYPE, taskActionResult._TYPE);
 			guiding_as.attachListener(new ActionServerListener<taskActionGoal>() {
 
@@ -205,26 +210,6 @@ public class RosNode extends AbstractNodeMain {
 				}
 			});
 			
-//			get_placements_ac = new ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult>(
-//					connectedNode, parameters.getString("/guiding/action_servers/pointing_planner"), PointingActionGoal._TYPE, PointingActionFeedback._TYPE, PointingActionResult._TYPE);
-//			// too many useless loginfo in the class ActionClient (modified ActionClient by amdia to add the setLogLevel method)
-//			get_placements_ac.setLogLevel(Level.OFF);
-//			
-//			get_placements_ac.attachListener(new ActionClientListener<PointingActionFeedback, PointingActionResult>() {
-//	
-//				@Override
-//				public void feedbackReceived(PointingActionFeedback fb) {
-//					placements_fb = fb;
-//				}
-//	
-//				@Override
-//				public void resultReceived(PointingActionResult result) {
-//					placements_result = result;
-//				}
-//	
-//				@Override
-//				public void statusReceived(GoalStatusArray arg0) {}
-//			});
 			
 			get_human_answer_ac = new ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult>(
 					connectedNode, parameters.getString("/guiding/action_servers/dialogue"), dialogue_actionActionGoal._TYPE, dialogue_actionActionFeedback._TYPE, dialogue_actionActionResult._TYPE);
@@ -295,10 +280,14 @@ public class RosNode extends AbstractNodeMain {
 							String object = fact.getObjectName();
 							if(predicate.equals("isVisibleBy")) {
 								predicate = "canSee";
+								if(!subject.startsWith("\""))
+									subject = "\""+subject+"\"";
 								simple_fact = new SimpleFact(predicate,subject);
 								perceptions.put(object, simple_fact);	
 							}else {
 								if(!object.isEmpty()) {
+									if(!object.startsWith("\""))
+										object = "\""+object+"\"";
 									simple_fact = new SimpleFact(predicate,object);
 								}else {
 									simple_fact = new SimpleFact(predicate);
@@ -310,6 +299,9 @@ public class RosNode extends AbstractNodeMain {
 					percept_id = facts.getHeader().getSeq();
 				}
 			});
+			
+			
+			
 			
 		} catch (ParameterNotFoundException e) {
 			logger.severe("Parameter not found exception : "+e.getMessage());
@@ -375,7 +367,7 @@ public class RosNode extends AbstractNodeMain {
 				String[] tokens = line.split(" ");
 				if(tokens[0].contains("Type")) {
 					type = tokens[1];
-					if(!type.contains("msgs") && !srv_name.contains("pointing_planner")) {
+					if(!type.contains("msgs") && !srv_name.contains("pointing_planner") && !srv_name.contains("look_at") && !srv_name.contains("point_at")) {
 						String[] tokens_type = type.split("/");
 						type = tokens_type[0]+"_msgs/"+tokens_type[1];
 					}
@@ -495,6 +487,7 @@ public class RosNode extends AbstractNodeMain {
 		service_clients.get("is_visible").call(request, new ServiceResponseListener<Message>() {
 
 			public void onFailure(RemoteException e) {
+				logger.info(e.toString());
 				throw new RosRuntimeException(e);
 			}
 
@@ -977,6 +970,12 @@ public class RosNode extends AbstractNodeMain {
 
 	public ParameterTree getParameters() {
 		return parameters;
+	}
+	
+	
+
+	public Publisher<visualization_msgs.Marker> getMarker_pub() {
+		return marker_pub;
 	}
 
 	void sleep(long msec) {

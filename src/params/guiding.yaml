@@ -14,7 +14,7 @@ guiding:
     route_verbalization: /route_verbalization/verbalizePlace
     get_individual_info: /ontologenius/individual
     get_class_info: /ontologenius/class
-#    is_visible: /pointing_planner/visibility_score
+    is_visible: /pointing_planner/visibility_score
 #    can_look_at: /deictic_gestures/can_look_at
     look_at: /deictic_gestures/look_at
 #    can_point_at: /deictic_gestures/can_point_at
@@ -35,6 +35,9 @@ guiding:
 
   topics:
     current_facts: /base/current_facts
+    point_at_status: /deictic_gestures/point_at/status
+    look_at_status: /deictic_gestures/look_at/status
+    human_to_monitor: /human_point_publisher/human_to_look
 #    coord_signals: /head_manager/head_coordination_signals
 #    debug_pp: /supervision/pointing_planner
 #    debug_rot: /supervision/rotation

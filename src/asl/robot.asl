@@ -1,27 +1,31 @@
 // Agent robot in project supervisor
 
-{ include("monitoring.asl")}
+//{ include("monitoring.asl")}
 { include("guiding_goal_negociation.asl")}
 { include("guiding.asl")}
-
+!start.
++!start : true <- .verbose(2).
 +!guiding_task(ID, Human,Place) : true <-
 	.all_names(Agents);
 	if(not .member(Human, Agents)){
 		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
 	}
-	+task(ID, guiding_task, Human, Place)[ID];
+//	.send(Human, tell, end_task(succeeded, ID)).
+	+task(ID, guiding, Human, Place)[ID];
 	!guiding_goal_negociation(ID, Human,Place);
 	?guiding_goal_nego(PlaceNego, PlaceFrame);
 	if(Place \== PlaceNego){
 		.send(supervisor, tell, updated_guiding_goal(ID, Human, PlaceNego));
 		
 	}
-	-task(ID, guiding_task, Human, Place)[ID];
-	+task(ID, guiding_task, Human, PlaceFrame)[ID];
+	-task(ID, guiding, Human, Place)[ID];
+	+task(ID, guiding, Human, PlaceFrame)[ID];
+	.concat("human-", Human, H);
+	human_to_monitor(H);
 	!guiding(ID, Human, PlaceFrame);
 	+end_task(succeeded, ID)[ID];
+	human_to_monitor("");
 	.send(supervisor, tell, end_task(succeeded, ID)).
-
 
 +!drop_current_task(ID, Subgoal, Failure, Code) : true <-
 	?task(ID, Task, Human, Param);
@@ -47,6 +51,7 @@
 	.print("error with ",Code);
   	+failure(Subgoal, Failure, Code)[ID];
   	+end_task(failed, ID)[ID];
+  	human_to_monitor("");
   	.send(supervisor, tell, end_task(failed, ID));
   	.send(supervisor, tell, failure(ID, Subgoal, Failure, Code));
   	if(.string(Speech)){

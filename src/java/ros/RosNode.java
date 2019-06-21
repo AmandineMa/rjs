@@ -177,6 +177,7 @@ public class RosNode extends AbstractNodeMain {
 	private MoveBaseActionResult move_to_result;
 	private MoveBaseActionFeedback move_to_fb;
 	private Publisher<visualization_msgs.Marker> marker_pub;
+	private Publisher<std_msgs.Int32> person_of_interest_pub;
 
 	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
 	private volatile int percept_id = 0;
@@ -212,6 +213,7 @@ public class RosNode extends AbstractNodeMain {
 			services_map = (HashMap<String, String>) parameters.getMap("/guiding/services");
 			stack_guiding_goals = new Stack<taskActionGoal>();
 			marker_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher("/look_at", visualization_msgs.Marker._TYPE);
+			person_of_interest_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher(parameters.getString("/guiding/topics/person_of_interest"), std_msgs.Int32._TYPE);
 			guiding_as = new ActionServer<>(connectedNode, "/guiding_task", taskActionGoal._TYPE, taskActionFeedback._TYPE, taskActionResult._TYPE);
 			guiding_as.attachListener(new ActionServerListener<taskActionGoal>() {
 
@@ -1071,6 +1073,10 @@ public class RosNode extends AbstractNodeMain {
 	}
 	
 	
+
+	public Publisher<std_msgs.Int32> getPerson_of_interest_pub() {
+		return person_of_interest_pub;
+	}
 
 	public Publisher<visualization_msgs.Marker> getMarker_pub() {
 		return marker_pub;

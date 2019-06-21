@@ -39,6 +39,7 @@ guiding:
     point_at_status: /deictic_gestures/point_at/status
     look_at_status: /deictic_gestures/look_at/status
     human_to_monitor: /human_point_publisher/human_to_look
+    person_of_interest: /person_of_interest
 #    coord_signals: /head_manager/head_coordination_signals
 #    debug_pp: /supervision/pointing_planner
 #    debug_rot: /supervision/rotation

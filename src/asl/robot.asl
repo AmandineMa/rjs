@@ -22,6 +22,7 @@
 	+task(ID, guiding, Human, PlaceFrame)[ID];
 //	.concat("human-", Human, H);
 //	human_to_monitor(H);
+	jia.person_of_interest(H);
 	!guiding(ID, Human, PlaceFrame);
 	+end_task(succeeded, ID)[ID];
 	human_to_monitor("");

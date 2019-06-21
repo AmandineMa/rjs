@@ -22,6 +22,7 @@ guiding:
     pointing_planner: /pointing_planner/plan
 #    rest_arm: /deictic_gestures/rest_arm
     has_mesh: /has_mesh
+    pepper_synchro: /pepper_resources_synchronizer/state_machines_register
 #    monitor_humans: /multimodal_human_monitor/monitor_humans
 #    start_fact: /uwds_ros_bridge/start_fact
 #    end_fact: /uwds_ros_bridge/end_fact

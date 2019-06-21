@@ -3,11 +3,8 @@ package jia;
 import org.ros.message.MessageFactory;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.topic.Publisher;
-import org.ros.rosjava.tf.TransformTree;
-
 import arch.ROSAgArch;
 import geometry_msgs.Point;
-import geometry_msgs.PointStamped;
 import geometry_msgs.Pose;
 import geometry_msgs.Vector3;
 import jason.asSemantics.DefaultInternalAction;

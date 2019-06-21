@@ -7,7 +7,7 @@
 /* Plans */
 //TODO check si les srv, action servers sont connectés
 //TODO si initServices fail, reprendre la suite du plan une fois qu'ils se sont connectes via retry
-+!start : true <- 
++!start : true <-
 	startParameterLoaderNode;
 	startROSNode;
 	initServices;

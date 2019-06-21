@@ -40,6 +40,7 @@ import msg_srv_impl.RouteImpl;
 import msg_srv_impl.SemanticRouteResponseImpl;
 import nao_interaction_msgs.SayResponse;
 import ontologenius_msgs.OntologeniusServiceResponse;
+import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterResponse;
 import perspectives_msgs.HasMeshResponse;
 import pointing_planner.PointingPlannerResponse;
 import pointing_planner.VisibilityScoreResponse;
@@ -64,41 +65,41 @@ public class RobotAgArch extends ROSAgArch {
 	
 	@Override
 	public void init() {
-		point_at_status = m_rosnode.getConnectedNode().newSubscriber(m_rosnode.getParameters().getString("guiding/topics/point_at_status"), PointAtStatus._TYPE);
-		point_at_status.addMessageListener(new MessageListener<PointAtStatus>() {
-			public void onNewMessage(PointAtStatus status) {
-				try {
-				switch(status.getStatus()){
-				case 0 : getTS().getAg().addBel(Literal.parseLiteral("point_at(idle)")); break;
-				case 1 : getTS().getAg().addBel(Literal.parseLiteral("point_at(rotate)"));break;
-				case 2 : getTS().getAg().addBel(Literal.parseLiteral("point_at(point)"));break;
-				case 3 : getTS().getAg().addBel(Literal.parseLiteral("point_at(finished)"));break;
-				}
-				}catch (RevisionFailedException e) {
-					e.printStackTrace();
-				}
-				
-			}
-		});
-		
-		look_at_status = m_rosnode.getConnectedNode().newSubscriber(m_rosnode.getParameters().getString("guiding/topics/look_at_status"), LookAtStatus._TYPE);
-		look_at_status.addMessageListener(new MessageListener<LookAtStatus>() {
-			public void onNewMessage(LookAtStatus status) {
-				try {
-				switch(status.getStatus()){
-				case 0 : getTS().getAg().addBel(Literal.parseLiteral("look_at(idle)"));break;
-				case 1 : getTS().getAg().addBel(Literal.parseLiteral("look_at(rotate)"));break;
-				case 2 : getTS().getAg().addBel(Literal.parseLiteral("look_at(look)"));break;
-				case 3 : getTS().getAg().addBel(Literal.parseLiteral("look_at(finished)"));break;
-				}
-				}catch (RevisionFailedException e) {
-					e.printStackTrace();
-				}
-				
-			}
-		});
-		
-		human_to_monitor = m_rosnode.getConnectedNode().newPublisher(m_rosnode.getParameters().getString("guiding/topics/human_to_monitor"), std_msgs.String._TYPE);
+//		point_at_status = m_rosnode.getConnectedNode().newSubscriber(m_rosnode.getParameters().getString("guiding/topics/point_at_status"), PointAtStatus._TYPE);
+//		point_at_status.addMessageListener(new MessageListener<PointAtStatus>() {
+//			public void onNewMessage(PointAtStatus status) {
+//				try {
+//				switch(status.getStatus()){
+//				case 0 : getTS().getAg().addBel(Literal.parseLiteral("point_at(idle)")); break;
+//				case 1 : getTS().getAg().addBel(Literal.parseLiteral("point_at(rotate)"));break;
+//				case 2 : getTS().getAg().addBel(Literal.parseLiteral("point_at(point)"));break;
+//				case 3 : getTS().getAg().addBel(Literal.parseLiteral("point_at(finished)"));break;
+//				}
+//				}catch (RevisionFailedException e) {
+//					e.printStackTrace();
+//				}
+//				
+//			}
+//		});
+//		
+//		look_at_status = m_rosnode.getConnectedNode().newSubscriber(m_rosnode.getParameters().getString("guiding/topics/look_at_status"), LookAtStatus._TYPE);
+//		look_at_status.addMessageListener(new MessageListener<LookAtStatus>() {
+//			public void onNewMessage(LookAtStatus status) {
+//				try {
+//				switch(status.getStatus()){
+//				case 0 : getTS().getAg().addBel(Literal.parseLiteral("look_at(idle)"));break;
+//				case 1 : getTS().getAg().addBel(Literal.parseLiteral("look_at(rotate)"));break;
+//				case 2 : getTS().getAg().addBel(Literal.parseLiteral("look_at(look)"));break;
+//				case 3 : getTS().getAg().addBel(Literal.parseLiteral("look_at(finished)"));break;
+//				}
+//				}catch (RevisionFailedException e) {
+//					e.printStackTrace();
+//				}
+//				
+//			}
+//		});
+//		
+//		human_to_monitor = m_rosnode.getConnectedNode().newPublisher(m_rosnode.getParameters().getString("guiding/topics/human_to_monitor"), std_msgs.String._TYPE);
 		
 		super.init();
 	}
@@ -111,7 +112,9 @@ public class RobotAgArch extends ROSAgArch {
 			public void run() {
 				String action_name = action.getActionTerm().getFunctor();
 				Message msg = new Message("tell", getAgName(), "supervisor", "action_started("+action_name+")");
-				String task_id = action.getIntention().getBottom().getTrigger().getLiteral().getTerm(0).toString();
+				String task_id = "";
+				if( action.getIntention().getBottom().getTrigger().getLiteral().getTerms() != null)
+					task_id = action.getIntention().getBottom().getTrigger().getLiteral().getTerm(0).toString();
 				try {
 					sendMsg(msg);
 				} catch (Exception e1) {
@@ -349,6 +352,27 @@ public class RobotAgArch extends ROSAgArch {
 						action.setFailureReason(new Atom("point_at_failed"), "the pointing failed for "+frame);
 					}
 					actionExecuted(action);
+				}else if(action_name.equals("face_human")) {
+					// to remove the extra ""
+					String frame = action.getActionTerm().getTerm(0).toString();
+					frame = frame.replaceAll("^\"|\"$", "");
+					if(m_rosnode.call_pepper_synchro_srv("face_human", frame)) {
+						MetaStateMachineRegisterResponse face_resp;
+						do {
+							face_resp = m_rosnode.getFace_human_resp();
+							sleep(100);
+						}while(face_resp == null);
+						if(face_resp.getError().equals("fail to rotate") ) {
+							action.setResult(true);
+						}else {
+							action.setResult(false);
+							action.setFailureReason(new Atom("cannot_face_human"), "face human failed for "+frame);
+						}
+					}else {
+						action.setResult(false);
+						action.setFailureReason(new Atom("cannot_face_human"), "face human failed for "+frame);
+					}
+					actionExecuted(action);
 				} else if(action_name.equals("look_at")) {
 					// to remove the extra ""
 					String frame = action.getActionTerm().getTerm(0).toString();
@@ -414,7 +438,7 @@ public class RobotAgArch extends ROSAgArch {
 					case "move_again" : text = new String("I am sorry, we are going to move again"); break;
 					case "ask_explain_again" : text = new String("Should I explain you again ?"); break;
 					case "cannot_show" : text = new String("I am sorry, I cannot show you. I hope you will find your way"); break;
-					case "cannot_tell_seen" : text = new String("Have you seen "+bel_arg+" ?. I'm not able to tell."); break;
+					case "cannot_tell_seen" : text = new String("Have you seen "+bel_arg+" ?. I'm not sure."); break;
 					case "ask_show_again" : text = new String("Should I show you again ?"); break;
 					case "sl_sorry" : text = new String("I am sorry if you did not understand. I won't explain one more time."); break;
 					case "pl_sorry" : text = new String("I am sorry if you did not see. I won't show you again."); break;

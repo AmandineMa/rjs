@@ -1,21 +1,12 @@
 /******* monitoring **********/	
-//
-//^!monitoring(Human)[state(S)] : S == started | S == resumed <- 
-//	+monitoring(Human).
-//
-//^!monitoring(Human)[state(suspended)[reason(R)]] : not look_for_human(Human) <- 
-//	if(.substring(suspended,R)){
-//		-monitoring(Human);
-//	}.
-//	
-//^!monitoring(Human)[state(S)] : S == finished | S == failed <- 
-//	-monitoring(Human).	
 
 +monitoring(ID, Human) : isPerceiving(Human) <-
 	!start_monitoring(ID, Human).
 	
 +monitoring(ID, Human) : not isPerceiving(Human) <-
 	!start_monitoring(ID, Human).
+
+-monitoring(ID,Human) : true <- human_to_monitor("").
 
 +!start_monitoring(ID, Human) : isPerceiving(Human) <-
 	.concat("human-", Human, H);

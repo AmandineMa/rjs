@@ -48,7 +48,7 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 //persona_asked(lambda).   
 
 /* Plans */
-
+!guiding("a", human_1, bb).	
 +!init : true <- 
 	// get shops list from ontology
 //	get_onto_individual_info(getType, shop, shops);
@@ -74,9 +74,11 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 //	set_task_infos(Label, Human);
 //	!Plan.
 	
+
 ^!guiding(ID, Human, Place)[state(started)] : not started <- +started; +monitoring(ID, Human).
 
 +!guiding(ID, Human, Place): true <-
+	+task(ID, _, Human, _);
 	!get_optimal_route(ID);
 	!go_to_see_target(ID);
 	!show_landmarks(ID);
@@ -126,14 +128,14 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	
 /*******  go to see target **********/	
 
-^!go_to_see_target(ID)[state(S)] : S == started | S = resumed <- -monitoring(_, _). 
+^!go_to_see_target(ID)[state(S)] : S == started | S == resumed <- -monitoring(_, _)[add_time(_), source(self)]. 
 //^!go_to_see_target(Human)[state(suspended)[reason(R)]] <- 
 //	if(.substring(suspended,R)){
 //		jia.suspend_all(monitoring(_));
 //	}.
-^!go_to_see_target(ID)[state(S)] : S == finished | S = failed <- ?task(ID, _, Human, _); +monitoring(ID, Human).
+^!go_to_see_target(ID)[state(S)] : S == finished | S == failed <- ?task(ID, _, Human, _); +monitoring(ID, Human).
 
-+!go_to_see_target(ID) : true <- 
++!go_to_see_target(ID) : true <-
 	?task(ID, guiding, Human, _);
 	!get_placements(ID);
 	?ld_to_point;
@@ -148,10 +150,10 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	?task(ID, guiding, Human, _);
 	?target_place(TargetLD);
 	.concat("human_", Human, HTF);
-	?direction(Dir);
 	if(jia.has_mesh(TargetLD)){
 		// if there is a direction
 		if(.count((direction(_)),I) & I > 0){
+			?direction(Dir);
 			if(jia.has_mesh(Dir)){
 				get_placements(TargetLD,Dir,HTF,0);
 			}
@@ -159,8 +161,11 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 			get_placements(TargetLD,"",HTF,0);
 		}
 	}else{
-		if(jia.has_mesh(Dir)){
-			get_placements(Dir,"",HTF,1);
+		if(.count((direction(_)),I) & I > 0){
+			?direction(Dir);
+			if(jia.has_mesh(Dir)){
+				get_placements(Dir,"",HTF,1);
+			}
 		}
 	}.
 	
@@ -190,22 +195,22 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 -!be_at_good_pos(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
 	!drop_current_task(ID, be_at_good_pos, Failure, Code).
 
-+!wait_human(ID) : true <- 
+@wh[max_attempts(3)]+!wait_human(ID) : true <- 
 	?task(ID, guiding, Human, _);
 	if(.count((isPerceiving(Human)),I) & I == 0){
 		.wait({+isPerceiving(Human)},4000);
 		-~here(Human);
+	}
+	if(.count((dir_to_point(_)),I) & I > 0){
+		?dir_to_point(D);
+		.concat("human_", Human, HTF);
+		can_be_visible(HTF, D);
+	}
+	if(.count((target_to_point(_)),J) & J > 0){
+		?target_to_point(T);
+		.concat("human_", Human, HTF);
+		can_be_visible(HTF, T);
 	}.
-//	if(.count((dir_to_point(_)),I) & I > 0){
-//		?dir_to_point(D);
-//		.concat("human_", Human, HTF);
-//		can_be_visible(HTF, D);
-//	}
-//	if(.count((target_to_point(_)),J) & J > 0){
-//		?target_to_point(T);
-//		.concat("human_", Human, HTF);
-//		can_be_visible(HTF, T);
-//	}.
 	
 -!wait_human(ID)[Failure, code(_),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
 	?task(ID, guiding, Human, _);
@@ -213,6 +218,9 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 		+~here(Human);
 		!speak(ID, come);
 		!wait_human(ID);
+	}elif(.substring(Error,max_attempts)){
+		!speak(ID,cannot_find); 
+		!drop_current_task(ID, wait_human, max_attempts, "multiple wrong answers");
 	}elif(.substring(Failure, not_visible)){
 		!speak(ID, move_again);
 		!be_at_good_pos(ID);

@@ -24,6 +24,7 @@ import org.ros.master.client.MasterStateClient;
 import org.ros.message.Duration;
 import org.ros.message.MessageFactory;
 import org.ros.message.MessageListener;
+import org.ros.message.Time;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
@@ -124,6 +125,9 @@ import std_msgs.Header;
 import tf.get_transform;
 import utils.Code;
 import utils.SimpleFact;
+import uwds_msgs.ChangesInContextStamped;
+import uwds_msgs.Property;
+import uwds_msgs.Situation;
 
 /***
  * ROS node to be used by Jason
@@ -288,7 +292,7 @@ public class RosNode extends AbstractNodeMain {
 			
 			
 			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/situations_to_update"), ChangesInContextStamped._TYPE);
-			time_0 = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Time._TYPE);
+			std_msgs.Time time_0 = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Time._TYPE);
 			org.ros.message.Time ros_time = new Time();
 			time_0.setData(ros_time);
 			facts_sub.addMessageListener(new MessageListener<ChangesInContextStamped>() {

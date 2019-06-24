@@ -3,10 +3,12 @@ package utils;
 public class SimpleFact {
 	
 	String predicate;
+	String subject;
 	String object;
 	
-	public SimpleFact(String predicate, String object) {
+	public SimpleFact(String predicate, String subject, String object) {
 		this.predicate = predicate;
+		this.subject = subject;
 		this.object = object;
 	}
 	
@@ -16,8 +18,9 @@ public class SimpleFact {
 	}
 
 
-	public SimpleFact(String predicate) {
+	public SimpleFact(String predicate, String subject) {
 		this.predicate = predicate;
+		this.subject = subject;
 		this.object = "";
 	}
 
@@ -33,6 +36,16 @@ public class SimpleFact {
 	}
 	public void setObject(String object) {
 		this.object = object;
+	}
+
+
+	public String getSubject() {
+		return subject;
+	}
+
+
+	public void setSubject(String subject) {
+		this.subject = subject;
 	}
 	
 	

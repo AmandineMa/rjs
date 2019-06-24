@@ -69,7 +69,8 @@ public class RobotAgArch extends ROSAgArch {
 			public void run() {
 				String action_name = action.getActionTerm().getFunctor();
 				Message msg = new Message("tell", getAgName(), "supervisor", "action_started("+action_name+")");
-				String task_id = action.getIntention().getBottom().getTrigger().getLiteral().getTerm(0).toString();
+				String task_id = "0";
+//				String task_id = action.getIntention().getBottom().getTrigger().getLiteral().getTerm(0).toString();
 				try {
 					sendMsg(msg);
 				} catch (Exception e1) {

@@ -17,7 +17,7 @@ import jason.asSyntax.Literal;
 import ros.RosNode;
 import utils.SimpleFact;
 
-public class ROSAgArch extends AgArch {
+public class ROSAgArch extends MindInspectorAgArch {
 	
 	static protected RosNode m_rosnode;
 	

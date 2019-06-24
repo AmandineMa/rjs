@@ -14,7 +14,7 @@ guiding:
     route_verbalization: /route_verbalization/verbalizePlace
     get_individual_info: /ontologenius/individual
     get_class_info: /ontologenius/class
-#    is_visible: /pointing_planner/visibility_score
+    is_visible: /pointing_planner/visibility_score
 #    can_look_at: /deictic_gestures/can_look_at
     look_at: /deictic_gestures/look_at
 #    can_point_at: /deictic_gestures/can_point_at
@@ -22,6 +22,7 @@ guiding:
     pointing_planner: /pointing_planner/plan
 #    rest_arm: /deictic_gestures/rest_arm
     has_mesh: /has_mesh
+    pepper_synchro: /pepper_resources_synchronizer/state_machines_register
 #    monitor_humans: /multimodal_human_monitor/monitor_humans
 #    start_fact: /uwds_ros_bridge/start_fact
 #    end_fact: /uwds_ros_bridge/end_fact
@@ -35,6 +36,10 @@ guiding:
 
   topics:
     current_facts: /base/current_facts
+    point_at_status: /deictic_gestures/point_at/status
+    look_at_status: /deictic_gestures/look_at/status
+    human_to_monitor: /human_point_publisher/human_to_look
+    person_of_interest: /person_of_interest
 #    coord_signals: /head_manager/head_coordination_signals
 #    debug_pp: /supervision/pointing_planner
 #    debug_rot: /supervision/rotation

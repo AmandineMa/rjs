@@ -6,6 +6,8 @@
 
 
 /* Plans */
+!start.
++!start : true <- .my_name(N); .print(N).
 
 +!communicate_belief(Belief) : true <-
 	if(.count((Belief),I) & I == 0){

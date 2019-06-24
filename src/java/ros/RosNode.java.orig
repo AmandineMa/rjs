@@ -36,8 +36,7 @@ import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
-import org.yaml.snakeyaml.DumperOptions;
-
+import org.ros.message.Time;
 import com.github.rosjava_actionlib.ActionClient;
 import com.github.rosjava_actionlib.ActionClientListener;
 import com.github.rosjava_actionlib.ActionServer;
@@ -48,6 +47,16 @@ import com.google.common.collect.Multimaps;
 
 import actionlib_msgs.GoalID;
 import actionlib_msgs.GoalStatusArray;
+<<<<<<< HEAD
+import deictic_gestures_msgs.CanLookAtRequest;
+import deictic_gestures_msgs.CanLookAtResponse;
+import deictic_gestures_msgs.CanPointAtRequest;
+import deictic_gestures_msgs.CanPointAtResponse;
+import deictic_gestures_msgs.LookAtRequest;
+import deictic_gestures_msgs.LookAtResponse;
+import deictic_gestures_msgs.PointAtRequest;
+import deictic_gestures_msgs.PointAtResponse;
+=======
 import arch.ROSAgArch;
 import deictic_gestures.CanLookAtRequest;
 import deictic_gestures.CanLookAtResponse;
@@ -60,11 +69,11 @@ import deictic_gestures.LookAtStatus;
 import deictic_gestures.PointAtRequest;
 import deictic_gestures.PointAtResponse;
 import deictic_gestures.PointAtStatus;
+>>>>>>> goal_nego
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionGoal;
 import dialogue_as.dialogue_actionActionResult;
 import dialogue_as.dialogue_actionGoal;
-import geometry_msgs.Point;
 import geometry_msgs.PointStamped;
 import geometry_msgs.Pose;
 import geometry_msgs.PoseStamped;
@@ -86,6 +95,8 @@ import nao_interaction_msgs.SayResponse;
 import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceRequest;
 import ontologenius_msgs.OntologeniusServiceResponse;
+<<<<<<< HEAD
+=======
 import pepper_base_manager_msgs.StateMachine;
 import pepper_base_manager_msgs.StateMachineStatePrioritizedAngle;
 import pepper_base_manager_msgs.StateMachineStatePrioritizedTwist;
@@ -94,6 +105,7 @@ import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterResponse;
 import pepper_resources_synchronizer_msgs.SubStateMachine_pepper_base_manager_msgs;
 import perspectives_msgs.Fact;
 import perspectives_msgs.FactArrayStamped;
+>>>>>>> goal_nego
 import perspectives_msgs.HasMeshRequest;
 import perspectives_msgs.HasMeshResponse;
 import pointing_planner.PointingActionFeedback;
@@ -124,6 +136,9 @@ import std_msgs.Header;
 import tf.get_transform;
 import utils.Code;
 import utils.SimpleFact;
+import uwds_msgs.ChangesInContextStamped;
+import uwds_msgs.Property;
+import uwds_msgs.Situation;
 
 /***
  * ROS node to be used by Jason
@@ -176,8 +191,12 @@ public class RosNode extends AbstractNodeMain {
 	private dialogue_actionActionGoal listen_goal_msg;
 	private MoveBaseActionResult move_to_result;
 	private MoveBaseActionFeedback move_to_fb;
+<<<<<<< HEAD
+	private std_msgs.Time time_0;
+=======
 	private Publisher<visualization_msgs.Marker> marker_pub;
 	private Publisher<std_msgs.Int32> person_of_interest_pub;
+>>>>>>> goal_nego
 
 	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
 	private volatile int percept_id = 0;
@@ -318,6 +337,7 @@ public class RosNode extends AbstractNodeMain {
 							}
 							if(predicate.equals("isVisibleBy")) {
 								predicate = "canSee";
+<<<<<<< HEAD
 								simple_fact = new SimpleFact(predicate, object, subject);
 								if(situation.getEnd() == time_0)
 									perceptions.put(id, simple_fact);
@@ -326,6 +346,17 @@ public class RosNode extends AbstractNodeMain {
 							}else {
 								if(!object.isEmpty()) {
 									simple_fact = new SimpleFact(predicate, subject, object);
+=======
+								if(!subject.startsWith("\""))
+									subject = "\""+subject+"\"";
+								simple_fact = new SimpleFact(predicate,subject);
+								perceptions.put(object, simple_fact);	
+							}else {
+								if(!object.isEmpty()) {
+									if(!object.startsWith("\""))
+										object = "\""+object+"\"";
+									simple_fact = new SimpleFact(predicate,object);
+>>>>>>> goal_nego
 								}else {
 									simple_fact = new SimpleFact(predicate, subject);
 								}
@@ -340,6 +371,9 @@ public class RosNode extends AbstractNodeMain {
 					percept_id = changes.getHeader().getSeq();
 				}
 			});
+			
+			
+			
 			
 		} catch (ParameterNotFoundException e) {
 			logger.severe("Parameter not found exception : "+e.getMessage());

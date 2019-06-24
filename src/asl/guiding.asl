@@ -302,7 +302,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 
 landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == Ld).
 
-@pl_l[max_attempts(3)]+!point_look_at(ID, Ld) : landmark_to_see(Ld) <-
+@pl_l[max_attempts(3), atomic_r]+!point_look_at(ID, Ld) : landmark_to_see(Ld) <-
 	?task(ID, guiding, Human, _);
 	+should_check_target_seen(Human,Ld);
 	point_at(Ld,false,true);
@@ -321,7 +321,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	!speak(ID, tell_seen(Verba)).
 
 
-@pl_nl[max_attempts(3)]+!point_look_at(ID, Ld) : not landmark_to_see(Ld) <-
+@pl_nl[max_attempts(3), atomic_r]+!point_look_at(ID, Ld) : not landmark_to_see(Ld) <-
 	?task(ID, guiding, Human, _);
 	point_at(Ld,false,true);
 	if(.count((point_at(point)),I) & I == 0){

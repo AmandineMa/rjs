@@ -73,18 +73,30 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 //	+task(ID, Label, Human, Param)[Label,Human];
 //	set_task_infos(Label, Human);
 //	!Plan.
-	
++change_id(PrevID, NewID)[atomic] :	true <- 
+	.all_names(Agents);
+	if(not .member(NewID, Agents)){
+		.create_agent(NewID, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
+	}
+	.findall(task(ID, guiding, PrevID, Place), task(ID, guiding, PrevID, Place), L);
+	for(.member(X, L)){
+		X =.. [task, [ID, guiding, Human, Place], []];
+		-X;
+		+task(ID, guiding, NewID, Place);
+		-monitoring(ID, PrevID)[add_time(_), source(self)];
+		+monitoring(ID, NewID);
+	}.
 
-^!guiding(ID, Human, Place)[state(started)] : not started <- +started; +monitoring(ID, Human).
-^!guiding(ID, Human, Place)[state(finished)] : true <- face_human(H); -monitoring(ID, Human)[add_time(_), source(self)].
+^!guiding(ID)[state(started)] : not started <- ?task(ID, guiding, Human, _); +started; +monitoring(ID, Human).
+^!guiding(ID)[state(finished)] : true <- face_human(H); ?task(ID, guiding, Human, _); -monitoring(ID, Human)[add_time(_), source(self)].
 
-+!guiding(ID, Human, Place): true <-
++!guiding(ID): true <-
 	!get_optimal_route(ID);
 	!go_to_see_target(ID);
 	!show_landmarks(ID);
 	!clean_task(ID).
 	
--!guiding(ID, Human, Place) : true <-
+-!guiding(ID) : true <-
 	!clean_task(ID).
 	
 

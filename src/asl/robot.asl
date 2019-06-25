@@ -21,7 +21,7 @@
 	-task(ID, guiding, Human, Place)[ID];
 	+task(ID, guiding, Human, PlaceFrame)[ID];	
 	!!person_of_interest(Human);
-	!guiding(ID, Human, PlaceFrame);
+	!guiding(ID);
 	+end_task(succeeded, ID)[ID];
   	.succeed_goal(person_of_interest(Human));
 	.send(supervisor, tell, end_task(succeeded, ID)).

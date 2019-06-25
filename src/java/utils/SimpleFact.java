@@ -3,12 +3,10 @@ package utils;
 public class SimpleFact {
 	
 	String predicate;
-	String subject;
 	String object;
 	
-	public SimpleFact(String predicate, String subject, String object) {
+	public SimpleFact(String predicate,String object) {
 		this.predicate = predicate;
-		this.subject = subject;
 		this.object = object;
 	}
 	
@@ -18,9 +16,8 @@ public class SimpleFact {
 	}
 
 
-	public SimpleFact(String predicate, String subject) {
+	public SimpleFact(String predicate) {
 		this.predicate = predicate;
-		this.subject = subject;
 		this.object = "";
 	}
 
@@ -39,15 +36,34 @@ public class SimpleFact {
 	}
 
 
-	public String getSubject() {
-		return subject;
-	}
-
-
-	public void setSubject(String subject) {
-		this.subject = subject;
-	}
+//	public String getSubject() {
+//		return subject;
+//	}
+//
+//
+//	public void setSubject(String subject) {
+//		this.subject = subject;
+//	}
 	
-	
+	public boolean equals(Object o) { 
+		  
+        // If the object is compared with itself then return true   
+        if (o == this) { 
+            return true; 
+        } 
+  
+        /* Check if o is an instance of SimpleFact or not 
+          "null instanceof [type]" also returns false */
+        if (!(o instanceof SimpleFact)) { 
+            return false; 
+        } 
+          
+        // typecast o to SimpleFact so that we can compare data members  
+        SimpleFact sf = (SimpleFact) o; 
+          
+        // Compare the data members and return accordingly  
+        return predicate.equals(sf.predicate)
+                && object.equals(sf.object); 
+    } 
 
 }

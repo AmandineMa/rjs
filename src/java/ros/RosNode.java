@@ -37,8 +37,6 @@ import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
-import org.yaml.snakeyaml.DumperOptions;
-
 import com.github.rosjava_actionlib.ActionClient;
 import com.github.rosjava_actionlib.ActionClientListener;
 import com.github.rosjava_actionlib.ActionServer;
@@ -52,31 +50,23 @@ import actionlib_msgs.GoalStatusArray;
 import arch.ROSAgArch;
 import deictic_gestures.CanLookAtRequest;
 import deictic_gestures.CanLookAtResponse;
-import deictic_gestures.CanPointAt;
 import deictic_gestures.CanPointAtRequest;
 import deictic_gestures.CanPointAtResponse;
 import deictic_gestures.LookAtRequest;
 import deictic_gestures.LookAtResponse;
-import deictic_gestures.LookAtStatus;
 import deictic_gestures.PointAtRequest;
 import deictic_gestures.PointAtResponse;
-import deictic_gestures.PointAtStatus;
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionGoal;
 import dialogue_as.dialogue_actionActionResult;
 import dialogue_as.dialogue_actionGoal;
-import geometry_msgs.Point;
 import geometry_msgs.PointStamped;
-import geometry_msgs.Pose;
 import geometry_msgs.PoseStamped;
 import guiding_as_msgs.taskActionFeedback;
 import guiding_as_msgs.taskActionGoal;
 import guiding_as_msgs.taskActionResult;
 import hatp_msgs.PlanningRequestRequest;
 import hatp_msgs.PlanningRequestResponse;
-import jason.asSyntax.ListTerm;
-import jason.asSyntax.ListTermImpl;
-import jason.asSyntax.StringTermImpl;
 import move_base_msgs.MoveBaseActionFeedback;
 import move_base_msgs.MoveBaseActionGoal;
 import move_base_msgs.MoveBaseActionResult;
@@ -87,14 +77,10 @@ import nao_interaction_msgs.SayResponse;
 import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceRequest;
 import ontologenius_msgs.OntologeniusServiceResponse;
-import pepper_base_manager_msgs.StateMachine;
 import pepper_base_manager_msgs.StateMachineStatePrioritizedAngle;
-import pepper_base_manager_msgs.StateMachineStatePrioritizedTwist;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterRequest;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterResponse;
 import pepper_resources_synchronizer_msgs.SubStateMachine_pepper_base_manager_msgs;
-import perspectives_msgs.Fact;
-import perspectives_msgs.FactArrayStamped;
 import perspectives_msgs.HasMeshRequest;
 import perspectives_msgs.HasMeshResponse;
 import pointing_planner.PointingActionFeedback;
@@ -119,10 +105,7 @@ import rpn_recipe_planner_msgs.SuperQueryRequest;
 import rpn_recipe_planner_msgs.SuperQueryResponse;
 import semantic_route_description_msgs.SemanticRouteRequest;
 import semantic_route_description_msgs.SemanticRouteResponse;
-import speech_wrapper_msgs.SpeakToRequest;
-import speech_wrapper_msgs.SpeakToResponse;
 import std_msgs.Header;
-import tf.get_transform;
 import utils.Code;
 import utils.SimpleFact;
 import uwds_msgs.ChangesInContextStamped;
@@ -184,8 +167,9 @@ public class RosNode extends AbstractNodeMain {
 	private Publisher<std_msgs.Int32> person_of_interest_pub;
 
 	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
-	private volatile int percept_id = 0;
-
+	private HashMap<String, String> situations;
+	private volatile int percept_id = -1;
+	private List<String> change_id;
 
 	public RosNode(String name) {
 		this.name = name;
@@ -207,7 +191,7 @@ public class RosNode extends AbstractNodeMain {
 			parameters = connectedNode.getParameterTree();
 			URI uri = null;
 			try {
-				uri = new URI("http://140.93.6.116:11311");
+				uri = new URI(System.getenv().get("ROS_MASTER_URI"));
 			} catch (URISyntaxException e) {
 				logger.info("Wrong URI syntax :"+e.getMessage());
 			}
@@ -290,58 +274,78 @@ public class RosNode extends AbstractNodeMain {
 				}
 			});
 			
-			
+			situations = new HashMap<String, String>();
 			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/situations_to_update"), ChangesInContextStamped._TYPE);
 			std_msgs.Time time_0 = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Time._TYPE);
 			org.ros.message.Time ros_time = new Time();
 			time_0.setData(ros_time);
+			change_id = new ArrayList<String>();
 			facts_sub.addMessageListener(new MessageListener<ChangesInContextStamped>() {
-				
-	
+
+
 				public void onNewMessage(ChangesInContextStamped changes) {
 					synchronized (perceptions) {
-//						perceptions.clear();
-						
+						//						perceptions.clear();
 						for(Situation situation : changes.getChanges().getSituationsToUpdate()) {
 							String id = situation.getId();
 							List<Property> properties = situation.getProperties();
-							if(perceptions.containsKey(id)) {
-								
-							}
+
 							SimpleFact simple_fact;
 							String predicate = "";
 							String subject = "";
 							String object = "";
 							for(Property p : properties) {
-								if(p.getName().equals("subject"))
+								if(p.getName().equals("subject")) {
 									subject = p.getData();
-								else if(p.getName().equals("object"))
+									if(!subject.startsWith("\""))
+										subject = "\""+subject+"\"";
+								}
+								else if(p.getName().equals("object")) {
 									object = p.getData();
+									if(!object.startsWith("\""))
+										object = "\""+object+"\"";
+								}
 								else if(p.getName().equals("predicate"))
 									predicate = p.getData();
 							}
 							if(predicate.equals("isVisibleBy")) {
 								predicate = "canSee";
-								simple_fact = new SimpleFact(predicate, object, subject);
-								if(situation.getEnd() == time_0)
-									perceptions.put(id, simple_fact);
+								simple_fact = new SimpleFact(predicate, subject);
+								if(situation.getEnd().getData().equals(time_0.getData()))
+									perceptions.put(object, simple_fact);
 								else
-									perceptions.remove(id, simple_fact);
+									perceptions.remove(object, simple_fact);
 							}else {
 								if(!object.isEmpty()) {
-									simple_fact = new SimpleFact(predicate, subject, object);
+									simple_fact = new SimpleFact(predicate, object);
 								}else {
-									simple_fact = new SimpleFact(predicate, subject);
+									simple_fact = new SimpleFact(predicate);
 								}
-								if(situation.getEnd() == time_0)
-									perceptions.put(id, simple_fact);
-								else
-									perceptions.remove(id, simple_fact);
+								if(situation.getEnd().getData().equals(time_0.getData())) {
+									perceptions.put(subject, simple_fact);
+								}else {
+									perceptions.remove(subject, simple_fact);
+								}
 							}
+							
+							if(situations.containsKey(id)) {
+								if(! situations.get(id).equals(object)) {
+									if(predicate.equals("isPerceiving")) {
+										synchronized(change_id) {
+											change_id = new ArrayList<String>();
+											change_id.add(situations.get(id));
+											change_id.add(object);
+										}
+									}
+									simple_fact = new SimpleFact(predicate, situations.get(id));
+									perceptions.remove(subject, simple_fact);
+								}								
+							}
+							situations.put(id, object);
 							
 						}
 					}
-					percept_id = changes.getHeader().getSeq();
+//					percept_id = changes.getHeader().getSeq();
 				}
 			});
 			
@@ -1093,6 +1097,10 @@ public class RosNode extends AbstractNodeMain {
 	}
 	
 	
+
+	public List<String> getChange_id() {
+		return change_id;
+	}
 
 	public Publisher<std_msgs.Int32> getPerson_of_interest_pub() {
 		return person_of_interest_pub;

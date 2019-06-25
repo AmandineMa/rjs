@@ -20,13 +20,10 @@
 	}
 	-task(ID, guiding, Human, Place)[ID];
 	+task(ID, guiding, Human, PlaceFrame)[ID];	
-	!!person_of_interest(Human);
 	!guiding(ID);
 	+end_task(succeeded, ID)[ID];
   	.succeed_goal(person_of_interest(Human));
 	.send(supervisor, tell, end_task(succeeded, ID)).
-
-+!person_of_interest(H) : true <- jia.person_of_interest(H); .wait(500); !person_of_interest(H).
 
 +!drop_current_task(ID, Subgoal, Failure, Code) : true <-
 	?task(ID, Task, Human, Param);

@@ -9,13 +9,17 @@
 -monitoring(ID,Human) : true <- human_to_monitor("").
 
 +!start_monitoring(ID, Human) : isPerceiving(Human) <-
+	!!person_of_interest(Human);
 	.concat("human-", Human, H);
 	human_to_monitor(H).
 
 +!start_monitoring(ID, Human) : not isPerceiving(Human) <-
+	!!person_of_interest(Human);
 	.concat("human-", Human, H);
 	human_to_monitor(H);
 	.wait({+isPerceiving(Human)},4000).
+
++!person_of_interest(H) : true <- jia.person_of_interest(H); .wait(500); !person_of_interest(H).
 	
 -!start_monitoring(ID, Human) : not isPerceiving(Human) <-
 	!look_for_human(Human).
@@ -39,7 +43,7 @@
 	jia.reset_att_counter(look_for_human);
 	-look_for_human(Human).
 	
-@lfh[max_attempts(2)] +!look_for_human(Human) : not isPerceiving(Human) & monitoring(_, Human) <- 
+@lfh[max_attempts(2)] +!look_for_human(Human) : (not isPerceiving(Human)) & monitoring(_, Human) <- 
 	?task(ID, guiding, Human, Place);
 	.suspend(guiding(ID, Human,Place));
 	!speak(ID,where_are_u);
@@ -50,7 +54,7 @@
 	jia.reset_att_counter(look_for_human);
 	-look_for_human(Human).
 	
-+!look_for_human(Human) : isPerceiving(Human) & not monitoring(_, Human) <- -look_for_human(Human).
++!look_for_human(Human) : isPerceiving(Human) & (not monitoring(_, Human)) <- -look_for_human(Human).
 
 -!look_for_human(Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : isPerceiving(Human) <- 
 	if(not .substring(Error, wait_timeout)){

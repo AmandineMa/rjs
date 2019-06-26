@@ -37,6 +37,7 @@ import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
+
 import com.github.rosjava_actionlib.ActionClient;
 import com.github.rosjava_actionlib.ActionClientListener;
 import com.github.rosjava_actionlib.ActionServer;
@@ -81,6 +82,8 @@ import pepper_base_manager_msgs.StateMachineStatePrioritizedAngle;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterRequest;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterResponse;
 import pepper_resources_synchronizer_msgs.SubStateMachine_pepper_base_manager_msgs;
+import perspectives_msgs.GetNameRequest;
+import perspectives_msgs.GetNameResponse;
 import perspectives_msgs.HasMeshRequest;
 import perspectives_msgs.HasMeshResponse;
 import pointing_planner.PointingActionFeedback;
@@ -156,6 +159,7 @@ public class RosNode extends AbstractNodeMain {
 	private SuperQueryResponse d_query_resp;
 	private PointingPlannerResponse placements_resp;
 	private hatp_msgs.Plan hatp_planner_resp;
+	private GetNameResponse uwds_name_resp;
 	private PointingActionResult placements_result;
 	private PointingActionFeedback placements_fb;
 	private dialogue_actionActionResult listening_result;
@@ -170,7 +174,7 @@ public class RosNode extends AbstractNodeMain {
 	private HashMap<String, String> situations;
 	private volatile int percept_id = -1;
 	private List<String> change_id;
-
+	
 	public RosNode(String name) {
 		this.name = name;
 	}
@@ -297,8 +301,7 @@ public class RosNode extends AbstractNodeMain {
 							for(Property p : properties) {
 								if(p.getName().equals("subject")) {
 									subject = p.getData();
-									if(!subject.startsWith("\""))
-										subject = "\""+subject+"\"";
+
 								}
 								else if(p.getName().equals("object")) {
 									object = p.getData();
@@ -310,12 +313,23 @@ public class RosNode extends AbstractNodeMain {
 							}
 							if(predicate.equals("isVisibleBy")) {
 								predicate = "canSee";
-								simple_fact = new SimpleFact(predicate, subject);
-								if(situation.getEnd().getData().equals(time_0.getData()))
-									perceptions.put(object, simple_fact);
-								else
-									perceptions.remove(object, simple_fact);
+								if(service_clients.get("get_uwds_name") != null) {
+									call_get_uwds_name_srv(subject);
+									do {
+										sleep(30);
+									}while(uwds_name_resp == null);
+									subject = uwds_name_resp.getName();
+									if(!subject.startsWith("\""))
+										subject = "\""+subject+"\"";
+									simple_fact = new SimpleFact(predicate, subject);
+									if(situation.getEnd().getData().equals(time_0.getData()))
+										perceptions.put(object, simple_fact);
+									else
+										perceptions.remove(object, simple_fact);
+								}
 							}else {
+								if(!subject.startsWith("\""))
+									subject = "\""+subject+"\"";
 								if(!object.isEmpty()) {
 									simple_fact = new SimpleFact(predicate, object);
 								}else {
@@ -351,6 +365,9 @@ public class RosNode extends AbstractNodeMain {
 			
 		} catch (ParameterNotFoundException e) {
 			logger.severe("Parameter not found exception : "+e.getMessage());
+			throw new RosRuntimeException(e);
+		}catch (Exception e) {
+			logger.severe(e.getMessage());
 			throw new RosRuntimeException(e);
 		}
 	}
@@ -424,6 +441,27 @@ public class RosNode extends AbstractNodeMain {
 			e.printStackTrace();
 		}
 		return type;
+	}
+	
+	public void call_get_uwds_name_srv(String id) {
+		uwds_name_resp = null;
+		final GetNameRequest request = (GetNameRequest) service_clients.get("get_uwds_name").newMessage();
+		request.setId(id);
+		request.setWorld("robot/merged_visibilities");
+		service_clients.get("get_uwds_name").call(request, new ServiceResponseListener<Message>() {
+
+			@Override
+			public void onSuccess(Message response) {
+				uwds_name_resp = (GetNameResponse) response;
+				
+			}
+
+			@Override
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+				
+			}
+		});
 	}
 
 	public void call_onto_individual_srv(String action, String param) {

@@ -29,7 +29,11 @@
 	}.
 	
 +!retry_init_services : true <-
-	retryInitServices.
+	retryInitServices;
+	jia.publish_marker(0);
+	.print("started");
+	.create_agent(robot, "src/asl/robot.asl", [agentArchClass("arch.RobotAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]);
+	!check_guiding_goal.
 	
 -!retry_init_services : true <-
 	.wait(3000);

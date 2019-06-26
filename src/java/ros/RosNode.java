@@ -203,7 +203,7 @@ public class RosNode extends AbstractNodeMain {
 			parameters = connectedNode.getParameterTree();
 			URI uri = null;
 			try {
-				uri = new URI("http://140.93.6.116:11311");
+				uri = new URI(System.getenv("ROS_MASTER_URI"));
 			} catch (URISyntaxException e) {
 				logger.info("Wrong URI syntax :"+e.getMessage());
 			}
@@ -740,6 +740,7 @@ public class RosNode extends AbstractNodeMain {
 			Transform transform;
 			String frame1 = "base_link";
 			String frame2 = human;
+			frame2 = frame2.replaceAll("^\"|\"$", "");
 			if(tfTree.canTransform(frame1, frame2)) {
 				try {
 
@@ -796,6 +797,8 @@ public class RosNode extends AbstractNodeMain {
 				catch (Exception e) {
 					return false;
 				}
+			}else {
+				return false;
 			}
 		}
 		return true;

@@ -69,47 +69,49 @@ public class LimitedAgent extends Agent {
 
 			ListTerm annots = label.getAnnots();
 			for(Term t : annots) {
-				String f = ((Structure) t).getFunctor();
-				if("max_attempts".equalsIgnoreCase(f) && ((Structure) t).hasTerm() || "max_exec".equalsIgnoreCase(f) && ((Structure) t).hasTerm()) {
-					long att = Math.round(((NumberTermImpl) ((Structure) t).getTerm(0)).solve());
-					String l = label.getFunctor();
-					Trigger trig = selected_i.peek().getTrigger();
-					String p;
-					if(!trig.getLiteral().hasTerm())
-						p = "";
-					else	
-						p = trig.getLiteral().getTerms().toString();
+				if(t.isStructure()) {
+					String f = ((Structure) t).getFunctor();
+					if("max_attempts".equalsIgnoreCase(f) && ((Structure) t).hasTerm() || "max_exec".equalsIgnoreCase(f) && ((Structure) t).hasTerm()) {
+						long att = Math.round(((NumberTermImpl) ((Structure) t).getTerm(0)).solve());
+						String l = label.getFunctor();
+						Trigger trig = selected_i.peek().getTrigger();
+						String p;
+						if(!trig.getLiteral().hasTerm())
+							p = "";
+						else	
+							p = trig.getLiteral().getTerms().toString();
 
-					Counter c = findCounter(l, p);
-					if(c == null) {
-						if("max_attempts".equalsIgnoreCase(f))
-							c = new Counter(l, p, (int) att, CountingType.attempt);
-						else
-							c = new Counter(l, p, (int) att, CountingType.exec);
-						counters.put(trig.getLiteral().getFunctor(),c);
-					}
-
-					if(c.isMaxed() & !c.hasTrigger(System.identityHashCode(trig))) {
-						ListTerm failAnnots;
-						if(c.getCounting_type() == CountingType.attempt)
-							failAnnots = JasonException.createBasicErrorAnnots("max_attempts", "the limit of attempts ("+att+") is reached");
-						else
-							failAnnots = JasonException.createBasicErrorAnnots("max_exec", "the limit of executions ("+att+") is reached");
-
-						try {
-							getTS().generateGoalDeletion(selected_i, failAnnots);
-						} catch (JasonException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+						Counter c = findCounter(l, p);
+						if(c == null) {
+							if("max_attempts".equalsIgnoreCase(f))
+								c = new Counter(l, p, (int) att, CountingType.attempt);
+							else
+								c = new Counter(l, p, (int) att, CountingType.exec);
+							counters.put(trig.getLiteral().getFunctor(),c);
 						}
-						selected_i = null;
 
-					}else {
-						if(c.addTrigger(System.identityHashCode(trig)))
-							incrementCounter(System.identityHashCode(trig));
+						if(c.isMaxed() & !c.hasTrigger(System.identityHashCode(trig))) {
+							ListTerm failAnnots;
+							if(c.getCounting_type() == CountingType.attempt)
+								failAnnots = JasonException.createBasicErrorAnnots("max_attempts", "the limit of attempts ("+att+") is reached");
+							else
+								failAnnots = JasonException.createBasicErrorAnnots("max_exec", "the limit of executions ("+att+") is reached");
+
+							try {
+								getTS().generateGoalDeletion(selected_i, failAnnots);
+							} catch (JasonException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							selected_i = null;
+
+						}else {
+							if(c.addTrigger(System.identityHashCode(trig)))
+								incrementCounter(System.identityHashCode(trig));
+						}
 					}
-				}
-			}		
+				}	
+			}
 		}else {
 			selected_i = null;
 		}

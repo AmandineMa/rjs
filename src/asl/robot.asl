@@ -6,6 +6,8 @@
 !start.
 +!start : true <- .verbose(2).
 +!guiding_task(ID, Human,Place) : true <-
+	-finished;
+	-point_at(point);
 	.all_names(Agents);
 	if(not .member(Human, Agents)){
 		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
@@ -20,9 +22,11 @@
 	}
 	-task(ID, guiding, Human, Place)[ID];
 	+task(ID, guiding, Human, PlaceFrame)[ID];	
-	!guiding(ID);
+//	.concat("human-", Human, H);
+//	human_to_monitor(H);
+	!guiding(ID, Human, PlaceFrame);
+//	human_to_monitor(""); 
 	+end_task(succeeded, ID)[ID];
-  	.succeed_goal(person_of_interest(Human));
 	.send(supervisor, tell, end_task(succeeded, ID)).
 
 +!drop_current_task(ID, Subgoal, Failure, Code) : true <-

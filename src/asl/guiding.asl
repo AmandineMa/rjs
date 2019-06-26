@@ -88,7 +88,12 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	}.
 
 ^!guiding(ID)[state(started)] : not started <- ?task(ID, guiding, Human, _); +started; +monitoring(ID, Human).
-^!guiding(ID)[state(finished)] : true <- face_human(H); ?task(ID, guiding, Human, _); -monitoring(ID, Human)[add_time(_), source(self)].
+^!guiding(ID)[state(S)] : (S == finished | S == failed) & not finished <-
+	+finished;
+	.concat("human_", Human, H);  
+	face_human(H); 
+	.succeed_goal(person_of_interest(Human));
+	-monitoring(ID, Human)[add_time(_), source(self)].
 
 +!guiding(ID): true <-
 	!get_optimal_route(ID);
@@ -199,7 +204,8 @@ shops(["Aleksi_13","Dressmann_XL","Bik_Bok","Dressman","Carlings","Vila","Mango"
 	.concat("human_", Human, HTF);
 	tf.get_transform(map, HTF, Point,_);
 	.nth(2, Point, Z);
-	jia.replace(2, Hposit, Z, Pointf);
+	Zbis = Z + 0.25;
+	jia.replace(2, Hposit, Zbis, Pointf);
 	jia.publish_marker(Hframe, Pointf, blue);
 	look_at(Hframe,Pointf,true);
 	!wait_human(ID).

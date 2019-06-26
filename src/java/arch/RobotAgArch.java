@@ -364,10 +364,10 @@ public class RobotAgArch extends ROSAgArch {
 							sleep(100);
 						}while(face_resp == null);
 						if(face_resp.getError().equals("fail to rotate") ) {
-							action.setResult(true);
-						}else {
-							action.setResult(false);
 							action.setFailureReason(new Atom("cannot_face_human"), "face human failed for "+frame);
+							action.setResult(false);
+						}else {
+							action.setResult(true);
 						}
 					}else {
 						action.setResult(false);
@@ -446,7 +446,7 @@ public class RobotAgArch extends ROSAgArch {
 					case "max_sorry" : text = new String("I am sorry, I give up, you asked me too many times something that I don't know."); break;
 					case "tell_seen" : text = new String("I can tell that you've seen "+bel_arg); break;
 					case "visible_target" : text = new String("Look, "+bel_arg+" is there"); break;
-					case "not_visible_target" : text = new String("Look, "+bel_arg+" is in this direction"); break;
+					case "not_visible_target" : text = new String("Look, "+bel_arg+" is not visible from but it is in this direction"); break;
 					case "hope_find_way" : text = new String("I hope you will find your way"); break;
 					case "ask_understand" : text = new String("Did you understand ?"); break;
 					case "happy_end" : text = new String("I am happy that I was able to help you."); break;

@@ -46,7 +46,7 @@ public class SupervisorAgArch extends ROSAgArch {
 		
 		nodeConfiguration = loader.build();	
 		try {
-			masterUri = new URI(System.getenv().get("ROS_MASTER_URI"));
+			masterUri = new URI(System.getenv("ROS_MASTER_URI"));
 		} catch (URISyntaxException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

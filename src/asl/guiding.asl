@@ -156,7 +156,7 @@ shops(["Zones_by_Sarkanniemi","Ti_Ti_Nallen_Koti","Fortum","Hiljainen_huone","Ea
 
 +!guiding(ID, Human, Place): true <-
 	!get_optimal_route(ID);
-//	!go_to_see_target(ID);
+	!go_to_see_target(ID);
 	!show_landmarks(ID);
 	!clean_task(ID).
 	
@@ -190,6 +190,7 @@ shops(["Zones_by_Sarkanniemi","Ti_Ti_Nallen_Koti","Fortum","Hiljainen_huone","Ea
 		// compute a new route with the persona information
 		compute_route(From, Place, PA, false);
 	}
+	// TODO update quand direction n'est plus stairs
 	?target_place(Target);
 	get_onto_individual_info(getName, Target, verba_name);
 	// if the route has an interface (a direction)

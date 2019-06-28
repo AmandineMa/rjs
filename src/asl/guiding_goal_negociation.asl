@@ -1,11 +1,12 @@
 // TODO a voir monitoring piloté par les differents asl
 //^!guiding_goal_negociation(ID, Human,_)[state(S)] : S == started | S = resumed <- .resume(monitoring(Human)). 
 all_places(false).
-	
+
+^!guiding_goal_negociation(ID, Human, Place)[state(started)] : not started <- +started; +monitoring(ID, Human).	
 +!guiding_goal_negociation(ID, Human,Place): true <-
 	+guiding_goal_negociation;
-	if(jia.word_class(find, Place, Class)){
-		jia.word_class(find, Place, Class);
+	if(jia.word_class(fullFind, Place, Class)){
+		jia.word_class(fullFind, Place, Class);
 		jia.word_individual(getType, Class, Places);
 		?robot_place(From);
 		if(.substring(Class, atm) | .substring(Class, toilets)){
@@ -34,7 +35,7 @@ all_places(false).
 			.succeed_goal(guiding_goal_negociation(ID, Human,Place));
 		}
 	}else{
-		jia.word_individual(find, Place, PlaceOnto);
+		jia.word_individual(fullFind, Place, PlaceOnto);
 	}
 	jia.word_individual(getName, PlaceOnto, PlaceName);
 	+guiding_goal_nego(PlaceName, PlaceOnto);

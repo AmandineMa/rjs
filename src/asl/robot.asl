@@ -1,6 +1,6 @@
 // Agent robot in project supervisor
 
-//{ include("monitoring.asl")}
+{ include("monitoring.asl")}
 { include("guiding_goal_negociation.asl")}
 { include("guiding.asl")}
 !start.
@@ -29,7 +29,7 @@
 	!guiding(ID, Human, PlaceFrame);
 //	human_to_monitor(""); 
 	// for hwu
-	text2speech(Human, succeeded);
+//	text2speech(Human, succeeded);
 	+end_task(succeeded, ID)[ID];
 	.send(supervisor, tell, end_task(succeeded, ID)).
 

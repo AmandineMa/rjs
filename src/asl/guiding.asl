@@ -156,7 +156,7 @@ shops(["Zones_by_Sarkanniemi","Ti_Ti_Nallen_Koti","Fortum","Hiljainen_huone","Ea
 
 +!guiding(ID, Human, Place): true <-
 	!get_optimal_route(ID);
-	!go_to_see_target(ID);
+//	!go_to_see_target(ID);
 	!show_landmarks(ID);
 	!clean_task(ID).
 	
@@ -278,6 +278,12 @@ shops(["Zones_by_Sarkanniemi","Ti_Ti_Nallen_Koti","Fortum","Hiljainen_huone","Ea
 		.wait({+isPerceiving(Human)},4000);
 		-~here(Human);
 	}
+	if(.count((look_at(look)),I) & I == 0){
+		.wait({+look_at(look)},4000);
+		look_at_events(human_perceived);
+	}else{
+		look_at_events(human_perceived);
+	}
 	if(.count((dir_to_point(_)),I) & I > 0){
 		?dir_to_point(D);
 		.concat("human_", Human, HTF);
@@ -296,6 +302,12 @@ shops(["Zones_by_Sarkanniemi","Ti_Ti_Nallen_Koti","Fortum","Hiljainen_huone","Ea
 		!speak(ID, come);
 		!wait_human(ID);
 	}elif(.substring(Error,max_attempts)){
+		if(.count((look_at(look)),I) & I == 0){
+			.wait({+look_at(look)},4000);
+			look_at_events(stop_look_at);
+		}else{
+			look_at_events(stop_look_at);
+		}
 		!speak(ID,cannot_find); 
 		!drop_current_task(ID, wait_human, max_attempts, "wait too long");
 	}elif(.substring(Failure, not_visible)){

@@ -1,6 +1,6 @@
 // Agent robot in project supervisor
 
-{ include("monitoring.asl")}
+//{ include("monitoring.asl")}
 { include("guiding_goal_negociation.asl")}
 { include("guiding.asl")}
 !start.
@@ -9,6 +9,7 @@
 //	text2speech("25", ask_show_again).
 	-finished;
 	-point_at(point);
+	-look_at(look);
 	.all_names(Agents);
 	if(not .member(Human, Agents)){
 		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
@@ -27,10 +28,18 @@
 //	human_to_monitor(H);
 	!guiding(ID, Human, PlaceFrame);
 //	human_to_monitor(""); 
+	// for hwu
+	text2speech(Human, succeeded);
 	+end_task(succeeded, ID)[ID];
 	.send(supervisor, tell, end_task(succeeded, ID)).
 
 +!drop_current_task(ID, Subgoal, Failure, Code) : true <-
+	if(.count((look_at(look)),I) & I == 0){
+		.wait({+look_at(look)},4000);
+		look_at_events(stop_look_at);
+	}else{
+		look_at_events(stop_look_at);
+	}
 	?task(ID, Task, Human, Param);
  	if(.substring(Failure, dialogue_as_failed)){
  		.print(STOP_LISTEN);
@@ -58,7 +67,7 @@
   	.send(supervisor, tell, end_task(failed, ID));
   	.send(supervisor, tell, failure(ID, Subgoal, Failure, Code));
   	if(.string(Speech)){
-  		!speak(ID, failure(Speech));
+  		!speak(ID, failed(Speech));
   	}
   	G =.. [Task, [ID,Human,Param],[]];
   	.fail_goal(G).

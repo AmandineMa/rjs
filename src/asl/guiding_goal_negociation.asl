@@ -63,7 +63,9 @@ all_places(false).
 -!guiding_goal_negociation(ID, Human, Place)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)]: true <-
 	if(.substring(word_individual, Code)){
 		+individual_not_found(Place);
-	  	!guiding_goal_negociation(ID, Human);
+		!speak(ID, no_place(Place));
+		!drop_current_task(ID, guiding_goal_negociation, Failure, Code); 
+//	  	!guiding_goal_negociation(ID, Human);
   	}else{
   		-guiding_goal_negociation;
   		!drop_current_task(ID, guiding_goal_negociation, Failure, Code); 

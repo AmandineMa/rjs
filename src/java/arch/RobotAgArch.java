@@ -11,6 +11,8 @@ import org.ros.message.MessageListener;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
+import org.ros.rosjava.tf.Transform;
+import org.ros.rosjava.tf.TransformTree;
 
 import actionlib_msgs.GoalStatus;
 import deictic_gestures.LookAtResponse;
@@ -62,6 +64,7 @@ public class RobotAgArch extends ROSAgArch {
 	private Subscriber<PointAtStatus> point_at_status;
 	private Subscriber<LookAtStatus> look_at_status;
 	private Publisher<std_msgs.String> human_to_monitor;
+	private Publisher<std_msgs.String> look_at_events_pub;
 	
 	@Override
 	public void init() {
@@ -101,6 +104,7 @@ public class RobotAgArch extends ROSAgArch {
 		
 		human_to_monitor = m_rosnode.getConnectedNode().newPublisher(m_rosnode.getParameters().getString("guiding/topics/human_to_monitor"), std_msgs.String._TYPE);
 		
+		look_at_events_pub = m_rosnode.getConnectedNode().newPublisher(m_rosnode.getParameters().getString("/guiding/topics/look_at_events"), std_msgs.String._TYPE);
 		
 		super.init();
 	}
@@ -256,6 +260,13 @@ public class RobotAgArch extends ROSAgArch {
 							String r_frame = placements_result.getRobotPose().getHeader().getFrameId();
 							PoseCustom human_pose = new PoseCustom(placements_result.getHumanPose().getPose());
 							String h_frame = placements_result.getHumanPose().getHeader().getFrameId();
+							TransformTree tfTree = getTfTree();
+							Transform transform;
+							transform = tfTree.lookupMostRecent("map", "base_footprint");
+							double dist_new_pose = Math.pow(transform.translation.x - robot_pose.getPosition().getX(), 2) 
+												 + Math.pow(transform.translation.y - robot_pose.getPosition().getY(), 2);
+//							if(dist_new_pose > m_rosnode.getParameters().getDouble("guiding/tuning_param/robot_should_move_dist_th"))
+								
 							getTS().getAg().addBel(Literal.parseLiteral("robot_pose("+r_frame+","+robot_pose.toString()+")["+task_id+"]"));
 							getTS().getAg().addBel(Literal.parseLiteral("human_pose("+h_frame+","+human_pose.toString()+")["+task_id+"]"));
 							int nb_ld_to_point = placements_result.getPointedLandmarks().size();
@@ -417,11 +428,15 @@ public class RobotAgArch extends ROSAgArch {
 					String text = "";
 					String bel_functor = bel.getFunctor();
 					String bel_arg = null;
+					boolean hwu_dial = m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu");
 					if(bel.getTerms().size()==1) {
 						bel_arg = bel.getTerms().get(0).toString();
-						bel_arg = bel_arg.replaceAll("^\"|\"$", "").replaceAll("\\[", "").replaceAll("\\]",""); 
+						if(hwu_dial)
+							bel_arg = bel_arg.replaceAll("^\"|\"$", "");
+						else
+							bel_arg = bel_arg.replaceAll("^\"|\"$", "").replaceAll("\\[", "").replaceAll("\\]",""); 
 					}
-					boolean hwu_dial = m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu");
+					
 
 					switch(bel_functor) {
 					case "thinking": text = new String("Wait, I'm thinking"); break;
@@ -463,7 +478,8 @@ public class RobotAgArch extends ROSAgArch {
 						}else {
 							text = new String("Let's play now!"); break;
 						}
-					case "failure" : text = new String("My component for "+bel_arg+" has crashed"); break;
+					case "failed" : text = new String("My component for "+bel_arg+" has crashed"); break;
+					case "succeeded" : text = new String("succeeded"); break;
 					default : action.setResult(false); action.setFailureReason(new Atom("unknown_string"), "no speech to say"); actionExecuted(action); return;
 					}
 					if(hwu_dial & !text.isEmpty()) {
@@ -472,6 +488,7 @@ public class RobotAgArch extends ROSAgArch {
 								m_rosnode.call_dialogue_query_srv("clarification."+bel_functor, bel_arg);
 							}else {
 								m_rosnode.call_dialogue_query_srv("clarification."+bel_functor);
+
 							}
 							SuperQueryResponse dial_resp;
 							do {
@@ -481,19 +498,19 @@ public class RobotAgArch extends ROSAgArch {
 							String resp;
 							if(dial_resp.getResult().equals("true")) {
 								resp = "yes";
-							}if(dial_resp.getResult().equals("false")) {
+							}else if(dial_resp.getResult().equals("false")) {
 								resp = "no";
 							}else {
 								resp = dial_resp.getResult();
 							}
 							try {
-								getTS().getAg().addBel(Literal.parseLiteral("listen_result("+bel_functor+","+resp+")["+task_id+"]"));
+								getTS().getAg().addBel(Literal.parseLiteral("listen_result("+bel_functor+",\""+resp+"\")["+task_id+"]"));
 							} catch (RevisionFailedException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 						}else {
-							if(!bel_functor.equals("failure")) {
+							if(!bel_functor.equals("failed") && !bel_functor.equals("succeeded")) {
 								if(bel_arg != null) {
 									m_rosnode.call_dialogue_inform_srv("verbalisation."+bel_functor, bel_arg);
 								}else {
@@ -509,19 +526,21 @@ public class RobotAgArch extends ROSAgArch {
 						}
 						action.setResult(true);
 					}else {
-						m_rosnode.call_speak_to_srv(human, text);
-						SayResponse speak_to_resp;
-						do {
-							speak_to_resp = m_rosnode.getSpeak_to_resp();
-							sleep(100);
-						}while(speak_to_resp == null);
-//						if(speak_to_resp.getSuccess()) {
-//							action.setResult(true);
-//						}else {
-//							action.setResult(false);
-//							action.setFailureReason(new Atom("speak_to_failed"), "the speech service failed");
-//						}
-						action.setResult(true);
+						if(!text.equals("succeeded")) {
+							m_rosnode.call_speak_to_srv(human, text);
+							SayResponse speak_to_resp;
+							do {
+								speak_to_resp = m_rosnode.getSpeak_to_resp();
+								sleep(100);
+							}while(speak_to_resp == null);
+	//						if(speak_to_resp.getSuccess()) {
+	//							action.setResult(true);
+	//						}else {
+	//							action.setResult(false);
+	//							action.setFailureReason(new Atom("speak_to_failed"), "the speech service failed");
+	//						}
+							action.setResult(true);
+						}
 					}
 					actionExecuted(action);
 				} else if(action_name.equals("get_route_verbalization")) {
@@ -625,7 +644,15 @@ public class RobotAgArch extends ROSAgArch {
 					m_rosnode.cancel_goal_dialogue();
 					action.setResult(true);
 					actionExecuted(action);
-				} else if(action_name.equals("move_to")) {
+				} else if(action_name.equals("look_at_events")) {
+					String event = action.getActionTerm().getTerm(0).toString();
+					event = event.replaceAll("^\"|\"$", "");
+					std_msgs.String str = look_at_events_pub.newMessage();
+					str.setData(event);
+					look_at_events_pub.publish(str);
+					action.setResult(true);
+					actionExecuted(action);
+				}else if(action_name.equals("move_to")) {
 					String frame = action.getActionTerm().getTerm(0).toString();
 					Iterator<Term> action_term_it =  ((ListTermImpl) action.getActionTerm().getTerm(1)).iterator();
 					List<Double> pose_values = new ArrayList<>();
@@ -649,7 +676,7 @@ public class RobotAgArch extends ROSAgArch {
 						MoveBaseActionFeedback move_to_fb;
 						do {
 							move_to_result = m_rosnode.getMove_to_result();
-							move_to_fb = m_rosnode.getMove_to_fb();
+//							move_to_fb = m_rosnode.getMove_to_fb();
 //							if(move_to_fb != null) {
 //								try {
 //									getTS().getAg().addBel(Literal.parseLiteral("fb(move_to, "+move_to_fb.getFeedback().getBasePosition().getPose().getPosition().getX()+","+

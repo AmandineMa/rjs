@@ -182,9 +182,10 @@ public class RosNode extends AbstractNodeMain {
 	private dialogue_actionActionGoal listen_goal_msg;
 	private MoveBaseActionResult move_to_result;
 	private MoveBaseActionFeedback move_to_fb;
-	private Publisher<visualization_msgs.Marker> marker_pub;
+	private Publisher<MoveBaseActionGoal> move_to_goal_pub;
+	private Subscriber<MoveBaseActionResult> move_to_result_sub;
+ 	private Publisher<visualization_msgs.Marker> marker_pub;
 	private Publisher<std_msgs.Int32> person_of_interest_pub;
-	private Subscriber<guiding_as_msgs.Task> goal_listener;
 	
 	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
 	private volatile int percept_id = 0;
@@ -268,27 +269,37 @@ public class RosNode extends AbstractNodeMain {
 				public void statusReceived(GoalStatusArray arg0) {}
 			});
 			
-			move_to_ac = new ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult>(
-					connectedNode, parameters.getString("/guiding/action_servers/move_to"), MoveBaseActionGoal._TYPE, MoveBaseActionFeedback._TYPE, MoveBaseActionResult._TYPE);
+//			move_to_ac = new ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult>(
+//					connectedNode, parameters.getString("/guiding/action_servers/move_to"), MoveBaseActionGoal._TYPE, MoveBaseActionFeedback._TYPE, MoveBaseActionResult._TYPE);
+//			
+//			move_to_ac.setLogLevel(Level.OFF);
+//			
+//			move_to_ac.attachListener(new ActionClientListener<MoveBaseActionFeedback, MoveBaseActionResult>() {
+//
+//				@Override
+//				public void feedbackReceived(MoveBaseActionFeedback fb) {
+//					move_to_fb = fb;
+//					
+//				}
+//
+//				@Override
+//				public void resultReceived(MoveBaseActionResult result) {
+//					move_to_result = result;
+//					
+//				}
+//
+//				@Override
+//				public void statusReceived(GoalStatusArray arg0) {
+//				}
+//			});
 			
-			move_to_ac.setLogLevel(Level.OFF);
-			
-			move_to_ac.attachListener(new ActionClientListener<MoveBaseActionFeedback, MoveBaseActionResult>() {
+			move_to_goal_pub = connectedNode.newPublisher(parameters.getString("/guiding/action_servers/move_to")+"/goal", MoveBaseActionGoal._TYPE);
+			move_to_result_sub = connectedNode.newSubscriber(parameters.getString("/guiding/action_servers/move_to")+"/result", MoveBaseActionResult._TYPE);
+			move_to_result_sub.addMessageListener(new MessageListener<MoveBaseActionResult>() {
 
 				@Override
-				public void feedbackReceived(MoveBaseActionFeedback fb) {
-					move_to_fb = fb;
-					
-				}
-
-				@Override
-				public void resultReceived(MoveBaseActionResult result) {
-					move_to_result = result;
-					
-				}
-
-				@Override
-				public void statusReceived(GoalStatusArray arg0) {
+				public void onNewMessage(MoveBaseActionResult result) {
+					move_to_result = result;	
 				}
 			});
 			
@@ -344,6 +355,17 @@ public class RosNode extends AbstractNodeMain {
 		} catch (ParameterNotFoundException e) {
 			logger.severe("Parameter not found exception : "+e.getMessage());
 			throw new RosRuntimeException(e);
+		}
+	}
+	
+	public void set_task_result(String success, String id) {
+		if(guiding_as != null) {
+			if(success.equals("succeeded"))
+				guiding_as.setSucceed(id);
+			else
+				guiding_as.setAbort(id);
+		}else {
+			logger.info("guiding as null");
 		}
 	}
 	
@@ -733,6 +755,7 @@ public class RosNode extends AbstractNodeMain {
 		final SuperQueryRequest request = (SuperQueryRequest) service_clients.get("dialogue_query").newMessage();
 		request.setStatus(sentence_code);
 		request.setReturnValue(param);
+		logger.info(sentence_code+"("+param+")");
 		service_clients.get("dialogue_query").call(request, new ServiceResponseListener<Message>() {
 
 			@Override
@@ -919,33 +942,49 @@ public class RosNode extends AbstractNodeMain {
 	
 	
 	
+//	public boolean call_move_to_as(PoseStamped pose, int max_attempt) {
+//		move_to_fb = null;
+//		move_to_result = null;
+//		logger.info("wait to start move_to");
+//		boolean server_started;
+//		int count = 0;
+//		do {
+//			server_started = move_to_ac.waitForActionServerToStart(new Duration(3));
+//			if(server_started) {
+//				logger.info("move to as started");
+//				
+//				MoveBaseActionGoal goal_msg;
+//				goal_msg = move_to_ac.newGoalMessage();
+//				
+//				NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
+//				MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+//				MoveBaseGoal move_to_goal = messageFactory.newFromType(MoveBaseGoal._TYPE);;
+//				move_to_goal.setTargetPose(pose);
+//				goal_msg.setGoal(move_to_goal);
+//				move_to_ac.sendGoal(goal_msg);
+//				return true;
+//			}else {
+//				logger.info("No actionlib move_to server found ");
+//				count += 1;
+//			}
+//		}while(!server_started & count < max_attempt);
+//		return false;	
+//			
+//	}
+	
 	public boolean call_move_to_as(PoseStamped pose, int max_attempt) {
-		move_to_fb = null;
 		move_to_result = null;
-		logger.info("wait to start move_to");
-		boolean server_started;
-		int count = 0;
-		do {
-			server_started = move_to_ac.waitForActionServerToStart(new Duration(3));
-			if(server_started) {
-				logger.info("move to as started");
-				
-				MoveBaseActionGoal goal_msg;
-				goal_msg = move_to_ac.newGoalMessage();
-				
-				NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
-				MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
-				MoveBaseGoal move_to_goal = messageFactory.newFromType(MoveBaseGoal._TYPE);;
-				move_to_goal.setTargetPose(pose);
-				goal_msg.setGoal(move_to_goal);
-				move_to_ac.sendGoal(goal_msg);
-				return true;
-			}else {
-				logger.info("No actionlib move_to server found ");
-				count += 1;
-			}
-		}while(!server_started & count < max_attempt);
-		return false;	
+		MoveBaseActionGoal goal_msg;
+		goal_msg = move_to_goal_pub.newMessage();
+		
+		NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
+		MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+		MoveBaseGoal move_to_goal = messageFactory.newFromType(MoveBaseGoal._TYPE);;
+		move_to_goal.setTargetPose(pose);
+		goal_msg.setGoal(move_to_goal);
+		
+		move_to_goal_pub.publish(goal_msg);
+		return true;
 			
 	}
 	public boolean call_dialogue_as(List<String> subjects, int max_attempt) {

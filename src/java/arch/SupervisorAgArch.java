@@ -160,6 +160,12 @@ public class SupervisorAgArch extends ROSAgArch {
 					action.setResult(true);
 					actionExecuted(action);
 				}else if(action_name.equals("set_guiding_result")){
+					String success = action.getActionTerm().getTerm(0).toString();
+					success = success.replaceAll("^\"|\"$", "");
+					String id = action.getActionTerm().getTerm(1).toString();
+					id = id.replaceAll("^\"|\"$", "");
+					m_rosnode.set_task_result(success, id);
+					logger.info("goal result : "+success);
 					action.setResult(true);
 					actionExecuted(action);
 				}

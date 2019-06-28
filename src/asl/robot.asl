@@ -6,6 +6,7 @@
 !start.
 +!start : true <- .verbose(2).
 +!guiding_task(ID, Human,Place) : true <-
+//	text2speech("25", ask_show_again).
 	-finished;
 	-point_at(point);
 	.all_names(Agents);

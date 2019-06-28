@@ -68,6 +68,7 @@ import geometry_msgs.Point;
 import geometry_msgs.PointStamped;
 import geometry_msgs.Pose;
 import geometry_msgs.PoseStamped;
+import guiding_as_msgs.Task;
 import guiding_as_msgs.taskActionFeedback;
 import guiding_as_msgs.taskActionGoal;
 import guiding_as_msgs.taskActionResult;
@@ -81,6 +82,8 @@ import move_base_msgs.MoveBaseActionGoal;
 import move_base_msgs.MoveBaseActionResult;
 import move_base_msgs.MoveBaseGoal;
 import msg_srv_impl.SemanticRouteResponseImpl;
+import nao_interaction_msgs.GoToPosture;
+import nao_interaction_msgs.GoToPostureRequest;
 import nao_interaction_msgs.SayRequest;
 import nao_interaction_msgs.SayResponse;
 import ontologenius_msgs.OntologeniusService;
@@ -94,6 +97,8 @@ import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterResponse;
 import pepper_resources_synchronizer_msgs.SubStateMachine_pepper_base_manager_msgs;
 import perspectives_msgs.Fact;
 import perspectives_msgs.FactArrayStamped;
+import perspectives_msgs.GetNameRequest;
+import perspectives_msgs.GetNameResponse;
 import perspectives_msgs.HasMeshRequest;
 import perspectives_msgs.HasMeshResponse;
 import pointing_planner.PointingActionFeedback;
@@ -169,6 +174,7 @@ public class RosNode extends AbstractNodeMain {
 	private SuperQueryResponse d_query_resp;
 	private PointingPlannerResponse placements_resp;
 	private hatp_msgs.Plan hatp_planner_resp;
+	private GetNameResponse uwds_name_resp;
 	private PointingActionResult placements_result;
 	private PointingActionFeedback placements_fb;
 	private dialogue_actionActionResult listening_result;
@@ -178,7 +184,8 @@ public class RosNode extends AbstractNodeMain {
 	private MoveBaseActionFeedback move_to_fb;
 	private Publisher<visualization_msgs.Marker> marker_pub;
 	private Publisher<std_msgs.Int32> person_of_interest_pub;
-
+	private Subscriber<guiding_as_msgs.Task> goal_listener;
+	
 	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
 	private volatile int percept_id = 0;
 
@@ -231,7 +238,6 @@ public class RosNode extends AbstractNodeMain {
 					return true;
 				}
 			});
-			
 			
 			get_human_answer_ac = new ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult>(
 					connectedNode, parameters.getString("/guiding/action_servers/dialogue"), dialogue_actionActionGoal._TYPE, dialogue_actionActionFeedback._TYPE, dialogue_actionActionResult._TYPE);
@@ -302,10 +308,20 @@ public class RosNode extends AbstractNodeMain {
 							String object = fact.getObjectName();
 							if(predicate.equals("isVisibleBy")) {
 								predicate = "canSee";
-								if(!subject.startsWith("\""))
-									subject = "\""+subject+"\"";
-								simple_fact = new SimpleFact(predicate,subject);
-								perceptions.put(object, simple_fact);	
+								if(subject.startsWith("\""))
+									subject = subject.replaceAll("^\"|\"$", "");
+								if(service_clients.get("get_uwds_name") != null) {
+									call_get_uwds_name_srv(subject);
+									do {
+										sleep(30);
+									}while(uwds_name_resp == null);
+									subject = uwds_name_resp.getName();
+									if(!subject.startsWith("\""))
+										subject = "\""+subject+"\"";
+									simple_fact = new SimpleFact(predicate,subject);
+									perceptions.put(object, simple_fact);	
+								}
+								
 							}else {
 								if(!object.isEmpty()) {
 									if(!object.startsWith("\""))
@@ -400,6 +416,27 @@ public class RosNode extends AbstractNodeMain {
 			e.printStackTrace();
 		}
 		return type;
+	}
+	
+	public void call_get_uwds_name_srv(String id) {
+		uwds_name_resp = null;
+		final GetNameRequest request = (GetNameRequest) service_clients.get("get_uwds_name").newMessage();
+		request.setId(id);
+		request.setWorld("robot/merged_visibilities");
+		service_clients.get("get_uwds_name").call(request, new ServiceResponseListener<Message>() {
+
+			@Override
+			public void onSuccess(Message response) {
+				uwds_name_resp = (GetNameResponse) response;
+				
+			}
+
+			@Override
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+				
+			}
+		});
 	}
 
 	public void call_onto_individual_srv(String action, String param) {
@@ -671,7 +708,7 @@ public class RosNode extends AbstractNodeMain {
 		d_inform_resp = null;
 		final SuperInformRequest request = (SuperInformRequest) service_clients.get("dialogue_inform").newMessage();
 		request.setStatus(sentence_code);
-		request.setStatus(param);
+		request.setReturnValue(param);
 		service_clients.get("dialogue_inform").call(request, new ServiceResponseListener<Message>() {
 
 			@Override
@@ -695,7 +732,7 @@ public class RosNode extends AbstractNodeMain {
 		d_query_resp = null;
 		final SuperQueryRequest request = (SuperQueryRequest) service_clients.get("dialogue_query").newMessage();
 		request.setStatus(sentence_code);
-		request.setStatus(param);
+		request.setReturnValue(param);
 		service_clients.get("dialogue_query").call(request, new ServiceResponseListener<Message>() {
 
 			@Override
@@ -720,6 +757,9 @@ public class RosNode extends AbstractNodeMain {
 
 			@Override
 			public void onFailure(RemoteException arg0) {
+				NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
+				MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+				placements_resp = messageFactory.newFromType(PointingPlannerResponse._TYPE);
 				placements_resp.setPointedLandmarks(new ArrayList<String>());
 			}
 
@@ -728,6 +768,21 @@ public class RosNode extends AbstractNodeMain {
 				placements_resp = (PointingPlannerResponse) response;
 				
 			}
+		});
+	}
+	
+	public void call_stand_pose_srv() {
+		final GoToPostureRequest request = (GoToPostureRequest) service_clients.get("stand_pose").newMessage();
+		request.setPostureName("StandInit");
+		service_clients.get("stand_pose").call(request, new ServiceResponseListener<Message>() {
+
+			@Override
+			public void onFailure(RemoteException e) {
+				throw new RosRuntimeException(e);
+			}
+
+			@Override
+			public void onSuccess(Message response) {}
 		});
 	}
 	

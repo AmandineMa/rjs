@@ -77,7 +77,7 @@
 	?task(ID, _, Human, _);
 	if(.substring(Error,max_attempts)){
 		!speak(ID,cannot_find); 
-		!clean_task(ID);
+		!drop_current_task(ID, look_for_human, Failure, Code);
 	}else{
 		!look_for_human(Human);
 	}.

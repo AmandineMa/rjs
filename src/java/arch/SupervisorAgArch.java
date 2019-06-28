@@ -145,8 +145,11 @@ public class SupervisorAgArch extends ROSAgArch {
 								GoalID goalID = goal.getGoalId();
 								if(goal.getGoalId().getId().isEmpty()) {
 									goalIDGenerator.generateID(goalID);
-								}								
-								getTS().getAg().addBel(Literal.parseLiteral("guiding_goal(\""+goal.getGoalId().getId()+"\",\""+goal.getGoal().getPersonFrame()+"\",\""+goal.getGoal().getPlaceFrame()+"\")"));
+								}
+								String person = "\""+goal.getGoal().getPersonFrame()+"\"";
+								if(m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu"))
+									person = person.replaceAll("human-", "");
+								getTS().getAg().addBel(Literal.parseLiteral("guiding_goal(\""+goal.getGoalId().getId()+"\","+person+",\""+goal.getGoal().getPlaceFrame()+"\")"));
 							} catch (RevisionFailedException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();

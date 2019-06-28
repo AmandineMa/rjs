@@ -367,6 +367,8 @@ public class RobotAgArch extends ROSAgArch {
 							action.setFailureReason(new Atom("cannot_face_human"), "face human failed for "+frame);
 							action.setResult(false);
 						}else {
+							sleep(5000);
+							m_rosnode.call_stand_pose_srv();
 							action.setResult(true);
 						}
 					}else {
@@ -446,7 +448,7 @@ public class RobotAgArch extends ROSAgArch {
 					case "max_sorry" : text = new String("I am sorry, I give up, you asked me too many times something that I don't know."); break;
 					case "tell_seen" : text = new String("I can tell that you've seen "+bel_arg); break;
 					case "visible_target" : text = new String("Look, "+bel_arg+" is there"); break;
-					case "not_visible_target" : text = new String("Look, "+bel_arg+" is not visible from but it is in this direction"); break;
+					case "not_visible_target" : text = new String(bel_arg+" is not visible from here but it is in this direction"); break;
 					case "hope_find_way" : text = new String("I hope you will find your way"); break;
 					case "ask_understand" : text = new String("Did you understand ?"); break;
 					case "happy_end" : text = new String("I am happy that I was able to help you."); break;
@@ -467,9 +469,9 @@ public class RobotAgArch extends ROSAgArch {
 					if(hwu_dial & !text.isEmpty()) {
 						if(text.contains("?")) {
 							if(bel_arg != null) {
-								m_rosnode.call_dialogue_query_srv(bel_functor, bel_arg);
+								m_rosnode.call_dialogue_query_srv("clarification."+bel_functor, bel_arg);
 							}else {
-								m_rosnode.call_dialogue_query_srv(bel_functor);
+								m_rosnode.call_dialogue_query_srv("clarification."+bel_functor);
 							}
 							SuperQueryResponse dial_resp;
 							do {
@@ -479,8 +481,10 @@ public class RobotAgArch extends ROSAgArch {
 							String resp;
 							if(dial_resp.getResult().equals("true")) {
 								resp = "yes";
-							}else {
+							}if(dial_resp.getResult().equals("false")) {
 								resp = "no";
+							}else {
+								resp = dial_resp.getResult();
 							}
 							try {
 								getTS().getAg().addBel(Literal.parseLiteral("listen_result("+bel_functor+","+resp+")["+task_id+"]"));
@@ -489,10 +493,18 @@ public class RobotAgArch extends ROSAgArch {
 								e.printStackTrace();
 							}
 						}else {
-							if(bel_arg != null) {
-								m_rosnode.call_dialogue_inform_srv(bel_functor, bel_arg);
+							if(!bel_functor.equals("failure")) {
+								if(bel_arg != null) {
+									m_rosnode.call_dialogue_inform_srv("verbalisation."+bel_functor, bel_arg);
+								}else {
+									m_rosnode.call_dialogue_inform_srv("verbalisation."+bel_functor);
+								}
 							}else {
-								m_rosnode.call_dialogue_inform_srv(bel_functor);
+								if(bel_arg != null) {
+									m_rosnode.call_dialogue_inform_srv(bel_functor, bel_arg);
+								}else {
+									m_rosnode.call_dialogue_inform_srv(bel_functor);
+								}
 							}
 						}
 						action.setResult(true);

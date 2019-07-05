@@ -8,31 +8,20 @@ guiding:
 
   services:
     stand_pose: /naoqi_driver/robot_posture/go_to_posture
-#    speak_to: /speech_wrapper/speaking_attention_point 
     speak_to: /naoqi_driver/tts/say
     get_route: /semantic_route_description/get_route
     route_verbalization: /route_verbalization/verbalizePlace
     get_individual_info: /ontologenius/individual
     get_class_info: /ontologenius/class
     is_visible: /pointing_planner/visibility_score
-#    can_look_at: /deictic_gestures/can_look_at
     look_at: /deictic_gestures/look_at
-#    can_point_at: /deictic_gestures/can_point_at
     point_at: /deictic_gestures/point_at
     pointing_planner: /pointing_planner/plan
-#    rest_arm: /deictic_gestures/rest_arm
     has_mesh: /has_mesh
     pepper_synchro: /pepper_resources_synchronizer/state_machines_register
     get_uwds_name: /get_name
-#    monitor_humans: /multimodal_human_monitor/monitor_humans
-#    start_fact: /uwds_ros_bridge/start_fact
-#    end_fact: /uwds_ros_bridge/end_fact
-#    find_alternate_id: /multimodal_human_monitor/find_alternate_id
-#    hatp_planner: /hatp/planner
 #    dialogue_inform: /rpn_supervision_server/inform
 #    dialogue_query: /rpn_supervision_server/query
-#    activate_dialogue: /activate
-#    deactivate_dialogue: /deactivate
      
 
   topics:
@@ -42,9 +31,6 @@ guiding:
     human_to_monitor: /human_point_publisher/human_to_look
     person_of_interest: /person_of_interest
     look_at_events: /pepper_head_manager/str_events
-#    coord_signals: /head_manager/head_coordination_signals
-#    debug_pp: /supervision/pointing_planner
-#    debug_rot: /supervision/rotation
 
   action_servers:
     move_to: m_move_to

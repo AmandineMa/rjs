@@ -220,7 +220,7 @@ public class RosNode extends AbstractNodeMain {
 			service_types = new HashMap <String, String>();
 			services_map = (HashMap<String, String>) parameters.getMap("/guiding/services");
 			stack_guiding_goals = new Stack<taskActionGoal>();
-			marker_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher("/look_at", visualization_msgs.Marker._TYPE);
+			marker_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher("/pp_debug", visualization_msgs.Marker._TYPE);
 			person_of_interest_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher(parameters.getString("/guiding/topics/person_of_interest"), std_msgs.Int32._TYPE);
 			guiding_as = new ActionServer<>(connectedNode, "/guiding_task", taskActionGoal._TYPE, taskActionFeedback._TYPE, taskActionResult._TYPE);
 			guiding_as.attachListener(new ActionServerListener<taskActionGoal>() {

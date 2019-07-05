@@ -263,11 +263,11 @@ public class RobotAgArch extends ROSAgArch {
 							TransformTree tfTree = getTfTree();
 							Transform transform;
 							transform = tfTree.lookupMostRecent("map", "base_footprint");
-							double dist_new_pose = Math.pow(transform.translation.x - robot_pose.getPosition().getX(), 2) 
+							double dist_to_new_pose = Math.pow(transform.translation.x - robot_pose.getPosition().getX(), 2) 
 												 + Math.pow(transform.translation.y - robot_pose.getPosition().getY(), 2);
-//							if(dist_new_pose > m_rosnode.getParameters().getDouble("guiding/tuning_param/robot_should_move_dist_th"))
-								
-							getTS().getAg().addBel(Literal.parseLiteral("robot_pose("+r_frame+","+robot_pose.toString()+")["+task_id+"]"));
+//							if(dist_to_new_pose > m_rosnode.getParameters().getDouble("guiding/tuning_param/robot_should_move_dist_th")) {	
+								getTS().getAg().addBel(Literal.parseLiteral("robot_pose("+r_frame+","+robot_pose.toString()+")["+task_id+"]"));	
+//							}
 							getTS().getAg().addBel(Literal.parseLiteral("human_pose("+h_frame+","+human_pose.toString()+")["+task_id+"]"));
 							int nb_ld_to_point = placements_result.getPointedLandmarks().size();
 							for(int i = 0; i < nb_ld_to_point; i++) {

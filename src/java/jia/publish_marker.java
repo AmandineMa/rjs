@@ -18,6 +18,7 @@ import std_msgs.Header;
 import visualization_msgs.Marker;
 
 public class publish_marker extends DefaultInternalAction {
+	private static int id = 0;
 
 	  @Override
 	    public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
@@ -45,18 +46,25 @@ public class publish_marker extends DefaultInternalAction {
 			  rgba.setB((float) 0.9);
 			  rgba.setA((float) 1.0);
 		  }
-		  if(color.equals("yellow")) {
+		  else if(color.equals("yellow")) {
 			  rgba = messageFactory.newFromType(ColorRGBA._TYPE);
-			  rgba.setR(1);
+			  rgba.setR((float) 1.0);
 			  rgba.setG((float) 1);
 			  rgba.setB((float) 0.1);
+			  rgba.setA((float) 1.0);
+		  }
+		  else if(color.equals("orange")) {
+			  rgba = messageFactory.newFromType(ColorRGBA._TYPE);
+			  rgba.setR((float) 0.9);
+			  rgba.setG((float) 0.7);
+			  rgba.setB((float) 0.4);
 			  rgba.setA((float) 1.0);
 		  }
 		  marker.setColor(rgba);
 		  marker.setNs("supervisor");
 		  marker.setType(Marker.SPHERE);
 		  marker.setAction(Marker.ADD);
-		  marker.setId(0);
+		  marker.setId(id++);
 		  Vector3 vec = messageFactory.newFromType(Vector3._TYPE);
 		  vec.setX(0.3);
 		  vec.setY(0.3);

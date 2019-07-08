@@ -1,15 +1,12 @@
 package ros;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
@@ -36,8 +33,6 @@ import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
-import org.yaml.snakeyaml.DumperOptions;
-
 import com.github.rosjava_actionlib.ActionClient;
 import com.github.rosjava_actionlib.ActionClientListener;
 import com.github.rosjava_actionlib.ActionServer;
@@ -51,47 +46,35 @@ import actionlib_msgs.GoalStatusArray;
 import arch.ROSAgArch;
 import deictic_gestures.CanLookAtRequest;
 import deictic_gestures.CanLookAtResponse;
-import deictic_gestures.CanPointAt;
 import deictic_gestures.CanPointAtRequest;
 import deictic_gestures.CanPointAtResponse;
 import deictic_gestures.LookAtRequest;
 import deictic_gestures.LookAtResponse;
-import deictic_gestures.LookAtStatus;
 import deictic_gestures.PointAtRequest;
 import deictic_gestures.PointAtResponse;
-import deictic_gestures.PointAtStatus;
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionGoal;
 import dialogue_as.dialogue_actionActionResult;
 import dialogue_as.dialogue_actionGoal;
-import geometry_msgs.Point;
 import geometry_msgs.PointStamped;
-import geometry_msgs.Pose;
 import geometry_msgs.PoseStamped;
-import guiding_as_msgs.Task;
 import guiding_as_msgs.taskActionFeedback;
 import guiding_as_msgs.taskActionGoal;
 import guiding_as_msgs.taskActionResult;
 import hatp_msgs.PlanningRequestRequest;
 import hatp_msgs.PlanningRequestResponse;
-import jason.asSyntax.ListTerm;
-import jason.asSyntax.ListTermImpl;
-import jason.asSyntax.StringTermImpl;
 import move_base_msgs.MoveBaseActionFeedback;
 import move_base_msgs.MoveBaseActionGoal;
 import move_base_msgs.MoveBaseActionResult;
 import move_base_msgs.MoveBaseGoal;
 import msg_srv_impl.SemanticRouteResponseImpl;
-import nao_interaction_msgs.GoToPosture;
 import nao_interaction_msgs.GoToPostureRequest;
 import nao_interaction_msgs.SayRequest;
 import nao_interaction_msgs.SayResponse;
 import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceRequest;
 import ontologenius_msgs.OntologeniusServiceResponse;
-import pepper_base_manager_msgs.StateMachine;
 import pepper_base_manager_msgs.StateMachineStatePrioritizedAngle;
-import pepper_base_manager_msgs.StateMachineStatePrioritizedTwist;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterRequest;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterResponse;
 import pepper_resources_synchronizer_msgs.SubStateMachine_pepper_base_manager_msgs;
@@ -123,10 +106,7 @@ import rpn_recipe_planner_msgs.SuperQueryRequest;
 import rpn_recipe_planner_msgs.SuperQueryResponse;
 import semantic_route_description_msgs.SemanticRouteRequest;
 import semantic_route_description_msgs.SemanticRouteResponse;
-import speech_wrapper_msgs.SpeakToRequest;
-import speech_wrapper_msgs.SpeakToResponse;
 import std_msgs.Header;
-import tf.get_transform;
 import utils.Code;
 import utils.SimpleFact;
 
@@ -147,9 +127,8 @@ public class RosNode extends AbstractNodeMain {
 	private TransformListener tfl;
 	private ParameterTree parameters;
 	private MasterStateClient msc;
-	HashMap<String, String> services_map;
+	HashMap<String, HashMap<String, String>> services_map;
 	private HashMap <String, ServiceClient<Message, Message>> service_clients;
-	private HashMap <String, String> service_types;
 	private ActionServer<taskActionGoal, taskActionFeedback, taskActionResult> guiding_as;
 	private taskActionGoal new_guiding_goal = null;
 	private Stack<taskActionGoal> stack_guiding_goals;
@@ -162,7 +141,6 @@ public class RosNode extends AbstractNodeMain {
 	private SemanticRouteResponseImpl get_route_resp;
 	private HasMeshResponse has_mesh_resp;
 	private VisibilityScoreResponse visibility_score_resp;
-//	private SpeakToResponse speak_to_resp;
 	private SayResponse speak_to_resp;
 	private PointAtResponse point_at_resp;
 	private LookAtResponse look_at_resp;
@@ -217,8 +195,7 @@ public class RosNode extends AbstractNodeMain {
 			}
 			msc = new MasterStateClient(connectedNode, uri);
 			service_clients = new HashMap<String, ServiceClient<Message, Message>>();
-			service_types = new HashMap <String, String>();
-			services_map = (HashMap<String, String>) parameters.getMap("/guiding/services");
+			services_map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services");
 			stack_guiding_goals = new Stack<taskActionGoal>();
 			marker_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher("/pp_debug", visualization_msgs.Marker._TYPE);
 			person_of_interest_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher(parameters.getString("/guiding/topics/person_of_interest"), std_msgs.Int32._TYPE);
@@ -372,8 +349,8 @@ public class RosNode extends AbstractNodeMain {
 	public HashMap<String, Boolean> init_service_clients() {
 		HashMap<String, Boolean> services_status = new HashMap<String, Boolean>();		
 		
-		for(Map.Entry<String, String> entry : services_map.entrySet()) {
-			services_status.put(entry.getKey(), create_service_client(entry.getKey(), entry.getValue()));
+		for(Entry<String, HashMap<String, String>> entry : services_map.entrySet()) {
+			services_status.put(entry.getKey(), create_service_client(entry.getKey()));
 		}
 		return services_status;
 	}
@@ -382,13 +359,14 @@ public class RosNode extends AbstractNodeMain {
 		HashMap<String, Boolean> services_status = new HashMap<String, Boolean>();
 		
 		for(String client : clients_to_init) {
-			services_status.put(client, create_service_client(client, services_map.get(client)));
+			services_status.put(client, create_service_client(client));
 		}
 		return services_status;
 	}
 	
-	private boolean create_service_client(String key, String srv_name) {
+	private boolean create_service_client(String key) {
 		boolean status = false;
+		String srv_name = services_map.get(key).get("name");
 		URI ls = msc.lookupService(srv_name);
 		if (ls.toString().isEmpty()) {
 			service_clients.put(key, null);
@@ -397,8 +375,7 @@ public class RosNode extends AbstractNodeMain {
 	        ServiceClient<Message, Message> serv_client;
 			try {
 				logger.info("connect to "+srv_name);
-				service_types.put(key, get_srv_type(srv_name));
-				serv_client = connectedNode.newServiceClient(srv_name, service_types.get(key));
+				serv_client = connectedNode.newServiceClient(srv_name, services_map.get(key).get("type"));
 				service_clients.put(key, serv_client);	
 				status = true;
 			}catch (ServiceNotFoundException e) {
@@ -409,35 +386,6 @@ public class RosNode extends AbstractNodeMain {
 			}
 		}
 		return status;
-	}
-	
-	
-	private String get_srv_type(String srv_name) {
-		ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", ". ./env; rosservice info "+srv_name);
-		builder.redirectErrorStream(true);
-		String type = null;
-		try {
-			Process p = builder.start();
-			BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
-			String line;
-
-			while (true) {
-				line = r.readLine();
-				if (line == null) { break; }
-				String[] tokens = line.split(" ");
-				if(tokens[0].contains("Type")) {
-					type = tokens[1];
-					if(!type.contains("msgs") && !srv_name.contains("pointing_planner") && !srv_name.contains("look_at") && !srv_name.contains("point_at")) {
-						String[] tokens_type = type.split("/");
-						type = tokens_type[0]+"_msgs/"+tokens_type[1];
-					}
-				}
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return type;
 	}
 	
 	public void call_get_uwds_name_srv(String id) {

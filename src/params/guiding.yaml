@@ -7,21 +7,48 @@ guiding:
     hwu: False
 
   services:
-    stand_pose: /naoqi_driver/robot_posture/go_to_posture
-    speak_to: /naoqi_driver/tts/say
-    get_route: /semantic_route_description/get_route
-    route_verbalization: /route_verbalization/verbalizePlace
-    get_individual_info: /ontologenius/individual
-    get_class_info: /ontologenius/class
-    is_visible: /pointing_planner/visibility_score
-    look_at: /deictic_gestures/look_at
-    point_at: /deictic_gestures/point_at
-    pointing_planner: /pointing_planner/plan
-    has_mesh: /has_mesh
-    pepper_synchro: /pepper_resources_synchronizer/state_machines_register
-    get_uwds_name: /get_name
-#    dialogue_inform: /rpn_supervision_server/inform
+    speak_to: 
+      name: /naoqi_driver/tts/say
+      type: nao_interaction_msgs/Say
+    get_route: 
+      name: /semantic_route_description/get_route
+      type: semantic_route_description_msgs/SemanticRoute
+    route_verbalization: 
+      name: /route_verbalization/verbalizePlace
+      type: route_verbalization_msgs/VerbalizeRegionRoute
+    get_individual_info: 
+      name: /ontologenius/individual
+      type: ontologenius_msgs/OntologeniusService
+    get_class_info: 
+      name: /ontologenius/class
+      type: ontologenius_msgs/OntologeniusService
+    is_visible: 
+      name: /pointing_planner/visibility_score
+      type: pointing_planner/VisibilityScore
+    look_at: 
+      name: /deictic_gestures/look_at
+      type: deictic_gestures/LookAt
+    point_at: 
+      name: /deictic_gestures/point_at
+      type: deictic_gestures/PointAt
+    pointing_planner: 
+      name: /pointing_planner/plan
+      type: pointing_planner/PointingPlanner
+    has_mesh: 
+      name: /has_mesh
+      type: perspectives_msgs/HasMesh
+    pepper_synchro: 
+      name: /pepper_resources_synchronizer/state_machines_register
+      type: pepper_resources_synchronizer_msgs/MetaStateMachineRegister
+    get_uwds_name: 
+      name: /get_name
+      type: perspectives_msgs/GetName
+#    dialogue_inform: 
+#      name: /rpn_supervision_server/inform
+#      type: rpn_recipe_planner_msgs/SuperInform
 #    dialogue_query: /rpn_supervision_server/query
+#      name: /rpn_supervision_server/query
+#      type: rpn_recipe_planner_msgs/SuperQuery
      
 
   topics:

@@ -252,16 +252,10 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	jia.replace(2, Hposit, Z, Pointf);
 	jia.publish_marker(Hframe, Pointf, blue);
 	look_at(Hframe,Pointf,true);
-	if(.count((isPerceiving(Human)),I) & I == 0){
-		.wait({+isPerceiving(Human)},4000);
-		-~here(Human);
-	}
-	if(.count((look_at(look)),I) & I == 0){
-		.wait({+look_at(look)},4000);
-		look_at_events(human_perceived);
-	}else{
-		look_at_events(human_perceived);
-	}
+	.wait(isPerceiving(Human),4000);
+	-~here(Human);
+	.wait(look_at(look),4000);
+	look_at_events(human_perceived);
 	if(.count((dir_to_point(_)),I) & I > 0){
 		?dir_to_point(D);
 		.concat("human_", Human, HTF);
@@ -281,12 +275,8 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		!speak(ID, come);
 		!wait_human(ID);
 	}elif(.substring(Error,max_attempts)){
-		if(.count((look_at(look)),I) & I == 0){
-			.wait({+look_at(look)},4000);
-			look_at_events(stop_look_at);
-		}else{
-			look_at_events(stop_look_at);
-		}
+		.wait(look_at(look),4000);
+		look_at_events(stop_look_at);
 		!speak(ID,cannot_find); 
 		!drop_current_task(ID, wait_human, max_attempts, "wait too long");
 	}elif(.substring(Failure, not_visible)){
@@ -375,14 +365,10 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	?task(ID, guiding, Human, _);
 	+should_check_target_seen(Human,Ld);
 	point_at(Ld,false,true);
-	if(.count((point_at(point)),I) & I == 0){
-		.wait({+point_at(point)},15000);
-	}
+	.wait(point_at(point),15000);
 	-point_at(point);
 	!verbalization(ID, Ld);
-	if(.count((point_at(finished)),I2) & I2 == 0){
-		.wait({+point_at(finished)},15000);
-	}
+	.wait(point_at(finished),15000);
 	-point_at(finished);
 	-should_check_target_seen(Human,Ld);
 	?(canSee(Ld)[source(Human)] | hasSeen(Ld)[source(Human)]);
@@ -393,9 +379,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 @pl_nl[max_attempts(3), atomic_r]+!point_look_at(ID, Ld) : not landmark_to_see(Ld) <-
 	?task(ID, guiding, Human, _);
 	point_at(Ld,false,true);
-	if(.count((point_at(point)),I) & I == 0){
-		.wait({+point_at(point)},15000);
-	}
+	.wait(point_at(point),15000);
 	-point_at(point);
 	!verbalization(ID, Ld).
 

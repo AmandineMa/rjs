@@ -34,12 +34,8 @@
 	.send(supervisor, tell, end_task(succeeded, ID)).
 
 +!drop_current_task(ID, Subgoal, Failure, Code) : true <-
-	if(.count((look_at(look)),I) & I == 0){
-		.wait({+look_at(look)},4000);
-		look_at_events(stop_look_at);
-	}else{
-		look_at_events(stop_look_at);
-	}
+	.wait(look_at(look),4000);
+	look_at_events(stop_look_at);
 	?task(ID, Task, Human, Param);
  	if(.substring(Failure, dialogue_as_failed)){
  		.print(STOP_LISTEN);

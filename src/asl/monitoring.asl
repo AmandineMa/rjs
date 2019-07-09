@@ -21,7 +21,7 @@
 	!!person_of_interest(Human);
 	.concat("human-", Human, H);
 	human_to_monitor(H);
-	.wait({+isPerceiving(Human)},4000).
+	.wait(isPerceiving(Human),4000).
 	
 +!person_of_interest(H) : true <- jia.person_of_interest(H); .wait(500); !person_of_interest(H).
 
@@ -33,7 +33,7 @@
 
 +!wait_before_looking(Human) : not  look_for_human(Human)<-
 	+look_for_human(Human);
-	.wait({+isPerceiving(Human)},6000);
+	.wait(isPerceiving(Human),6000);
 	-look_for_human(Human).
 	
 +!wait_before_looking(Human) : look_for_human(Human) <- true.
@@ -52,7 +52,7 @@
 	?task(ID, guiding, Human, Place);
 	.suspend(guiding(ID, Human,Place));
 	!speak(ID,where_are_u);
-	.wait({+isPerceiving(Human)},6000);
+	.wait(isPerceiving(Human),6000);
 	?task(ID, _, Human, _);
 	!speak(ID,found_again);
 	.resume(guiding(ID, Human,Place));

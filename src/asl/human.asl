@@ -10,7 +10,7 @@
 +!start : true <- .my_name(N); .print(N).
 
 +!communicate_belief(Belief) : true <-
-	if(.count((Belief),I) & I == 0){
+	if(not .believes((Belief))){
 		.add_plan({@comm_beliefa[Belief] +Belief : true <- .send(robot,tell,Belief)});
 		.add_plan({
 			@comm_beliefr[Belief] -Belief : true <- 

@@ -15,13 +15,8 @@
 	.print("started");
 	.create_agent(robot, "src/asl/robot.asl", [agentArchClass("arch.RobotAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]);
 	!check_guiding_goal.
-////	.send(interac, achieve,start).
 
 +~connected_srv(S) : true <- .print("service not connected : ", S).
-	
-+!get(Place) : true <-
-	jia.word_class(Place, Class).
-	
 
 -!start [Failure, error(ErrorId), error_msg(Msg), code(CodeBody), code_src(CodeSrc), code_line(CodeLine), source(self)]: true <-
 	if(.substring(Failure, "srv_not_connected")){
@@ -44,18 +39,10 @@
 	.wait(200);
 	!check_guiding_goal.
 	
-//+init_over(ok) : true <- 
-//	.send(robot, achieve, guiding(0, human, "burger_king")).
-////	.send(robot, achieve, guiding_goal_negociation(human, "vfdvd")).
-//
-//+guiding_goal(Human, To): true <-
-//	.random(X);
-//	.send(robot, achieve, guiding(X, Human, To)).
-	
 +init_over(failed) : true <- .print("robot initialisation failed").
 
 +guiding_goal(ID,Human, Target) : not current_guiding_goal(ID) <- 
-	if(.count((current_guiding_goal(_)),I) & I > 0){
+	if(jia.believes(current_guiding_goal(_))){
 		?current_guiding_goal(IDprev);
 		.send(robot, tell, suspend(IDprev));
 		+suspended_guiding_goal(IDprev);

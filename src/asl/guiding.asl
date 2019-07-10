@@ -200,7 +200,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	.concat("human_", Human, HTF);
 	if(jia.has_mesh(TargetLD)){
 		// if there is a direction
-		if(.count((direction(_)),I) & I > 0){
+		if(jia.believes(direction(_))){
 			?direction(Dir);
 			if(jia.has_mesh(Dir)){
 				get_placements(TargetLD,Dir,HTF,0);
@@ -209,7 +209,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 			get_placements(TargetLD,"",HTF,0);
 		}
 	}else{
-		if(.count((direction(_)),I) & I > 0){
+		if(jia.believes(direction(_))){
 			?direction(Dir);
 			if(jia.has_mesh(Dir)){
 				get_placements(Dir,"",HTF,1);
@@ -256,12 +256,12 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	-~here(Human);
 	.wait(look_at(look),4000);
 	look_at_events(human_perceived);
-	if(.count((dir_to_point(_)),I) & I > 0){
+	if(jia.believes(dir_to_point(_))){
 		?dir_to_point(D);
 		.concat("human_", Human, HTF);
 		can_be_visible(HTF, D);
 	}
-	if(.count((target_to_point(_)),J) & J > 0){
+	if(jia.believes(target_to_point(_))){
 		?target_to_point(T);
 		.concat("human_", Human, HTF);
 		can_be_visible(HTF, T);

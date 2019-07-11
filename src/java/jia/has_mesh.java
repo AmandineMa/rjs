@@ -29,11 +29,8 @@ public class has_mesh extends DefaultInternalAction {
 			has_mesh = ROSAgArch.getM_rosnode().getHas_mesh_resp();
 			sleep(100);
 		}while(has_mesh == null);
-		if(has_mesh.getHasMesh()) {
-			return true;
-		}else {
-			return false;
-		}
+
+		return has_mesh.getHasMesh();
     }
     
     void sleep(long msec) {

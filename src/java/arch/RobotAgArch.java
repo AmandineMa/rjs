@@ -6,9 +6,12 @@ import java.util.List;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import org.ros.exception.RemoteException;
+import org.ros.exception.RosRuntimeException;
 import org.ros.message.MessageFactory;
 import org.ros.message.MessageListener;
 import org.ros.node.NodeConfiguration;
+import org.ros.node.service.ServiceResponseListener;
 import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.Transform;
@@ -43,15 +46,18 @@ import msg_srv_impl.SemanticRouteResponseImpl;
 import nao_interaction_msgs.SayResponse;
 import ontologenius_msgs.OntologeniusServiceResponse;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterResponse;
+import perspectives_msgs.HasMeshRequest;
 import perspectives_msgs.HasMeshResponse;
 import pointing_planner.PointingPlannerResponse;
 import pointing_planner.VisibilityScoreResponse;
+import ros.RosCallback;
 import route_verbalization_msgs.VerbalizeRegionRouteResponse;
 import rpn_recipe_planner_msgs.SuperQueryResponse;
 import semantic_route_description_msgs.Route;
 import semantic_route_description_msgs.SemanticRouteResponse;
 import std_msgs.Header;
 import utils.Code;
+import utils.Tools;
 
 
 
@@ -68,8 +74,8 @@ public class RobotAgArch extends ROSAgArch {
 	
 	@Override
 	public void init() {
-		point_at_status = m_rosnode.getConnectedNode().newSubscriber(m_rosnode.getParameters().getString("guiding/topics/point_at_status"), PointAtStatus._TYPE);
-		point_at_status.addMessageListener(new MessageListener<PointAtStatus>() {
+		
+		MessageListener<PointAtStatus> ml = new MessageListener<PointAtStatus>() {
 			public void onNewMessage(PointAtStatus status) {
 				try {
 				switch(status.getStatus()){
@@ -83,7 +89,8 @@ public class RobotAgArch extends ROSAgArch {
 				}
 				
 			}
-		});
+		};
+		m_rosnode.addListener("guiding/topics/point_at_status", PointAtStatus._TYPE, ml);
 		
 		look_at_status = m_rosnode.getConnectedNode().newSubscriber(m_rosnode.getParameters().getString("guiding/topics/look_at_status"), LookAtStatus._TYPE);
 		look_at_status.addMessageListener(new MessageListener<LookAtStatus>() {
@@ -295,26 +302,62 @@ public class RobotAgArch extends ROSAgArch {
 					actionExecuted(action);
 				}else if(action_name.equals("has_mesh")) {
 					// to remove the extra ""
-					String param = action.getActionTerm().getTerm(0).toString();
-					param = param.replaceAll("^\"|\"$", "");
+					final String param = action.getActionTerm().getTerm(0).toString().replaceAll("^\"|\"$", "");
 
-					m_rosnode.call_has_mesh_srv("base", param);
-					HasMeshResponse has_mesh;
-					do {
-						has_mesh = m_rosnode.getHas_mesh_resp();
-						sleep(100);
-					}while(has_mesh == null);
-					if(has_mesh.getHasMesh()) {
-						action.setResult(true);
-					}else {
-						action.setResult(false);
-						if(!has_mesh.getHasMesh()) {
-							action.setFailureReason(new Atom("has_no_mesh"), param+" does not have a mesh");
-						}else {
-							action.setFailureReason(new Atom("srv_has_mesh_failed"), "has_mesh service failed");
+					RosCallback rb = new RosCallback() {
+						@Override
+						public void callback(org.ros.internal.message.Message response) {
+							HasMeshResponse has_mesh = (HasMeshResponse) response;
+							if(has_mesh.getHasMesh()) {
+								logger.info("Action success with param : " + param);
+								action.setResult(true);
+							}else {
+								action.setResult(false);
+								if(has_mesh.getSuccess()) {
+									action.setFailureReason(new Atom("has_no_mesh"), param+" does not have a mesh");
+								}else {
+									action.setFailureReason(new Atom("srv_has_mesh_failed"), "has_mesh service failed");
+								}
+							}
+							actionExecuted(action);
 						}
-					}
-					actionExecuted(action);
+					};
+
+					//m_rosnode.call_has_mesh_srv("base", param, rb);
+					
+					//String[] paramType = {"java.lang.String", "java.lang.String"};
+					//String[] paramName = {"Name", "World"};
+					Object[] paramValue = {"base", param};
+					//m_rosnode.call_service("has_mesh", "perspectives_msgs.HasMeshRequest", rb, paramType, paramName, paramValue);
+					m_rosnode.call_service("has_mesh", rb, paramValue);
+					
+					/*
+					ServiceResponseListener<org.ros.internal.message.Message> rl = new ServiceResponseListener<org.ros.internal.message.Message>() {
+
+						public void onFailure(RemoteException e) {
+							throw new RosRuntimeException(e);
+						}
+
+						public void onSuccess(org.ros.internal.message.Message response) {
+							HasMeshResponse has_mesh = (HasMeshResponse) response;
+							if(has_mesh.getHasMesh()) {
+								action.setResult(true);
+							}else {
+								action.setResult(false);
+								if(!has_mesh.getHasMesh()) {
+									action.setFailureReason(new Atom("has_no_mesh"), param+" does not have a mesh");
+								}else {
+									action.setFailureReason(new Atom("srv_has_mesh_failed"), "has_mesh service failed");
+								}
+							}
+							actionExecuted(action);
+						}
+						
+					};
+					m_rosnode.call_has_mesh_srv("base", param, rl);*/
+					
+
+
 				} else if(action_name.equals("can_be_visible")) {
 					// to remove the extra ""
 					String human = action.getActionTerm().getTerm(0).toString();
@@ -347,23 +390,29 @@ public class RobotAgArch extends ROSAgArch {
 					actionExecuted(action);
 				} else if(action_name.equals("point_at")) {
 					// to remove the extra ""
-					String frame = action.getActionTerm().getTerm(0).toString();
-					frame = frame.replaceAll("^\"|\"$", "");
+					final String frame = action.getActionTerm().getTerm(0).toString().replaceAll("^\"|\"$", "");
 					boolean with_head = Boolean.parseBoolean(action.getActionTerm().getTerm(1).toString());
 					boolean with_base = Boolean.parseBoolean(action.getActionTerm().getTerm(2).toString());
-					m_rosnode.call_point_at_srv(frame, with_head, with_base);
-					PointAtResponse point_at_resp;
-					do {
-						point_at_resp = m_rosnode.getPoint_at_resp();
-						sleep(100);
-					}while(point_at_resp == null);
-					if(point_at_resp.getSuccess()) {
-						action.setResult(true);
-					}else {
-						action.setResult(false);
-						action.setFailureReason(new Atom("point_at_failed"), "the pointing failed for "+frame);
-					}
-					actionExecuted(action);
+					
+					
+					ServiceResponseListener<org.ros.internal.message.Message> responseListener = new ServiceResponseListener<org.ros.internal.message.Message>() {
+
+						public void onFailure(RemoteException e) {
+							throw new RosRuntimeException(e);
+						}
+
+						public void onSuccess(org.ros.internal.message.Message response) {
+							action.setResult(((PointAtResponse) response).getSuccess());
+							if(!action.getResult())
+								action.setFailureReason(new Atom("point_at_failed"), "the pointing failed for "+frame);
+							actionExecuted(action);
+						}
+						
+					};
+					
+					m_rosnode.call_point_at_srv(frame, with_head, with_base, responseListener);
+					
+					
 				}else if(action_name.equals("face_human")) {
 					// to remove the extra ""
 					String frame = action.getActionTerm().getTerm(0).toString();
@@ -866,7 +915,10 @@ public class RobotAgArch extends ROSAgArch {
 			msg = new Message("tell", getAgName(), "supervisor", "action_over("+action_name+")");
 		}else {
 			//    		msg = new Message("tell", getAgName(), "supervisor", "action_failed("+action_name+","+new StringTermImpl(act.getFailureReason().toString())+")");
-			msg = new Message("tell", getAgName(), "supervisor", "action_failed("+action_name+","+act.getFailureReason().toString()+")");
+			if(act.getFailureReason() != null)
+				msg = new Message("tell", getAgName(), "supervisor", "action_failed("+action_name+","+act.getFailureReason().toString()+")");
+			else
+				msg = new Message("tell", getAgName(), "supervisor", "action_failed("+action_name+")");
 		}
 		try {
 			sendMsg(msg);
@@ -875,8 +927,6 @@ public class RobotAgArch extends ROSAgArch {
 		}
 		super.actionExecuted(act);
 	}
-
-
 
 };
 

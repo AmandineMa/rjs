@@ -1,5 +1,10 @@
 package ros;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -33,6 +38,8 @@ import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
+import org.yaml.snakeyaml.DumperOptions;
+
 import com.github.rosjava_actionlib.ActionClient;
 import com.github.rosjava_actionlib.ActionClientListener;
 import com.github.rosjava_actionlib.ActionServer;
@@ -46,35 +53,47 @@ import actionlib_msgs.GoalStatusArray;
 import arch.ROSAgArch;
 import deictic_gestures.CanLookAtRequest;
 import deictic_gestures.CanLookAtResponse;
+import deictic_gestures.CanPointAt;
 import deictic_gestures.CanPointAtRequest;
 import deictic_gestures.CanPointAtResponse;
 import deictic_gestures.LookAtRequest;
 import deictic_gestures.LookAtResponse;
+import deictic_gestures.LookAtStatus;
 import deictic_gestures.PointAtRequest;
 import deictic_gestures.PointAtResponse;
+import deictic_gestures.PointAtStatus;
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionGoal;
 import dialogue_as.dialogue_actionActionResult;
 import dialogue_as.dialogue_actionGoal;
+import geometry_msgs.Point;
 import geometry_msgs.PointStamped;
+import geometry_msgs.Pose;
 import geometry_msgs.PoseStamped;
+import guiding_as_msgs.Task;
 import guiding_as_msgs.taskActionFeedback;
 import guiding_as_msgs.taskActionGoal;
 import guiding_as_msgs.taskActionResult;
 import hatp_msgs.PlanningRequestRequest;
 import hatp_msgs.PlanningRequestResponse;
+import jason.asSyntax.ListTerm;
+import jason.asSyntax.ListTermImpl;
+import jason.asSyntax.StringTermImpl;
 import move_base_msgs.MoveBaseActionFeedback;
 import move_base_msgs.MoveBaseActionGoal;
 import move_base_msgs.MoveBaseActionResult;
 import move_base_msgs.MoveBaseGoal;
 import msg_srv_impl.SemanticRouteResponseImpl;
+import nao_interaction_msgs.GoToPosture;
 import nao_interaction_msgs.GoToPostureRequest;
 import nao_interaction_msgs.SayRequest;
 import nao_interaction_msgs.SayResponse;
 import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceRequest;
 import ontologenius_msgs.OntologeniusServiceResponse;
+import pepper_base_manager_msgs.StateMachine;
 import pepper_base_manager_msgs.StateMachineStatePrioritizedAngle;
+import pepper_base_manager_msgs.StateMachineStatePrioritizedTwist;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterRequest;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterResponse;
 import pepper_resources_synchronizer_msgs.SubStateMachine_pepper_base_manager_msgs;
@@ -106,9 +125,13 @@ import rpn_recipe_planner_msgs.SuperQueryRequest;
 import rpn_recipe_planner_msgs.SuperQueryResponse;
 import semantic_route_description_msgs.SemanticRouteRequest;
 import semantic_route_description_msgs.SemanticRouteResponse;
+import speech_wrapper_msgs.SpeakToRequest;
+import speech_wrapper_msgs.SpeakToResponse;
 import std_msgs.Header;
+import tf.get_transform;
 import utils.Code;
 import utils.SimpleFact;
+import utils.Tools;
 
 /***
  * ROS node to be used by Jason
@@ -129,6 +152,7 @@ public class RosNode extends AbstractNodeMain {
 	private MasterStateClient msc;
 	HashMap<String, HashMap<String, String>> services_map;
 	private HashMap <String, ServiceClient<Message, Message>> service_clients;
+	private HashMap <String, String> service_types;
 	private ActionServer<taskActionGoal, taskActionFeedback, taskActionResult> guiding_as;
 	private taskActionGoal new_guiding_goal = null;
 	private Stack<taskActionGoal> stack_guiding_goals;
@@ -141,6 +165,7 @@ public class RosNode extends AbstractNodeMain {
 	private SemanticRouteResponseImpl get_route_resp;
 	private HasMeshResponse has_mesh_resp;
 	private VisibilityScoreResponse visibility_score_resp;
+//	private SpeakToResponse speak_to_resp;
 	private SayResponse speak_to_resp;
 	private PointAtResponse point_at_resp;
 	private LookAtResponse look_at_resp;
@@ -164,6 +189,7 @@ public class RosNode extends AbstractNodeMain {
 	private Subscriber<MoveBaseActionResult> move_to_result_sub;
  	private Publisher<visualization_msgs.Marker> marker_pub;
 	private Publisher<std_msgs.Int32> person_of_interest_pub;
+	private Subscriber<guiding_as_msgs.Task> goal_listener;
 	
 	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
 	private volatile int percept_id = 0;
@@ -490,22 +516,85 @@ public class RosNode extends AbstractNodeMain {
 	}
 	
 
+	public void call_service(String topic, RosCallback rcb, Object[] paramValue){
+		//TODO Retrieve somewhere from the topic, the list of types and the names of variables and maybe hardcoded values
+		String[] paramType = {"java.lang.String", "java.lang.String"};
+		String[] paramName = {"Name", "World"};
+		call_service(topic, "perspectives_msgs.HasMeshRequest", rcb, paramType, paramName, paramValue);
+	}
+
+	
+	public void call_service(String topic, String className, RosCallback rcb, String[] paramType, String[] paramName, Object[] paramValue) {
+		Message msg = service_clients.get(topic).newMessage();
+		
+		try {
+			Class<?> c = Class.forName(className);
+			
+			for(int i=0; i<paramType.length; i++) {
+				String type = paramType[i];
+				String name = paramName[i];
+				Object value = paramValue[i];
+				Class<?> paramClass = Class.forName(type);
+				Method method = c.getMethod("set"+name, paramClass);
+				method.invoke(msg, value);
+			}
+		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		//final HasMeshRequest request = (HasMeshRequest) msg;
+		service_clients.get(topic).call(msg, getResponseListener(rcb));
+	}
+	
+	public void call_has_mesh_srv(String world, String frame, ServiceResponseListener<Message> respListener) {
+		final HasMeshRequest request = (HasMeshRequest) service_clients.get("has_mesh").newMessage();
+		request.setName(frame);
+		request.setWorld(world);
+		service_clients.get("has_mesh").call(request, respListener); 
+	}
+	
+	public void call_has_mesh_srv(String world, String frame, RosCallback rcb) {
+		final HasMeshRequest request = (HasMeshRequest) service_clients.get("has_mesh").newMessage();
+		request.setName(frame);
+		request.setWorld(world);
+		service_clients.get("has_mesh").call(request, getResponseListener(rcb)); 
+	}
+	
 	public void call_has_mesh_srv(String world, String frame) {
 		has_mesh_resp = null;
 		final HasMeshRequest request = (HasMeshRequest) service_clients.get("has_mesh").newMessage();
 		request.setName(frame);
 		request.setWorld(world);
+		
+		
 		service_clients.get("has_mesh").call(request, new ServiceResponseListener<Message>() {
 
 			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
+				RosRuntimeException RRE = new RosRuntimeException(e);
+				logger.info(Tools.getStackTrace((Exception) RRE));
+				throw RRE;
 			}
 
 			public void onSuccess(Message response) {
 				has_mesh_resp = (HasMeshResponse) response;
 			}
 			
-		});
+		}); 
+	}
+	
+	public ServiceResponseListener<Message> getResponseListener(RosCallback rcb) {
+		return new ServiceResponseListener<Message>() {
+
+			public void onFailure(RemoteException e) {
+				RosRuntimeException RRE = new RosRuntimeException(e);
+				logger.info(Tools.getStackTrace((Exception) RRE));
+				throw RRE;
+			}
+
+			public void onSuccess(Message response) {
+				rcb.callback(response);
+			}
+			
+		};
 	}
 	
 	public void call_visibility_score_srv(String agent, String frame) {
@@ -527,7 +616,7 @@ public class RosNode extends AbstractNodeMain {
 		});
 	}
 	
-	public void call_point_at_srv(String frame, boolean with_head, boolean with_base) {
+	public void call_point_at_srv(String frame, boolean with_head, boolean with_base, ServiceResponseListener<Message> responseListener) {
 		point_at_resp = null;
 		final PointAtRequest request = (PointAtRequest) service_clients.get("point_at").newMessage();
 		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
@@ -537,17 +626,7 @@ public class RosNode extends AbstractNodeMain {
 		request.setPoint(point);
 		request.setWithBase(with_base);
 		request.setWithHead(with_head);
-		service_clients.get("point_at").call(request, new ServiceResponseListener<Message>() {
-
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-			}
-
-			public void onSuccess(Message response) {
-				point_at_resp = (PointAtResponse) response;
-			}
-			
-		});
+		service_clients.get("point_at").call(request, responseListener);
 	}
 	
 	public void call_look_at_srv(PointStamped point_stamped, boolean with_base) {
@@ -921,6 +1000,7 @@ public class RosNode extends AbstractNodeMain {
 //	}
 	
 	public boolean call_move_to_as(PoseStamped pose, int max_attempt) {
+		move_to_fb = null;
 		move_to_result = null;
 		MoveBaseActionGoal goal_msg;
 		goal_msg = move_to_goal_pub.newMessage();
@@ -1132,6 +1212,11 @@ public class RosNode extends AbstractNodeMain {
 			Thread.sleep(msec);
 		} catch (InterruptedException ex) {
 		}
+	}
+
+	public <T> void addListener(String topic, String type, MessageListener<T> ml) {
+		Subscriber<T> sub = getConnectedNode().newSubscriber(getParameters().getString(topic), type);
+		sub.addMessageListener(ml);
 	}
 
 

@@ -2,6 +2,9 @@
 
 package jia;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import arch.ROSAgArch;
 
 //import java.util.logging.Logger;
@@ -20,17 +23,13 @@ public class has_mesh extends DefaultInternalAction {
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
     	// to remove the extra ""
-		String param = args[0].toString();
-		param = param.replaceAll("^\"|\"$", "");
+		String param = args[0].toString().replaceAll("^\"|\"$", "");
 
-		ROSAgArch.getM_rosnode().call_has_mesh_srv("robot/merged", param);
-		HasMeshResponse has_mesh;
-		do {
-			has_mesh = ROSAgArch.getM_rosnode().getHas_mesh_resp();
-			sleep(100);
-		}while(has_mesh == null);
-
-		return has_mesh.getHasMesh();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put("world", "robot/merged");
+		parameters.put("name", param);
+		HasMeshResponse result = ROSAgArch.getM_rosnode().callSyncService("has_mesh", parameters);
+		return result.getHasMesh();
     }
     
     void sleep(long msec) {

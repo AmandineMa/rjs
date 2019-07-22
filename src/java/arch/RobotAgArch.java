@@ -1,8 +1,10 @@
 package arch;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -124,9 +126,10 @@ public class RobotAgArch extends ROSAgArch {
 			public void run() {
 				String action_name = action.getActionTerm().getFunctor();
 				Message msg = new Message("tell", getAgName(), "supervisor", "action_started("+action_name+")");
-				String task_id = "";
+				String tmp_task_id = "";
 				if( action.getIntention().getBottom().getTrigger().getLiteral().getTerms() != null)
-					task_id = action.getIntention().getBottom().getTrigger().getLiteral().getTerm(0).toString();
+					tmp_task_id = action.getIntention().getBottom().getTrigger().getLiteral().getTerm(0).toString();
+				final String task_id = tmp_task_id;
 				try {
 					sendMsg(msg);
 				} catch (Exception e1) {
@@ -210,39 +213,45 @@ public class RobotAgArch extends ROSAgArch {
 					String individual_o =  action.getActionTerm().getTerm(1).toString();
 					String individual = individual_o.replaceAll("^\"|\"$", "");
 					String belief_name = action.getActionTerm().getTerm(2).toString();
-					m_rosnode.call_onto_individual_srv(param, individual);
-					OntologeniusServiceResponse places;
-					do {
-						places = m_rosnode.get_onto_individual_resp();
-						sleep(100);
-					}while(places == null);
-					if(places.getCode() == Code.OK.getCode()) {
-						try {
-							ListTermImpl places_list = new ListTermImpl();
-							for(String place : places.getValues()) {
-								places_list.add(new StringTermImpl(place));
-							}
-							if(places_list.size() == 1) {
-								if(belief_name.equals("shop_names")||belief_name.equals("shop_name"))
-									getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+places_list.get(0)+")"));
-								else
-									getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+individual_o+","+places_list.get(0)+")["+task_id+"]"));
+
+					RosCallback<OntologeniusServiceResponse> rb = new RosCallback<OntologeniusServiceResponse>() {
+						@Override
+						public void callback(OntologeniusServiceResponse places) {
+							if(places.getCode() == Code.OK.getCode()) {
+								try {
+									ListTermImpl places_list = new ListTermImpl();
+									for(String place : places.getValues()) {
+										places_list.add(new StringTermImpl(place));
+									}
+									if(places_list.size() == 1) {
+										if(belief_name.equals("shop_names")||belief_name.equals("shop_name"))
+											getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+places_list.get(0)+")"));
+										else
+											getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+individual_o+","+places_list.get(0)+")["+task_id+"]"));
+									}else {
+										if(belief_name.equals("shop_names")||belief_name.equals("shop_name"))
+											getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+places_list+")"));
+										else
+											getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+individual_o+","+places_list+")["+task_id+"]"));
+									}
+									action.setResult(true);
+									actionExecuted(action);
+								} catch (RevisionFailedException e) {
+									e.printStackTrace();
+								}
 							}else {
-								if(belief_name.equals("shop_names")||belief_name.equals("shop_name"))
-									getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+places_list+")"));
-								else
-									getTS().getAg().addBel(Literal.parseLiteral(belief_name+"("+individual_o+","+places_list+")["+task_id+"]"));
-							}
-							action.setResult(true);
-							actionExecuted(action);
-						} catch (RevisionFailedException e) {
-							e.printStackTrace();
+								action.setResult(false);
+								action.setFailureReason(new Atom("individual_not_found"), individual+" has been not been found in the ontology with the param "+param);
+								actionExecuted(action);
+							} 
 						}
-					}else {
-						action.setResult(false);
-						action.setFailureReason(new Atom("individual_not_found"), individual+" has been not been found in the ontology with the param "+param);
-						actionExecuted(action);
-					} 
+					};
+
+					Map<String, Object> parameters = new HashMap<String, Object>();
+					parameters.put("action", param);
+					parameters.put("param", individual);
+					m_rosnode.callAsyncService("get_individual_info", rb, parameters);
+
 				} else if(action_name.equals("get_placements")) {
 					// to remove the extra ""
 					ArrayList<String> params = new ArrayList<String>();
@@ -304,10 +313,9 @@ public class RobotAgArch extends ROSAgArch {
 					// to remove the extra ""
 					final String param = action.getActionTerm().getTerm(0).toString().replaceAll("^\"|\"$", "");
 
-					RosCallback rb = new RosCallback() {
+					RosCallback<HasMeshResponse> rb = new RosCallback<HasMeshResponse>() {
 						@Override
-						public void callback(org.ros.internal.message.Message response) {
-							HasMeshResponse has_mesh = (HasMeshResponse) response;
+						public void callback(HasMeshResponse has_mesh) {
 							if(has_mesh.getHasMesh()) {
 								logger.info("Action success with param : " + param);
 								action.setResult(true);
@@ -322,40 +330,10 @@ public class RobotAgArch extends ROSAgArch {
 							actionExecuted(action);
 						}
 					};
-
-					//m_rosnode.call_has_mesh_srv("base", param, rb);
-					
-					//String[] paramType = {"java.lang.String", "java.lang.String"};
-					//String[] paramName = {"Name", "World"};
-					Object[] paramValue = {"base", param};
-					//m_rosnode.call_service("has_mesh", "perspectives_msgs.HasMeshRequest", rb, paramType, paramName, paramValue);
-					m_rosnode.call_service("has_mesh", rb, paramValue);
-					
-					/*
-					ServiceResponseListener<org.ros.internal.message.Message> rl = new ServiceResponseListener<org.ros.internal.message.Message>() {
-
-						public void onFailure(RemoteException e) {
-							throw new RosRuntimeException(e);
-						}
-
-						public void onSuccess(org.ros.internal.message.Message response) {
-							HasMeshResponse has_mesh = (HasMeshResponse) response;
-							if(has_mesh.getHasMesh()) {
-								action.setResult(true);
-							}else {
-								action.setResult(false);
-								if(!has_mesh.getHasMesh()) {
-									action.setFailureReason(new Atom("has_no_mesh"), param+" does not have a mesh");
-								}else {
-									action.setFailureReason(new Atom("srv_has_mesh_failed"), "has_mesh service failed");
-								}
-							}
-							actionExecuted(action);
-						}
-						
-					};
-					m_rosnode.call_has_mesh_srv("base", param, rl);*/
-					
+					Map<String, Object> parameters = new HashMap<String, Object>();
+					parameters.put("world", "base");
+					parameters.put("name", param);
+					m_rosnode.callAsyncService("has_mesh", rb, parameters);
 
 
 				} else if(action_name.equals("can_be_visible")) {

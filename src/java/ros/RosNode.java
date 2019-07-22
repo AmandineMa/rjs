@@ -1,8 +1,5 @@
 package ros;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -11,9 +8,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,8 +38,6 @@ import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
-import org.yaml.snakeyaml.DumperOptions;
-
 import com.github.rosjava_actionlib.ActionClient;
 import com.github.rosjava_actionlib.ActionClientListener;
 import com.github.rosjava_actionlib.ActionServer;
@@ -53,47 +51,37 @@ import actionlib_msgs.GoalStatusArray;
 import arch.ROSAgArch;
 import deictic_gestures.CanLookAtRequest;
 import deictic_gestures.CanLookAtResponse;
-import deictic_gestures.CanPointAt;
 import deictic_gestures.CanPointAtRequest;
 import deictic_gestures.CanPointAtResponse;
 import deictic_gestures.LookAtRequest;
 import deictic_gestures.LookAtResponse;
-import deictic_gestures.LookAtStatus;
 import deictic_gestures.PointAtRequest;
 import deictic_gestures.PointAtResponse;
-import deictic_gestures.PointAtStatus;
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionGoal;
 import dialogue_as.dialogue_actionActionResult;
 import dialogue_as.dialogue_actionGoal;
-import geometry_msgs.Point;
 import geometry_msgs.PointStamped;
-import geometry_msgs.Pose;
 import geometry_msgs.PoseStamped;
-import guiding_as_msgs.Task;
 import guiding_as_msgs.taskActionFeedback;
 import guiding_as_msgs.taskActionGoal;
 import guiding_as_msgs.taskActionResult;
 import hatp_msgs.PlanningRequestRequest;
 import hatp_msgs.PlanningRequestResponse;
-import jason.asSyntax.ListTerm;
-import jason.asSyntax.ListTermImpl;
-import jason.asSyntax.StringTermImpl;
+import jason.asSyntax.Atom;
+import jason.stdlib.setof;
 import move_base_msgs.MoveBaseActionFeedback;
 import move_base_msgs.MoveBaseActionGoal;
 import move_base_msgs.MoveBaseActionResult;
 import move_base_msgs.MoveBaseGoal;
 import msg_srv_impl.SemanticRouteResponseImpl;
-import nao_interaction_msgs.GoToPosture;
 import nao_interaction_msgs.GoToPostureRequest;
 import nao_interaction_msgs.SayRequest;
 import nao_interaction_msgs.SayResponse;
 import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceRequest;
 import ontologenius_msgs.OntologeniusServiceResponse;
-import pepper_base_manager_msgs.StateMachine;
 import pepper_base_manager_msgs.StateMachineStatePrioritizedAngle;
-import pepper_base_manager_msgs.StateMachineStatePrioritizedTwist;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterRequest;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterResponse;
 import pepper_resources_synchronizer_msgs.SubStateMachine_pepper_base_manager_msgs;
@@ -101,7 +89,6 @@ import perspectives_msgs.Fact;
 import perspectives_msgs.FactArrayStamped;
 import perspectives_msgs.GetNameRequest;
 import perspectives_msgs.GetNameResponse;
-import perspectives_msgs.HasMeshRequest;
 import perspectives_msgs.HasMeshResponse;
 import pointing_planner.PointingActionFeedback;
 import pointing_planner.PointingActionGoal;
@@ -125,10 +112,7 @@ import rpn_recipe_planner_msgs.SuperQueryRequest;
 import rpn_recipe_planner_msgs.SuperQueryResponse;
 import semantic_route_description_msgs.SemanticRouteRequest;
 import semantic_route_description_msgs.SemanticRouteResponse;
-import speech_wrapper_msgs.SpeakToRequest;
-import speech_wrapper_msgs.SpeakToResponse;
 import std_msgs.Header;
-import tf.get_transform;
 import utils.Code;
 import utils.SimpleFact;
 import utils.Tools;
@@ -160,10 +144,8 @@ public class RosNode extends AbstractNodeMain {
 	private ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult> get_human_answer_ac;
 	private ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult> move_to_ac;
 	private Subscriber<perspectives_msgs.FactArrayStamped> facts_sub;
-	private OntologeniusServiceResponse onto_individual_resp;
 	private OntologeniusServiceResponse onto_class_resp;
 	private SemanticRouteResponseImpl get_route_resp;
-	private HasMeshResponse has_mesh_resp;
 	private VisibilityScoreResponse visibility_score_resp;
 //	private SpeakToResponse speak_to_resp;
 	private SayResponse speak_to_resp;
@@ -177,7 +159,6 @@ public class RosNode extends AbstractNodeMain {
 	private SuperQueryResponse d_query_resp;
 	private PointingPlannerResponse placements_resp;
 	private hatp_msgs.Plan hatp_planner_resp;
-	private GetNameResponse uwds_name_resp;
 	private PointingActionResult placements_result;
 	private PointingActionFeedback placements_fb;
 	private dialogue_actionActionResult listening_result;
@@ -309,48 +290,48 @@ public class RosNode extends AbstractNodeMain {
 			
 			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"), perspectives_msgs.FactArrayStamped._TYPE);
 	
-			facts_sub.addMessageListener(new MessageListener<perspectives_msgs.FactArrayStamped>() {
-				
-	
-				public void onNewMessage(FactArrayStamped facts) {
-					synchronized (perceptions) {
-						perceptions.clear();
-						for(Fact fact : facts.getFacts()) {
-							SimpleFact simple_fact;
-							String predicate = fact.getPredicate();
-							String subject = fact.getSubjectName();
-							String object = fact.getObjectName();
-							if(predicate.equals("isVisibleBy")) {
-								predicate = "canSee";
-								if(subject.startsWith("\""))
-									subject = subject.replaceAll("^\"|\"$", "");
-								if(service_clients.get("get_uwds_name") != null) {
-									call_get_uwds_name_srv(subject);
-									do {
-										sleep(30);
-									}while(uwds_name_resp == null);
-									subject = uwds_name_resp.getName();
-									if(!subject.startsWith("\""))
-										subject = "\""+subject+"\"";
-									simple_fact = new SimpleFact(predicate,subject);
-									perceptions.put(object, simple_fact);	
-								}
-								
-							}else {
-								if(!object.isEmpty()) {
-									if(!object.startsWith("\""))
-										object = "\""+object+"\"";
-									simple_fact = new SimpleFact(predicate,object);
-								}else {
-									simple_fact = new SimpleFact(predicate);
-								}			
-								perceptions.put(subject, simple_fact);			
-							}
-						}
-					}
-					percept_id = facts.getHeader().getSeq();
-				}
-			});
+//			facts_sub.addMessageListener(new MessageListener<perspectives_msgs.FactArrayStamped>() {
+//				
+//	
+//				public void onNewMessage(FactArrayStamped facts) {
+//					synchronized (perceptions) {
+//						perceptions.clear();
+//						for(Fact fact : facts.getFacts()) {
+//							final SimpleFact simple_fact;
+//							String predicate = fact.getPredicate();
+//							String subject = fact.getSubjectName();
+//							String object = fact.getObjectName();
+//							if(predicate.equals("isVisibleBy")) {
+//								predicate = "canSee";
+//								if(subject.startsWith("\""))
+//									subject = subject.replaceAll("^\"|\"$", "");
+//								if(service_clients.get("get_uwds_name") != null) {
+//									Map<String, Object> parameters = new HashMap<String, Object>();
+//									parameters.put("id", subject);
+//									parameters.put("world", "robot/merged_visibilities");
+//									GetNameResponse uwds_name_resp = callSyncService("get_uwds_name", parameters);
+//									subject = uwds_name_resp.getName();
+//									if(!subject.startsWith("\""))
+//										subject = "\""+subject+"\"";
+//									simple_fact = new SimpleFact(predicate,subject);
+//									perceptions.put(object, simple_fact);
+//								}
+//								
+//							}else {
+//								if(!object.isEmpty()) {
+//									if(!object.startsWith("\""))
+//										object = "\""+object+"\"";
+//									simple_fact = new SimpleFact(predicate,object);
+//								}else {
+//									simple_fact = new SimpleFact(predicate);
+//								}			
+//								perceptions.put(subject, simple_fact);			
+//							}
+//						}
+//					}
+//					percept_id = facts.getHeader().getSeq();
+//				}
+//			});
 			
 			
 			
@@ -359,6 +340,208 @@ public class RosNode extends AbstractNodeMain {
 			logger.severe("Parameter not found exception : "+e.getMessage());
 			throw new RosRuntimeException(e);
 		}
+	}
+	
+	
+	public <T> void callAsyncService(String serviceName, RosCallback<T> rcb, Object[] paramValue){
+		HashMap<String, String> mapInfoService = services_map.get(serviceName);
+		
+		if(mapInfoService != null && mapInfoService.containsKey("type")) {
+			String type = mapInfoService.get("type");
+			type = type.replace('/', '.')+"Request";
+			call_service(serviceName, type, rcb, paramValue);
+		} else {
+			logger.info("Service ("+serviceName+") not declared in yaml or type not filled");
+		}
+	}
+	
+	public <T> void callAsyncService(String serviceName, RosCallback<T> rcb, Map<String, Object> params){
+		HashMap<String, String> mapInfoService = services_map.get(serviceName);
+		
+		if(mapInfoService != null && mapInfoService.containsKey("type")) {
+			String type = mapInfoService.get("type");
+			type = type.replace('/', '.')+"Request";
+			call_service(serviceName, type, rcb, params);
+		} else {
+			logger.info("Service ("+serviceName+") not declared in yaml or type not filled");
+		}
+	}
+	
+	public <T> T callSyncService(String service, Map<String, Object> params) {
+		CompletableFuture<T> future = new CompletableFuture<T>();
+		RosCallback<T> rcb = new RosCallback<T>() {
+			
+			@Override
+			public void callback(T msg) {
+				logger.info("message return: "+msg.toString());
+				future.complete(msg);
+			}
+		};
+		
+		callAsyncService(service, rcb, params);
+		
+		T response = null;
+		try {
+			response = future.get();
+		} catch (InterruptedException | ExecutionException e) {
+			e.printStackTrace();
+		}
+		return response;
+	}
+	
+	public <T> T callSyncService(String service, Object[] params) {
+		CompletableFuture<T> future = new CompletableFuture<T>();
+		RosCallback<T> rcb = new RosCallback<T>() {
+			
+			@Override
+			public void callback(T msg) {
+				future.complete(msg);
+			}
+		};
+		
+		callAsyncService(service, rcb, params);
+		
+		T response = null;
+		try {
+			response = future.get();
+		} catch (InterruptedException | ExecutionException e) {
+			e.printStackTrace();
+		}
+		return response;
+	}
+
+	public <T> void call_service(String serviceName, String className, RosCallback<T> rcb, Map<String, Object> params) {
+		logger.info("Calling service ("+serviceName+") with class: "+ className);
+		Message msg = service_clients.get(serviceName).newMessage();
+		
+
+
+		List<Method> setMethods = new ArrayList<Method>();
+		try {
+			Class<?> c = Class.forName(className);
+			Method[] methods = c.getDeclaredMethods();
+			for(int i=0; i<methods.length; i++) {
+				logger.info("Current method: "+ methods[i].getName());
+				if("set".equalsIgnoreCase(methods[i].getName().substring(0, 3))) {
+					logger.info("Is a set method");
+					setMethods.add(methods[i]);
+				}
+			}
+		} catch (ClassNotFoundException | IllegalArgumentException e) {
+			e.printStackTrace();
+		}
+		
+		for(String name : params.keySet()) {
+			boolean noMethod = true;
+			for(Method curMethod : setMethods) {
+				if(curMethod.getName().substring(3).toLowerCase().equalsIgnoreCase(name))
+					noMethod = false;
+			}
+			
+			if(noMethod) {
+				logger.info("Warning: Parameter "+ name + " doesn't have a corresponding setter in "+ className);
+				logger.info("List of setters for this class: ");
+				for(Method curMethod : setMethods) {
+					logger.info("  -  "+ curMethod.getName());
+				}
+			}
+		}
+		
+		for(int i=0; i<setMethods.size(); i++) {
+			try {
+				Method setM = setMethods.get(i);
+				if(setM.getParameterTypes().length==1) {
+					//Needed to check types ?
+					@SuppressWarnings("unused")
+					Class<?> parmType = setM.getParameterTypes()[0];
+					
+					String paramName = setM.getName().substring(3).toLowerCase();
+					if(params.containsKey(paramName)) {
+						logger.info("Setting "+paramName+" with value: " + params.get(paramName));
+						setM.invoke(msg, params.get(paramName));
+					} else {
+						logger.info("No value defined for parameter: "+ paramName);
+					}
+					
+
+				} else {
+					logger.info("Error: incorrect number of parameters: "+setM.getParameterTypes().length);
+				}
+					
+			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		//Possible de remplacer Message par T ? Le cast fait-il planter ?
+		ServiceResponseListener<Message> respList = (ServiceResponseListener<Message>) getResponseListener(rcb);
+		logger.info("Calling CALL method");
+		service_clients.get(serviceName).call(msg, respList);
+	}
+	
+	public <T> void call_service(String serviceName, String className, RosCallback<T> rcb, Object[] paramValue) {
+		logger.info("Calling service ("+serviceName+") with class: "+ className);
+		Message msg = service_clients.get(serviceName).newMessage();
+		
+
+		List<Method> setMethods = new ArrayList<Method>();
+		try {
+			Class<?> c = Class.forName(className);
+			Method[] methods = c.getDeclaredMethods();
+			for(int i=0; i<methods.length; i++) {
+				logger.info("Current method: "+ methods[i].getName());
+				if("set".equalsIgnoreCase(methods[i].getName().substring(0, 3))) {
+					logger.info("Is a set method");
+					setMethods.add(methods[i]);
+				}
+			}
+		} catch (ClassNotFoundException | IllegalArgumentException e) {
+			e.printStackTrace();
+		}
+		
+		if(setMethods.size() == paramValue.length) {
+			for(int i=0; i<setMethods.size(); i++) {
+				try {
+					Method setM = setMethods.get(i);
+					if(setM.getParameterTypes().length==1) {
+						//Needed to check types ?
+						@SuppressWarnings("unused")
+						Class<?> parmType = setM.getParameterTypes()[0];
+						setM.invoke(msg, paramValue[i]);
+
+					} else {
+						logger.info("Error: incorrect number of parameters: "+setM.getParameterTypes().length);
+					}
+						
+				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			//Possible de remplacer Message par T ? Le cast fait-il planter ?
+			ServiceResponseListener<Message> respList = (ServiceResponseListener<Message>) getResponseListener(rcb);
+			logger.info("Calling CALL method");
+			service_clients.get(serviceName).call(msg, respList);
+		} else {
+			logger.info("Error: number of set ("+setMethods.size()+") is different from number of parameters ("+paramValue.length+")");
+		}
+	}
+	
+	public <T> ServiceResponseListener<T> getResponseListener(RosCallback<T> rcb) {
+		return new ServiceResponseListener<T>() {
+
+			public void onFailure(RemoteException e) {
+				RosRuntimeException RRE = new RosRuntimeException(e);
+				logger.info(Tools.getStackTrace((Exception) RRE));
+				throw RRE;
+			}
+
+			public void onSuccess(T response) {
+				logger.info("Response received on ServiceResponseListener");
+				rcb.callback(response);
+			}
+			
+		};
 	}
 	
 	public void set_task_result(String success, String id) {
@@ -414,7 +597,7 @@ public class RosNode extends AbstractNodeMain {
 		return status;
 	}
 	
-	public void call_get_uwds_name_srv(String id) {
+	/*public void call_get_uwds_name_srv(String id) {
 		uwds_name_resp = null;
 		final GetNameRequest request = (GetNameRequest) service_clients.get("get_uwds_name").newMessage();
 		request.setId(id);
@@ -433,9 +616,9 @@ public class RosNode extends AbstractNodeMain {
 				
 			}
 		});
-	}
+	}*/
 
-	public void call_onto_individual_srv(String action, String param) {
+	/*public void call_onto_individual_srv(String action, String param) {
 		onto_individual_resp = null;
 		final OntologeniusServiceRequest request = (OntologeniusServiceRequest) service_clients.get("get_individual_info").newMessage();
 		request.setAction(action);
@@ -460,7 +643,7 @@ public class RosNode extends AbstractNodeMain {
 				
 			}
 		});
-	}
+	}*/
 	
 	public void call_onto_class_srv(String action, String param) {
 		onto_class_resp = null;
@@ -516,86 +699,7 @@ public class RosNode extends AbstractNodeMain {
 	}
 	
 
-	public void call_service(String topic, RosCallback rcb, Object[] paramValue){
-		//TODO Retrieve somewhere from the topic, the list of types and the names of variables and maybe hardcoded values
-		String[] paramType = {"java.lang.String", "java.lang.String"};
-		String[] paramName = {"Name", "World"};
-		call_service(topic, "perspectives_msgs.HasMeshRequest", rcb, paramType, paramName, paramValue);
-	}
 
-	
-	public void call_service(String topic, String className, RosCallback rcb, String[] paramType, String[] paramName, Object[] paramValue) {
-		Message msg = service_clients.get(topic).newMessage();
-		
-		try {
-			Class<?> c = Class.forName(className);
-			
-			for(int i=0; i<paramType.length; i++) {
-				String type = paramType[i];
-				String name = paramName[i];
-				Object value = paramValue[i];
-				Class<?> paramClass = Class.forName(type);
-				Method method = c.getMethod("set"+name, paramClass);
-				method.invoke(msg, value);
-			}
-		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | ClassNotFoundException e) {
-			e.printStackTrace();
-		}
-		//final HasMeshRequest request = (HasMeshRequest) msg;
-		service_clients.get(topic).call(msg, getResponseListener(rcb));
-	}
-	
-	public void call_has_mesh_srv(String world, String frame, ServiceResponseListener<Message> respListener) {
-		final HasMeshRequest request = (HasMeshRequest) service_clients.get("has_mesh").newMessage();
-		request.setName(frame);
-		request.setWorld(world);
-		service_clients.get("has_mesh").call(request, respListener); 
-	}
-	
-	public void call_has_mesh_srv(String world, String frame, RosCallback rcb) {
-		final HasMeshRequest request = (HasMeshRequest) service_clients.get("has_mesh").newMessage();
-		request.setName(frame);
-		request.setWorld(world);
-		service_clients.get("has_mesh").call(request, getResponseListener(rcb)); 
-	}
-	
-	public void call_has_mesh_srv(String world, String frame) {
-		has_mesh_resp = null;
-		final HasMeshRequest request = (HasMeshRequest) service_clients.get("has_mesh").newMessage();
-		request.setName(frame);
-		request.setWorld(world);
-		
-		
-		service_clients.get("has_mesh").call(request, new ServiceResponseListener<Message>() {
-
-			public void onFailure(RemoteException e) {
-				RosRuntimeException RRE = new RosRuntimeException(e);
-				logger.info(Tools.getStackTrace((Exception) RRE));
-				throw RRE;
-			}
-
-			public void onSuccess(Message response) {
-				has_mesh_resp = (HasMeshResponse) response;
-			}
-			
-		}); 
-	}
-	
-	public ServiceResponseListener<Message> getResponseListener(RosCallback rcb) {
-		return new ServiceResponseListener<Message>() {
-
-			public void onFailure(RemoteException e) {
-				RosRuntimeException RRE = new RosRuntimeException(e);
-				logger.info(Tools.getStackTrace((Exception) RRE));
-				throw RRE;
-			}
-
-			public void onSuccess(Message response) {
-				rcb.callback(response);
-			}
-			
-		};
-	}
 	
 	public void call_visibility_score_srv(String agent, String frame) {
 		visibility_score_resp = null;
@@ -1076,11 +1180,6 @@ public class RosNode extends AbstractNodeMain {
 		return stack_guiding_goals;
 	}
 
-
-	public OntologeniusServiceResponse get_onto_individual_resp() {
-		return onto_individual_resp;
-	}
-
 	public OntologeniusServiceResponse getOnto_class_resp() {
 		return onto_class_resp;
 	}
@@ -1122,10 +1221,6 @@ public class RosNode extends AbstractNodeMain {
 
 	public MoveBaseActionFeedback getMove_to_fb() {
 		return move_to_fb;
-	}
-
-	public HasMeshResponse getHas_mesh_resp() {
-		return has_mesh_resp;
 	}
 
 	public VisibilityScoreResponse getVisibility_score_resp() {
@@ -1218,6 +1313,8 @@ public class RosNode extends AbstractNodeMain {
 		Subscriber<T> sub = getConnectedNode().newSubscriber(getParameters().getString(topic), type);
 		sub.addMessageListener(ml);
 	}
+
+
 
 
 }

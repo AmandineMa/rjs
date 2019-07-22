@@ -2,6 +2,9 @@
 
 package jia;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import arch.ROSAgArch;
 
 //import java.util.logging.Logger;
@@ -23,13 +26,11 @@ public class word_individual extends DefaultInternalAction {
 		action = action.replaceAll("^\"|\"$", "");
     	String param = args[1].toString();
 		param = param.replaceAll("^\"|\"$", "");
-		ROSAgArch.getM_rosnode().call_onto_individual_srv(action, param);
 		
-		OntologeniusServiceResponse places;
-		do {
-			places = ROSAgArch.getM_rosnode().get_onto_individual_resp();
-			sleep(100);
-		}while(places == null);
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put("action", action);
+		parameters.put("param", param);
+		OntologeniusServiceResponse places = ROSAgArch.getM_rosnode().callSyncService("get_individual_info", parameters);
 		
 		if(places.getCode() == Code.OK.getCode() & !places.getValues().isEmpty()) {
 			if(places.getValues().size() == 1) {

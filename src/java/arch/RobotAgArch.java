@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import javax.xml.transform.TransformerFactory;
+
 import org.ros.exception.RemoteException;
 import org.ros.exception.RosRuntimeException;
 import org.ros.message.MessageFactory;
@@ -17,7 +19,9 @@ import org.ros.node.service.ServiceResponseListener;
 import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.Transform;
+import org.ros.rosjava.tf.TransformFactory;
 import org.ros.rosjava.tf.TransformTree;
+import org.ros.rosjava_geometry.Vector3;
 
 import actionlib_msgs.GoalStatus;
 import deictic_gestures.LookAtResponse;
@@ -73,9 +77,13 @@ public class RobotAgArch extends ROSAgArch {
 	private Subscriber<LookAtStatus> look_at_status;
 	private Publisher<std_msgs.String> human_to_monitor;
 	private Publisher<std_msgs.String> look_at_events_pub;
+	NodeConfiguration nodeConfiguration;
+	MessageFactory messageFactory;
 	
 	@Override
 	public void init() {
+		nodeConfiguration = NodeConfiguration.newPrivate();
+		messageFactory = nodeConfiguration.getTopicMessageFactory();
 		
 		MessageListener<PointAtStatus> ml = new MessageListener<PointAtStatus>() {
 			public void onNewMessage(PointAtStatus status) {
@@ -135,6 +143,7 @@ public class RobotAgArch extends ROSAgArch {
 				} catch (Exception e1) {
 					e1.printStackTrace();
 				}
+				
 				//TODO check number of terms for each action
 				if(action_name.equals("compute_route")) {
 					// to remove the extra ""
@@ -277,13 +286,26 @@ public class RobotAgArch extends ROSAgArch {
 							PoseCustom human_pose = new PoseCustom(placements_result.getHumanPose().getPose());
 							String h_frame = placements_result.getHumanPose().getHeader().getFrameId();
 							TransformTree tfTree = getTfTree();
-							Transform transform;
-							transform = tfTree.lookupMostRecent("map", "base_footprint");
-							double dist_to_new_pose = Math.pow(transform.translation.x - robot_pose.getPosition().getX(), 2) 
-												 + Math.pow(transform.translation.y - robot_pose.getPosition().getY(), 2);
-//							if(dist_to_new_pose > m_rosnode.getParameters().getDouble("guiding/tuning_param/robot_should_move_dist_th")) {	
+							Transform robot_pose_now;
+							robot_pose_now = tfTree.lookupMostRecent("map", "base_footprint");
+							double r_dist_to_new_pose = Math.hypot(robot_pose_now.translation.x - robot_pose.getPosition().getX(), 
+												 				   robot_pose_now.translation.y - robot_pose.getPosition().getY());
+							if(r_dist_to_new_pose > m_rosnode.getParameters().getDouble("guiding/tuning_param/robot_should_move_dist_th")) {	
 								getTS().getAg().addBel(Literal.parseLiteral("robot_pose("+r_frame+","+robot_pose.toString()+")["+task_id+"]"));	
-//							}
+								Transform human_pose_now = tfTree.lookupMostRecent("map", human);
+								double h_dist_to_new_pose = Math.hypot(human_pose_now.translation.x - robot_pose.getPosition().getX(), 
+																	   human_pose_now.translation.y - robot_pose.getPosition().getY());
+								if(h_dist_to_new_pose < m_rosnode.getParameters().getDouble("guiding/tuning_param/human_move_first_dist_th")) {
+									String side;
+									geometry_msgs.Vector3 vector_msg = messageFactory.newFromType(geometry_msgs.Vector3._TYPE);
+									// isLeft from robot view then it is right from human view
+									side = Tools.isLeft(TransformFactory.vector2msg(robot_pose_now.translation), 
+														TransformFactory.vector2msg(human_pose_now.translation),
+														Vector3.fromPointMessage(human_pose.getPosition()).toVector3Message(vector_msg)) 
+											? "right" : "left";
+									getTS().getAg().addBel(Literal.parseLiteral("human_first("+side+")["+task_id+"]"));
+								}
+							}
 							getTS().getAg().addBel(Literal.parseLiteral("human_pose("+h_frame+","+human_pose.toString()+")["+task_id+"]"));
 							int nb_ld_to_point = placements_result.getPointedLandmarks().size();
 							for(int i = 0; i < nb_ld_to_point; i++) {
@@ -419,8 +441,8 @@ public class RobotAgArch extends ROSAgArch {
 					String frame = action.getActionTerm().getTerm(0).toString();
 					frame = frame.replaceAll("^\"|\"$", "");
 					boolean with_base = Boolean.parseBoolean(action.getActionTerm().getTerm(2).toString());
-					NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
-					MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+					nodeConfiguration = NodeConfiguration.newPrivate();
+					messageFactory = nodeConfiguration.getTopicMessageFactory();
 					PointStamped point_stamped = messageFactory.newFromType(PointStamped._TYPE);
 					if(action.getActionTerm().getArity() != 1) {
 						ListTermImpl point_term =  ((ListTermImpl) action.getActionTerm().getTerm(1));
@@ -479,6 +501,7 @@ public class RobotAgArch extends ROSAgArch {
 					case "route_verbalization_n_vis" : text = "in this direction, "+bel_arg; break;
 					case "no_place" : text = new String("The place you asked for does not exist. Do you want to go somewhere else ?"); break;
 					case "going_to_move" : text = new String("I'm going to move so I can show you"); break;
+					case "step" : text = new String("Can you make a few steps on your "+bel_arg+", please ?");
 					case "come" : text = new String("Please, come in front of me"); break;
 					case "move_again" : text = new String("I am sorry, we are going to move again"); break;
 					case "ask_explain_again" : text = new String("Should I explain you again ?"); break;
@@ -691,8 +714,8 @@ public class RobotAgArch extends ROSAgArch {
 						pose_values.add(((NumberTermImpl)action_term_it.next()).solve());
 					}
 					PoseCustom pose = new PoseCustom(pose_values);
-					NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
-					MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+					nodeConfiguration = NodeConfiguration.newPrivate();
+					messageFactory = nodeConfiguration.getTopicMessageFactory();
 					PoseStamped pose_stamped = messageFactory.newFromType(PoseStamped._TYPE);
 					Header header = messageFactory.newFromType(std_msgs.Header._TYPE);
 					header.setFrameId(frame);
@@ -755,9 +778,9 @@ public class RobotAgArch extends ROSAgArch {
 						action.setResult(true);
 						try {
 							for(hatp_msgs.Task task : plan.getTasks()) {
-								String agents = array_2_str_array(task.getAgents());
+								String agents = Tools.array_2_str_array(task.getAgents());
 								if(!task.getParameters().isEmpty()) {
-									String parameters = array_2_str_array(task.getParameters());
+									String parameters = Tools.array_2_str_array(task.getParameters());
 									getTS().getAg().addBel(Literal.parseLiteral("task("+task.getId()+","+task.getType()+","
 											+task.getName()+","+agents+","+parameters+","+task.getCost()+")["+task_id+"]"));
 								}else {
@@ -768,11 +791,11 @@ public class RobotAgArch extends ROSAgArch {
 							for(hatp_msgs.StreamNode stream : plan.getStreams()) {
 								String belief = "stream("+stream.getTaskId();
 								if(stream.getPredecessors().length != 0) {
-									String pred = array_2_str_array(stream.getPredecessors());
+									String pred = Tools.array_2_str_array(stream.getPredecessors());
 									belief = belief+","+pred;
 								}
 								if(stream.getSuccessors().length != 0) {
-									String succ = array_2_str_array(stream.getSuccessors());
+									String succ = Tools.array_2_str_array(stream.getSuccessors());
 									belief = belief+","+succ;
 								}
 								belief = belief+")";
@@ -799,32 +822,8 @@ public class RobotAgArch extends ROSAgArch {
 
 
 	}
+	
 
-	private String array_2_str_array(List<String> array) {
-		String str_array = new String();
-		for(String str : array) {
-			if(str_array.isEmpty()) {
-				str_array = str;
-			}else {
-				str_array = str_array+","+str;
-			}
-		}
-		str_array = "["+str_array+"]";
-		return str_array;
-	}
-
-	private String array_2_str_array(int[] array) {
-		String str_array = new String();
-		for(int i : array) {
-			if(str_array.isEmpty()) {
-				str_array = String.valueOf(i);
-			}else {
-				str_array = str_array+","+String.valueOf(i);
-			}
-		}
-		str_array = "["+str_array+"]";
-		return str_array;
-	}
 
 	public RouteImpl select_best_route(List<SemanticRouteResponse> routes_resp_list) {
 		RouteImpl best_route = new RouteImpl();

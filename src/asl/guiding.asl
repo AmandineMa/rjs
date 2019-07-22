@@ -233,6 +233,12 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	?human_pose(Hframe,Hposit,_);
 	jia.publish_marker(Rframe,Rposit, yellow);
 	jia.publish_marker(Hframe, Hposit, blue);
+	if(jia.believes(human_first(_))){
+		?human_first(Side);
+		!speak(ID, step, Side);
+		.concat("human_", Human, HTF);
+		jia.is_dist_human2point_sup(HTF, Rposit, 0.5);
+	}
 	move_to(Rframe,Rposit, Rorient);
 	!wait_human(ID).
 	

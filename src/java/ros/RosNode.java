@@ -290,48 +290,48 @@ public class RosNode extends AbstractNodeMain {
 			
 			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"), perspectives_msgs.FactArrayStamped._TYPE);
 	
-//			facts_sub.addMessageListener(new MessageListener<perspectives_msgs.FactArrayStamped>() {
-//				
-//	
-//				public void onNewMessage(FactArrayStamped facts) {
-//					synchronized (perceptions) {
-//						perceptions.clear();
-//						for(Fact fact : facts.getFacts()) {
-//							final SimpleFact simple_fact;
-//							String predicate = fact.getPredicate();
-//							String subject = fact.getSubjectName();
-//							String object = fact.getObjectName();
-//							if(predicate.equals("isVisibleBy")) {
-//								predicate = "canSee";
-//								if(subject.startsWith("\""))
-//									subject = subject.replaceAll("^\"|\"$", "");
-//								if(service_clients.get("get_uwds_name") != null) {
-//									Map<String, Object> parameters = new HashMap<String, Object>();
-//									parameters.put("id", subject);
-//									parameters.put("world", "robot/merged_visibilities");
-//									GetNameResponse uwds_name_resp = callSyncService("get_uwds_name", parameters);
-//									subject = uwds_name_resp.getName();
-//									if(!subject.startsWith("\""))
-//										subject = "\""+subject+"\"";
-//									simple_fact = new SimpleFact(predicate,subject);
-//									perceptions.put(object, simple_fact);
-//								}
-//								
-//							}else {
-//								if(!object.isEmpty()) {
-//									if(!object.startsWith("\""))
-//										object = "\""+object+"\"";
-//									simple_fact = new SimpleFact(predicate,object);
-//								}else {
-//									simple_fact = new SimpleFact(predicate);
-//								}			
-//								perceptions.put(subject, simple_fact);			
-//							}
-//						}
-//					}
-//					percept_id = facts.getHeader().getSeq();
-//				}
-//			});
+			facts_sub.addMessageListener(new MessageListener<perspectives_msgs.FactArrayStamped>() {
+				
+	
+				public void onNewMessage(FactArrayStamped facts) {
+					synchronized (perceptions) {
+						perceptions.clear();
+						for(Fact fact : facts.getFacts()) {
+							final SimpleFact simple_fact;
+							String predicate = fact.getPredicate();
+							String subject = fact.getSubjectName();
+							String object = fact.getObjectName();
+							if(predicate.equals("isVisibleBy")) {
+								predicate = "canSee";
+								if(subject.startsWith("\""))
+									subject = subject.replaceAll("^\"|\"$", "");
+								if(service_clients.get("get_uwds_name") != null) {
+									Map<String, Object> parameters = new HashMap<String, Object>();
+									parameters.put("id", subject);
+									parameters.put("world", "robot/merged_visibilities");
+									GetNameResponse uwds_name_resp = callSyncService("get_uwds_name", parameters);
+									subject = uwds_name_resp.getName();
+									if(!subject.startsWith("\""))
+										subject = "\""+subject+"\"";
+									simple_fact = new SimpleFact(predicate,subject);
+									perceptions.put(object, simple_fact);
+								}
+								
+							}else {
+								if(!object.isEmpty()) {
+									if(!object.startsWith("\""))
+										object = "\""+object+"\"";
+									simple_fact = new SimpleFact(predicate,object);
+								}else {
+									simple_fact = new SimpleFact(predicate);
+								}			
+								perceptions.put(subject, simple_fact);			
+							}
+						}
+					}
+					percept_id = facts.getHeader().getSeq();
+				}
+			});
 			
 			
 			
@@ -954,7 +954,7 @@ public class RosNode extends AbstractNodeMain {
 				try {
 
 					transform = tfTree.lookupMostRecent(frame1, frame2);
-					float d = (float) Math.atan2(transform.translation.y, transform.translation.z);
+					float d = (float) Math.atan2(transform.translation.y, transform.translation.x);
 					NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
 					MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
 					SubStateMachine_pepper_base_manager_msgs substatemachine = messageFactory.newFromType(SubStateMachine_pepper_base_manager_msgs._TYPE);

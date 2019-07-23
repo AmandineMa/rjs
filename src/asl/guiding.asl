@@ -237,11 +237,31 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		?human_first(Side);
 		!speak(ID, step, Side);
 		.concat("human_", Human, HTF);
-		jia.is_dist_human2point_sup(HTF, Rposit, 0.5);
+		!check_dist(ID, HTF, Rposit, 0.5);
 	}
 	move_to(Rframe,Rposit, Rorient);
 	!wait_human(ID).
+
+@cd[max_attempts(15)]+!check_dist(ID, HTF, Rposit, Dist) : true <- 
+	if(not tf.is_dist_human2point_sup(HTF, Rposit, Dist)){
+		.wait(200);
+	!check_dist(ID, HTF, Rposit, Dist);
+	}.
 	
+-!check_dist(ID, HTF, Rposit, Dist) : true <- 
+	!repeat_move(ID, HTF, Rposit, Dist).
+	
+@rm[max_attempts(2)]+!repeat_move(ID, HTF, Rposit, Dist) : true <-
+	?human_first(Side);
+	!speak(ID, step_more, Side);
+	jia.reset_att_counter(check_dist);
+	!check_dist(ID, HTF, Rposit, Dist).
+	
+-!repeat_move(ID, HTF, Rposit, Dist) : true <- 
+	!speak(ID, cannot_move);
+	!show_landmarks(ID);
+	!clean_task(ID).
+
 -!be_at_good_pos(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
 //	if(not .substring(Code, robot_pose)){
 		!drop_current_task(ID, be_at_good_pos, Failure, Code).

@@ -501,7 +501,9 @@ public class RobotAgArch extends ROSAgArch {
 					case "route_verbalization_n_vis" : text = "in this direction, "+bel_arg; break;
 					case "no_place" : text = new String("The place you asked for does not exist. Do you want to go somewhere else ?"); break;
 					case "going_to_move" : text = new String("I'm going to move so I can show you"); break;
-					case "step" : text = new String("Can you make a few steps on your "+bel_arg+", please ?");
+					case "step" : text = new String("Can you make a few steps on your "+bel_arg+", please ?"); break;
+					case "step_more": text = new String("Can you move a bit more on your "+bel_arg+", please ?"); break;
+					case "cannot_move" : text = new String("I'm sorry I cannot move, I'll try my best to show you from there"); break;
 					case "come" : text = new String("Please, come in front of me"); break;
 					case "move_again" : text = new String("I am sorry, we are going to move again"); break;
 					case "ask_explain_again" : text = new String("Should I explain you again ?"); break;

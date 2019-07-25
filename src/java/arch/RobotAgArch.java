@@ -417,7 +417,7 @@ public class RobotAgArch extends ROSAgArch {
 					// to remove the extra ""
 					String frame = action.getActionTerm().getTerm(0).toString();
 					frame = frame.replaceAll("^\"|\"$", "");
-					if(m_rosnode.call_pepper_synchro_srv("face_human", frame)) {
+					if(m_rosnode.face_human_sm(frame)) {
 						MetaStateMachineRegisterResponse face_resp;
 						do {
 							face_resp = m_rosnode.getFace_human_resp();
@@ -436,7 +436,27 @@ public class RobotAgArch extends ROSAgArch {
 						action.setFailureReason(new Atom("cannot_face_human"), "face human failed for "+frame);
 					}
 					actionExecuted(action);
-				} else if(action_name.equals("look_at")) {
+				} else if(action_name.equals("rotate")) {
+					// to remove the extra ""
+					ListTerm q = (ListTerm) action.getActionTerm().getTerm(0);
+					if(m_rosnode.rotate_sm(q)) {
+						MetaStateMachineRegisterResponse rotate_resp;
+						do {
+							rotate_resp = m_rosnode.getRotate_resp();
+							sleep(100);
+						}while(rotate_resp == null);
+						if(rotate_resp.getError().equals("fail to rotate") ) {
+							action.setFailureReason(new Atom("cannot_rotate"), "rotation failed");
+							action.setResult(false);
+						}else {
+							action.setResult(true);
+						}
+					}else {
+						action.setResult(false);
+						action.setFailureReason(new Atom("cannot_rotate"), "rotation failed");
+					}
+					actionExecuted(action);
+				}else if(action_name.equals("look_at")) {
 					// to remove the extra ""
 					String frame = action.getActionTerm().getTerm(0).toString();
 					frame = frame.replaceAll("^\"|\"$", "");

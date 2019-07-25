@@ -17,6 +17,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.vecmath.Quat4d;
+
 import org.ros.exception.ParameterNotFoundException;
 import org.ros.exception.RemoteException;
 import org.ros.exception.RosRuntimeException;
@@ -38,6 +40,8 @@ import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
+import org.ros.rosjava_geometry.Vector3;
+
 import com.github.rosjava_actionlib.ActionClient;
 import com.github.rosjava_actionlib.ActionClientListener;
 import com.github.rosjava_actionlib.ActionServer;
@@ -69,6 +73,8 @@ import guiding_as_msgs.taskActionResult;
 import hatp_msgs.PlanningRequestRequest;
 import hatp_msgs.PlanningRequestResponse;
 import jason.asSyntax.Atom;
+import jason.asSyntax.ListTerm;
+import jason.asSyntax.NumberTermImpl;
 import jason.stdlib.setof;
 import move_base_msgs.MoveBaseActionFeedback;
 import move_base_msgs.MoveBaseActionGoal;
@@ -114,6 +120,7 @@ import semantic_route_description_msgs.SemanticRouteRequest;
 import semantic_route_description_msgs.SemanticRouteResponse;
 import std_msgs.Header;
 import utils.Code;
+import utils.Quaternion;
 import utils.SimpleFact;
 import utils.Tools;
 
@@ -155,6 +162,7 @@ public class RosNode extends AbstractNodeMain {
 	private CanLookAtResponse can_look_at_resp;
 	private VerbalizeRegionRouteResponse verbalization_resp;
 	private MetaStateMachineRegisterResponse face_human_resp;
+	private MetaStateMachineRegisterResponse rotate_resp;
 	private SuperInformResponse d_inform_resp;
 	private SuperQueryResponse d_query_resp;
 	private PointingPlannerResponse placements_resp;
@@ -940,77 +948,93 @@ public class RosNode extends AbstractNodeMain {
 		});
 	}
 	
-	public boolean call_pepper_synchro_srv(String action, String human) {
+	public boolean face_human_sm(String human) {
 		face_human_resp = null;
-		final MetaStateMachineRegisterRequest request = (MetaStateMachineRegisterRequest) service_clients.get("pepper_synchro").newMessage();
-		
-		if(action.equals("face_human")) {
-			TransformTree tfTree = getTfTree();
-			Transform transform;
-			String frame1 = "base_link";
-			String frame2 = human;
-			frame2 = frame2.replaceAll("^\"|\"$", "");
-			if(tfTree.canTransform(frame1, frame2)) {
-				try {
+		TransformTree tfTree = getTfTree();
+		Transform transform;
+		String frame1 = "base_link";
+		String frame2 = human;
+		frame2 = frame2.replaceAll("^\"|\"$", "");
+		if(tfTree.canTransform(frame1, frame2)) {
+			try {
 
-					transform = tfTree.lookupMostRecent(frame1, frame2);
-					float d = (float) Math.atan2(transform.translation.y, transform.translation.x);
-					NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
-					MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
-					SubStateMachine_pepper_base_manager_msgs substatemachine = messageFactory.newFromType(SubStateMachine_pepper_base_manager_msgs._TYPE);
-					pepper_base_manager_msgs.StateMachine statemachine = messageFactory.newFromType(pepper_base_manager_msgs.StateMachine._TYPE);
-					StateMachineStatePrioritizedAngle state = messageFactory.newFromType(StateMachineStatePrioritizedAngle._TYPE);
-					StateMachineStateHeader stateheader = messageFactory.newFromType(StateMachineStateHeader._TYPE);
-					StateMachineTransition smtransition = messageFactory.newFromType(StateMachineTransition._TYPE);
-					EndCondition end_condition = messageFactory.newFromType(EndCondition._TYPE);
-					SubStateMachineHeader subsmheader = messageFactory.newFromType(SubStateMachineHeader._TYPE);
-					MetaStateMachineHeader metaheader = messageFactory.newFromType(MetaStateMachineHeader._TYPE);
-					MessagePriority priority = messageFactory.newFromType(MessagePriority._TYPE);
-					state.setData(d);
-					stateheader.setId("rotate");
-					end_condition.setDuration(new Duration(-1));
-					end_condition.setTimeout(new Duration(-1));
-					ArrayList<String> a = new ArrayList<String>();
-					a.add("__done__");
-					end_condition.setRegexEndCondition(a);
-					smtransition.setEndCondition(end_condition);
-					smtransition.setNextState("end");
-					stateheader.setTransitions(Arrays.asList(smtransition));
-					state.setHeader(stateheader);
-					statemachine.setStatesPrioritizedAngle(Arrays.asList(state));
-					subsmheader.setInitialState("rotate");
-					subsmheader.setBeginDeadLine(connectedNode.getCurrentTime().add(new Duration(5)));
-					subsmheader.setTimeout(new Duration(-1));
-					substatemachine.setHeader(subsmheader);
-					substatemachine.setStateMachine(statemachine);
-					request.setStateMachinePepperBaseManager(substatemachine);
-					metaheader.setBeginDeadLine(connectedNode.getCurrentTime().add(new Duration(5)));
-					metaheader.setTimeout(new Duration(-1));
-					priority.setValue(MessagePriority.URGENT);
-					metaheader.setPriority(priority);
-					request.setHeader(metaheader);
-					service_clients.get("pepper_synchro").call(request, new ServiceResponseListener<Message>() {
-
-						@Override
-						public void onFailure(RemoteException arg0) {
-							face_human_resp.setError("fail to rotate");
-						}
-
-						@Override
-						public void onSuccess(Message response) {
-							face_human_resp = (MetaStateMachineRegisterResponse) response;
-
-						}
-					});
-				}
-				catch (Exception e) {
-					return false;
-				}
-			}else {
+				transform = tfTree.lookupMostRecent(frame1, frame2);
+				float d = (float) Math.atan2(transform.translation.y, transform.translation.x);
+				rotation_sm("face_human", d);
+				return true;
+			}
+			catch (Exception e) {
 				return false;
 			}
+		}else {
+			return false;
 		}
+	}
+	
+	public boolean rotate_sm(ListTerm quaternion) {
+		rotate_resp = null;
+		Quaternion q = new Quaternion(((NumberTermImpl) quaternion.get(0)).solve(), ((NumberTermImpl) quaternion.get(1)).solve(), 
+									  ((NumberTermImpl) quaternion.get(2)).solve(), ((NumberTermImpl) quaternion.get(3)).solve());
+		double d = q.getTheta();
+		rotation_sm("rotate", (float) d);
 		return true;
+	}
+	
+	
+	private void rotation_sm(String id, float d) {
+		final MetaStateMachineRegisterRequest request = (MetaStateMachineRegisterRequest) service_clients.get("pepper_synchro").newMessage();
+		NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
+		MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+		SubStateMachine_pepper_base_manager_msgs substatemachine = messageFactory.newFromType(SubStateMachine_pepper_base_manager_msgs._TYPE);
+		pepper_base_manager_msgs.StateMachine statemachine = messageFactory.newFromType(pepper_base_manager_msgs.StateMachine._TYPE);
+		StateMachineStatePrioritizedAngle state = messageFactory.newFromType(StateMachineStatePrioritizedAngle._TYPE);
+		StateMachineStateHeader stateheader = messageFactory.newFromType(StateMachineStateHeader._TYPE);
+		StateMachineTransition smtransition = messageFactory.newFromType(StateMachineTransition._TYPE);
+		EndCondition end_condition = messageFactory.newFromType(EndCondition._TYPE);
+		SubStateMachineHeader subsmheader = messageFactory.newFromType(SubStateMachineHeader._TYPE);
+		MetaStateMachineHeader metaheader = messageFactory.newFromType(MetaStateMachineHeader._TYPE);
+		MessagePriority priority = messageFactory.newFromType(MessagePriority._TYPE);
+		state.setData(d);
+		stateheader.setId(id);
+		end_condition.setDuration(new Duration(-1));
+		end_condition.setTimeout(new Duration(-1));
+		ArrayList<String> a = new ArrayList<String>();
+		a.add("__done__");
+		end_condition.setRegexEndCondition(a);
+		smtransition.setEndCondition(end_condition);
+		smtransition.setNextState("end");
+		stateheader.setTransitions(Arrays.asList(smtransition));
+		state.setHeader(stateheader);
+		statemachine.setStatesPrioritizedAngle(Arrays.asList(state));
+		subsmheader.setInitialState("rotate");
+		subsmheader.setBeginDeadLine(connectedNode.getCurrentTime().add(new Duration(5)));
+		subsmheader.setTimeout(new Duration(-1));
+		substatemachine.setHeader(subsmheader);
+		substatemachine.setStateMachine(statemachine);
+		request.setStateMachinePepperBaseManager(substatemachine);
+		metaheader.setBeginDeadLine(connectedNode.getCurrentTime().add(new Duration(5)));
+		metaheader.setTimeout(new Duration(-1));
+		priority.setValue(MessagePriority.URGENT);
+		metaheader.setPriority(priority);
+		request.setHeader(metaheader);
+		service_clients.get("pepper_synchro").call(request, new ServiceResponseListener<Message>() {
+
+			@Override
+			public void onFailure(RemoteException arg0) {
+				if(id.equals("face_human"))
+					face_human_resp.setError("fail to rotate");
+				else if(id.equals("rotate"))
+					rotate_resp.setError("fail to rotate");
+			}
+
+			@Override
+			public void onSuccess(Message response) {
+				if(id.equals("face_human"))
+					face_human_resp = (MetaStateMachineRegisterResponse) response;
+				else if(id.equals("rotate"))
+					rotate_resp = (MetaStateMachineRegisterResponse) response;
+			}
+		});
 	}
 	
 	public void call_hatp_planner(String task, String type) {
@@ -1201,7 +1225,10 @@ public class RosNode extends AbstractNodeMain {
 		return placements_resp;
 	}
 
-	
+
+	public MetaStateMachineRegisterResponse getRotate_resp() {
+		return rotate_resp;
+	}
 
 	public MetaStateMachineRegisterResponse getFace_human_resp() {
 		return face_human_resp;

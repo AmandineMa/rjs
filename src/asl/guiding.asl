@@ -239,7 +239,8 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		.concat("human_", Human, HTF);
 		!check_dist(ID, HTF, Rposit, 0.5);
 	}
-	move_to(Rframe,Rposit, Rorient);
+	tf.quat_face_human(Rposit, Hposit, Q);
+	move_to(Rframe,Rposit, Q);
 	!wait_human(ID).
 
 @cd[max_attempts(15)]+!check_dist(ID, HTF, Rposit, Dist) : true <- 
@@ -291,7 +292,8 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		?target_to_point(T);
 		.concat("human_", Human, HTF);
 		can_be_visible(HTF, T);
-	}.
+	}
+	rotate(Rorient).
 	
 -!wait_human(ID)[Failure, code(_),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
 	?task(ID, guiding, Human, _);
@@ -306,6 +308,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		!speak(ID,cannot_find); 
 		!drop_current_task(ID, wait_human, max_attempts, "wait too long");
 	}elif(.substring(Failure, not_visible)){
+		jia.publish_marker(Hframe, orange);
 		!speak(ID, move_again);
 		!be_at_good_pos(ID);
 	}else{

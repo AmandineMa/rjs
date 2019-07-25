@@ -112,23 +112,23 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 //	!Plan.
 	
 
-^!guiding(ID, Human, Place)[state(started)] : not started <- +started; +monitoring(ID, Human).
-^!guiding(ID, Human, Place)[state(S)] : (S == finished | S == failed) & not finished <-
-	+finished;
-	.concat("human_", Human, H);  
-	!face_human(H); 
-	.succeed_goal(person_of_interest(Human));
-	-monitoring(ID, Human)[add_time(_), source(self)].
+//^!guiding(ID, Human, Place)[state(started)] : not started <- +started; +monitoring(ID, Human).
+//^!guiding(ID, Human, Place)[state(S)] : (S == finished | S == failed) & not finished <-
+//	+finished;
+//	.concat("human_", Human, H);  
+//	!face_human(H); 
+//	.succeed_goal(person_of_interest(Human));
+//	-monitoring(ID, Human)[add_time(_), source(self)].
 	
 +!face_human(H) : true <- face_human(H).
 -!face_human(H) : true <- true.
 
-+!guiding(ID, Human, Place): true <-
-	!get_optimal_route(ID);
-	!go_to_see_target(ID);
-	!show_landmarks(ID);
-	!clean_task(ID).
-	
+//+!guiding(ID, Human, Place): true <-
+//	!get_optimal_route(ID);
+//	!go_to_see_target(ID);
+//	!show_landmarks(ID);
+//	!clean_task(ID).
+
 -!guiding(ID, Human, Place) : true <-
 	!clean_task(ID).
 	

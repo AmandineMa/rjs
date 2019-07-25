@@ -8,6 +8,7 @@
 //TODO check si les srv, action servers sont connectés
 //TODO si initServices fail, reprendre la suite du plan une fois qu'ils se sont connectes via retry
 +!start : true <-
+	.verbose(2);
 	startParameterLoaderNode;
 	startROSNode;
 	initServices;
@@ -34,37 +35,40 @@
 	.wait(3000);
 	!retry_init_services.
 	
-+!check_guiding_goal : true <-
+@cg[no_log]+!check_guiding_goal : true <-
 	check_guiding_goal;
 	.wait(200);
 	!check_guiding_goal.
 	
 +init_over(failed) : true <- .print("robot initialisation failed").
 
-+guiding_goal(ID,Human, Target) : not current_guiding_goal(ID) <- 
++guiding_goal(ID,Human, Target) : not suspended_guiding_goal(ID) <- 
 	if(jia.believes(current_guiding_goal(_))){
 		?current_guiding_goal(IDprev);
 		.send(robot, tell, suspend(IDprev));
 		+suspended_guiding_goal(IDprev);
 		-current_guiding_goal(IDprev);
 	}
-	.send(robot, achieve, guiding_task(ID, Human, Target));
+	.send(robot, achieve, guiding(ID, Human, Target));
+	-guiding_goal(ID, Human, Target);
 	+current_guiding_goal(ID).
 
--guiding_goal(_,_,_) : suspended_guiding_goal(_) <-
-	if(.count((suspended_guiding_goal(_)),I) & I == 1){
-		?suspended_guiding_goal(ID);
-	}else{
-		jia.more_recent_bel(suspended_guiding_goal(_), B);
-		B =.. [Sgg, [ID], [_,_]];
-	}
++guiding_goal(ID,Human, Target) : suspended_guiding_goal(ID) <- 
+	.print("RESUME");
 	.send(robot, tell, resume(ID));
 	-suspended_guiding_goal(ID);
 	+current_guiding_goal(ID).
 
-+updated_guiding_goal(ID, Human, PlaceNego) : true <-
-	-guiding_goal(ID,_,_)[add_time(_),source(self)];
-	+guiding_goal(ID, Human, PlaceNego).
+//-guiding_goal(_,_,_) : suspended_guiding_goal(_) <-
+//	if(.count((suspended_guiding_goal(_)),I) & I == 1){
+//		?suspended_guiding_goal(ID);
+//	}else{
+//		jia.more_recent_bel(suspended_guiding_goal(_), B);
+//		B =.. [Sgg, [ID], [_,_]];
+//	}
+//	.send(robot, tell, resume(ID));
+//	-suspended_guiding_goal(ID);
+//	+current_guiding_goal(ID).
 
 +end_task(Success, ID) : true <-
 	-current_guiding_goal(ID);

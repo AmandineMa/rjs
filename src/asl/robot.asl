@@ -5,8 +5,7 @@
 { include("guiding.asl")}
 !start.
 +!start : true <- .verbose(2).
-+!guiding_task(ID, Human,Place) : true <-
-//	text2speech("25", ask_show_again).
++!guiding(ID, Human, Place) : true <-
 	-finished;
 	-point_at(point);
 	-look_at(look);
@@ -14,21 +13,18 @@
 	if(not .member(Human, Agents)){
 		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
 	}
-//	.send(Human, tell, end_task(succeeded, ID)).
 	+task(ID, guiding, Human, Place)[ID];
-	!guiding_goal_negociation(ID, Human,Place);
-	?guiding_goal_nego(PlaceNego, PlaceFrame);
-	if(Place \== PlaceNego){
-		.send(supervisor, tell, updated_guiding_goal(ID, Human, PlaceNego));
-		
-	}
+	!guiding_goal_negociation(ID, Human, Place);
+	?guiding_goal_nego(ID, PlaceNego);
 	-task(ID, guiding, Human, Place)[ID];
-	+task(ID, guiding, Human, PlaceFrame)[ID];	
-//	.concat("human-", Human, H);
-//	human_to_monitor(H);
-	!guiding(ID, Human, PlaceFrame);
-//	human_to_monitor(""); 
-	// for hwu
+	// task belief with onto name
+	+task(ID, guiding, Human, PlaceNego)[ID];	
+	!get_optimal_route(ID);
+	!go_to_see_target(ID);
+	!show_landmarks(ID);
+	!clean_task(ID);
+	human_to_monitor(""); 
+//	 for hwu
 //	text2speech(Human, succeeded);
 	+end_task(succeeded, ID)[ID];
 	.send(supervisor, tell, end_task(succeeded, ID)).

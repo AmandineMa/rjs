@@ -2,7 +2,9 @@
 
 package jia;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import arch.ROSAgArch;
 
@@ -10,6 +12,7 @@ import arch.ROSAgArch;
 
 import jason.asSemantics.*;
 import jason.asSyntax.*;
+import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceResponse;
 import utils.Code;
 
@@ -24,15 +27,20 @@ public class word_class extends DefaultInternalAction {
     	String action = args[0].toString();
     	String param = args[1].toString();
 		param = param.replaceAll("^\"|\"$", "");
-		ROSAgArch.getM_rosnode().call_onto_class_srv(action, param);
 		
-		OntologeniusServiceResponse places;
-		do {
-			places = ROSAgArch.getM_rosnode().getOnto_class_resp();
-			sleep(100);
-		}while(places == null);
-		short c = places.getCode() ;
-		List<String> l = places.getValues();
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put("action", action);
+		parameters.put("param", param);
+		OntologeniusServiceResponse onto_class_resp = ROSAgArch.getM_rosnode().callSyncService("get_class_info", parameters);
+		
+		OntologeniusServiceResponse places = ROSAgArch.getM_rosnode().newServiceResponseFromType(OntologeniusService._TYPE);
+		if(((OntologeniusServiceResponse) onto_class_resp).getValues().isEmpty()) {
+			places.setCode((short) Code.ERROR.getCode());
+		}else {
+			places.setCode((short) Code.OK.getCode());
+			places.setValues(((OntologeniusServiceResponse) onto_class_resp).getValues());
+		}
+		
 		if(places.getCode() == Code.OK.getCode() & !places.getValues().isEmpty()) {
         	return un.unifies(args[2], new StringTermImpl(places.getValues().get(0)));
         }else {

@@ -17,8 +17,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.vecmath.Quat4d;
-
 import org.ros.exception.ParameterNotFoundException;
 import org.ros.exception.RemoteException;
 import org.ros.exception.RosRuntimeException;
@@ -40,8 +38,6 @@ import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
-import org.ros.rosjava_geometry.Vector3;
-
 import com.github.rosjava_actionlib.ActionClient;
 import com.github.rosjava_actionlib.ActionClientListener;
 import com.github.rosjava_actionlib.ActionServer;
@@ -53,73 +49,41 @@ import com.google.common.collect.Multimaps;
 import actionlib_msgs.GoalID;
 import actionlib_msgs.GoalStatusArray;
 import arch.ROSAgArch;
-import deictic_gestures.CanLookAtRequest;
-import deictic_gestures.CanLookAtResponse;
-import deictic_gestures.CanPointAtRequest;
-import deictic_gestures.CanPointAtResponse;
-import deictic_gestures.LookAtRequest;
-import deictic_gestures.LookAtResponse;
-import deictic_gestures.PointAtRequest;
-import deictic_gestures.PointAtResponse;
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionGoal;
 import dialogue_as.dialogue_actionActionResult;
 import dialogue_as.dialogue_actionGoal;
+import geometry_msgs.Point;
 import geometry_msgs.PointStamped;
 import geometry_msgs.PoseStamped;
 import guiding_as_msgs.taskActionFeedback;
 import guiding_as_msgs.taskActionGoal;
 import guiding_as_msgs.taskActionResult;
-import hatp_msgs.PlanningRequestRequest;
-import hatp_msgs.PlanningRequestResponse;
-import jason.asSyntax.Atom;
+import jason.asSemantics.ActionExec;
 import jason.asSyntax.ListTerm;
+import jason.asSyntax.ListTermImpl;
 import jason.asSyntax.NumberTermImpl;
-import jason.stdlib.setof;
 import move_base_msgs.MoveBaseActionFeedback;
 import move_base_msgs.MoveBaseActionGoal;
 import move_base_msgs.MoveBaseActionResult;
 import move_base_msgs.MoveBaseGoal;
-import msg_srv_impl.SemanticRouteResponseImpl;
-import nao_interaction_msgs.GoToPostureRequest;
-import nao_interaction_msgs.SayRequest;
-import nao_interaction_msgs.SayResponse;
-import ontologenius_msgs.OntologeniusService;
-import ontologenius_msgs.OntologeniusServiceRequest;
-import ontologenius_msgs.OntologeniusServiceResponse;
 import pepper_base_manager_msgs.StateMachineStatePrioritizedAngle;
-import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterRequest;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterResponse;
 import pepper_resources_synchronizer_msgs.SubStateMachine_pepper_base_manager_msgs;
 import perspectives_msgs.Fact;
 import perspectives_msgs.FactArrayStamped;
-import perspectives_msgs.GetNameRequest;
 import perspectives_msgs.GetNameResponse;
-import perspectives_msgs.HasMeshResponse;
 import pointing_planner.PointingActionFeedback;
 import pointing_planner.PointingActionGoal;
 import pointing_planner.PointingActionResult;
 import pointing_planner.PointingGoal;
-import pointing_planner.PointingPlannerRequest;
-import pointing_planner.PointingPlannerResponse;
-import pointing_planner.VisibilityScoreRequest;
-import pointing_planner.VisibilityScoreResponse;
 import resource_management_msgs.EndCondition;
 import resource_management_msgs.MessagePriority;
 import resource_management_msgs.StateMachineStateHeader;
 import resource_management_msgs.StateMachineTransition;
 import resource_synchronizer_msgs.MetaStateMachineHeader;
 import resource_synchronizer_msgs.SubStateMachineHeader;
-import route_verbalization_msgs.VerbalizeRegionRouteRequest;
-import route_verbalization_msgs.VerbalizeRegionRouteResponse;
-import rpn_recipe_planner_msgs.SuperInformRequest;
-import rpn_recipe_planner_msgs.SuperInformResponse;
-import rpn_recipe_planner_msgs.SuperQueryRequest;
-import rpn_recipe_planner_msgs.SuperQueryResponse;
-import semantic_route_description_msgs.SemanticRouteRequest;
-import semantic_route_description_msgs.SemanticRouteResponse;
 import std_msgs.Header;
-import utils.Code;
 import utils.Quaternion;
 import utils.SimpleFact;
 import utils.Tools;
@@ -136,14 +100,14 @@ public class RosNode extends AbstractNodeMain {
 	@SuppressWarnings("unused")
 	private String name;
 	private Logger logger = Logger.getLogger(RosNode.class.getName());
-	
+
 	private ConnectedNode connectedNode;
 	private TransformListener tfl;
 	private ParameterTree parameters;
 	private MasterStateClient msc;
 	HashMap<String, HashMap<String, String>> services_map;
-	private HashMap <String, ServiceClient<Message, Message>> service_clients;
-	private HashMap <String, String> service_types;
+	private HashMap<String, ServiceClient<Message, Message>> service_clients;
+	private HashMap<String, String> service_types;
 	private ActionServer<taskActionGoal, taskActionFeedback, taskActionResult> guiding_as;
 	private taskActionGoal new_guiding_goal = null;
 	private Stack<taskActionGoal> stack_guiding_goals;
@@ -151,38 +115,24 @@ public class RosNode extends AbstractNodeMain {
 	private ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult> get_human_answer_ac;
 	private ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult> move_to_ac;
 	private Subscriber<perspectives_msgs.FactArrayStamped> facts_sub;
-	private OntologeniusServiceResponse onto_class_resp;
-	private SemanticRouteResponseImpl get_route_resp;
-	private VisibilityScoreResponse visibility_score_resp;
-//	private SpeakToResponse speak_to_resp;
-	private SayResponse speak_to_resp;
-	private PointAtResponse point_at_resp;
-	private LookAtResponse look_at_resp;
-	private CanPointAtResponse can_point_at_resp;
-	private CanLookAtResponse can_look_at_resp;
-	private VerbalizeRegionRouteResponse verbalization_resp;
 	private MetaStateMachineRegisterResponse face_human_resp;
 	private MetaStateMachineRegisterResponse rotate_resp;
-	private SuperInformResponse d_inform_resp;
-	private SuperQueryResponse d_query_resp;
-	private PointingPlannerResponse placements_resp;
-	private hatp_msgs.Plan hatp_planner_resp;
 	private PointingActionResult placements_result;
 	private PointingActionFeedback placements_fb;
 	private dialogue_actionActionResult listening_result;
-	private dialogue_actionActionFeedback listening_fb; 
+	private dialogue_actionActionFeedback listening_fb;
 	private dialogue_actionActionGoal listen_goal_msg;
 	private MoveBaseActionResult move_to_result;
 	private MoveBaseActionFeedback move_to_fb;
 	private Publisher<MoveBaseActionGoal> move_to_goal_pub;
 	private Subscriber<MoveBaseActionResult> move_to_result_sub;
- 	private Publisher<visualization_msgs.Marker> marker_pub;
+	private Publisher<visualization_msgs.Marker> marker_pub;
 	private Publisher<std_msgs.Int32> person_of_interest_pub;
 	private Subscriber<guiding_as_msgs.Task> goal_listener;
-	
-	private Multimap<String, SimpleFact> perceptions = Multimaps.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
-	private volatile int percept_id = 0;
 
+	private Multimap<String, SimpleFact> perceptions = Multimaps
+			.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
+	private volatile int percept_id = 0;
 
 	public RosNode(String name) {
 		this.name = name;
@@ -196,7 +146,7 @@ public class RosNode extends AbstractNodeMain {
 	public void onStart(final ConnectedNode connectedNode) {
 		this.connectedNode = connectedNode;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	public void init() {
 		try {
@@ -206,19 +156,23 @@ public class RosNode extends AbstractNodeMain {
 			try {
 				uri = new URI(System.getenv("ROS_MASTER_URI"));
 			} catch (URISyntaxException e) {
-				logger.info("Wrong URI syntax :"+e.getMessage());
+				logger.info("Wrong URI syntax :" + e.getMessage());
 			}
 			msc = new MasterStateClient(connectedNode, uri);
 			service_clients = new HashMap<String, ServiceClient<Message, Message>>();
 			services_map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services");
 			stack_guiding_goals = new Stack<taskActionGoal>();
-			marker_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher("/pp_debug", visualization_msgs.Marker._TYPE);
-			person_of_interest_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher(parameters.getString("/guiding/topics/person_of_interest"), std_msgs.Int32._TYPE);
-			guiding_as = new ActionServer<>(connectedNode, "/guiding_task", taskActionGoal._TYPE, taskActionFeedback._TYPE, taskActionResult._TYPE);
+			marker_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher("/pp_debug",
+					visualization_msgs.Marker._TYPE);
+			person_of_interest_pub = ROSAgArch.getM_rosnode().getConnectedNode()
+					.newPublisher(parameters.getString("/guiding/topics/person_of_interest"), std_msgs.Int32._TYPE);
+			guiding_as = new ActionServer<>(connectedNode, "/guiding_task", taskActionGoal._TYPE,
+					taskActionFeedback._TYPE, taskActionResult._TYPE);
 			guiding_as.attachListener(new ActionServerListener<taskActionGoal>() {
 
 				@Override
-				public void goalReceived(taskActionGoal goal) {}
+				public void goalReceived(taskActionGoal goal) {
+				}
 
 				@Override
 				public void cancelReceived(GoalID id) {
@@ -231,36 +185,39 @@ public class RosNode extends AbstractNodeMain {
 					return true;
 				}
 			});
-			
+
 			get_human_answer_ac = new ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult>(
-					connectedNode, parameters.getString("/guiding/action_servers/dialogue"), dialogue_actionActionGoal._TYPE, dialogue_actionActionFeedback._TYPE, dialogue_actionActionResult._TYPE);
-			
+					connectedNode, parameters.getString("/guiding/action_servers/dialogue"),
+					dialogue_actionActionGoal._TYPE, dialogue_actionActionFeedback._TYPE,
+					dialogue_actionActionResult._TYPE);
+
 			get_human_answer_ac.setLogLevel(Level.OFF);
-			
-			get_human_answer_ac.attachListener(new ActionClientListener<dialogue_actionActionFeedback, dialogue_actionActionResult>() {
 
-				@Override
-				public void feedbackReceived(dialogue_actionActionFeedback fb) {
-					listening_fb = fb;
-				}
+			get_human_answer_ac.attachListener(
+					new ActionClientListener<dialogue_actionActionFeedback, dialogue_actionActionResult>() {
 
-				@Override
-				public void resultReceived(dialogue_actionActionResult result) {
-					listening_result = result;
-					if(result.getStatus().getStatus()==actionlib_msgs.GoalStatus.SUCCEEDED) {
-						logger.info("result succeeded :"+result.getResult().getSubject());
-					}
-					if(result.getStatus().getStatus()==actionlib_msgs.GoalStatus.PREEMPTED) {
-						logger.info("result preempted");
-					}
-					
-					
-				}
+						@Override
+						public void feedbackReceived(dialogue_actionActionFeedback fb) {
+							listening_fb = fb;
+						}
 
-				@Override
-				public void statusReceived(GoalStatusArray arg0) {}
-			});
-			
+						@Override
+						public void resultReceived(dialogue_actionActionResult result) {
+							listening_result = result;
+							if (result.getStatus().getStatus() == actionlib_msgs.GoalStatus.SUCCEEDED) {
+								logger.info("result succeeded :" + result.getResult().getSubject());
+							}
+							if (result.getStatus().getStatus() == actionlib_msgs.GoalStatus.PREEMPTED) {
+								logger.info("result preempted");
+							}
+
+						}
+
+						@Override
+						public void statusReceived(GoalStatusArray arg0) {
+						}
+					});
+
 //			move_to_ac = new ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult>(
 //					connectedNode, parameters.getString("/guiding/action_servers/move_to"), MoveBaseActionGoal._TYPE, MoveBaseActionFeedback._TYPE, MoveBaseActionResult._TYPE);
 //			
@@ -284,131 +241,146 @@ public class RosNode extends AbstractNodeMain {
 //				public void statusReceived(GoalStatusArray arg0) {
 //				}
 //			});
-			
-			move_to_goal_pub = connectedNode.newPublisher(parameters.getString("/guiding/action_servers/move_to")+"/goal", MoveBaseActionGoal._TYPE);
-			move_to_result_sub = connectedNode.newSubscriber(parameters.getString("/guiding/action_servers/move_to")+"/result", MoveBaseActionResult._TYPE);
+
+			move_to_goal_pub = connectedNode.newPublisher(
+					parameters.getString("/guiding/action_servers/move_to") + "/goal", MoveBaseActionGoal._TYPE);
+			move_to_result_sub = connectedNode.newSubscriber(
+					parameters.getString("/guiding/action_servers/move_to") + "/result", MoveBaseActionResult._TYPE);
 			move_to_result_sub.addMessageListener(new MessageListener<MoveBaseActionResult>() {
 
 				@Override
 				public void onNewMessage(MoveBaseActionResult result) {
-					move_to_result = result;	
+					move_to_result = result;
 				}
 			});
-			
-			
-			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"), perspectives_msgs.FactArrayStamped._TYPE);
-	
+
+			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"),
+					perspectives_msgs.FactArrayStamped._TYPE);
+
 			facts_sub.addMessageListener(new MessageListener<perspectives_msgs.FactArrayStamped>() {
-				
-	
+
 				public void onNewMessage(FactArrayStamped facts) {
 					synchronized (perceptions) {
 						perceptions.clear();
-						for(Fact fact : facts.getFacts()) {
+						for (Fact fact : facts.getFacts()) {
 							final SimpleFact simple_fact;
 							String predicate = fact.getPredicate();
 							String subject = fact.getSubjectName();
 							String object = fact.getObjectName();
-							if(predicate.equals("isVisibleBy")) {
+							if (predicate.equals("isVisibleBy")) {
 								predicate = "canSee";
-								if(subject.startsWith("\""))
+								if (subject.startsWith("\""))
 									subject = subject.replaceAll("^\"|\"$", "");
-								if(service_clients.get("get_uwds_name") != null) {
+								if (service_clients.get("get_uwds_name") != null) {
 									Map<String, Object> parameters = new HashMap<String, Object>();
 									parameters.put("id", subject);
 									parameters.put("world", "robot/merged_visibilities");
 									GetNameResponse uwds_name_resp = callSyncService("get_uwds_name", parameters);
 									subject = uwds_name_resp.getName();
-									if(!subject.startsWith("\""))
-										subject = "\""+subject+"\"";
-									simple_fact = new SimpleFact(predicate,subject);
+									if (!subject.startsWith("\""))
+										subject = "\"" + subject + "\"";
+									simple_fact = new SimpleFact(predicate, subject);
 									perceptions.put(object, simple_fact);
 								}
-								
-							}else {
-								if(!object.isEmpty()) {
-									if(!object.startsWith("\""))
-										object = "\""+object+"\"";
-									simple_fact = new SimpleFact(predicate,object);
-								}else {
+
+							} else {
+								if (!object.isEmpty()) {
+									if (!object.startsWith("\""))
+										object = "\"" + object + "\"";
+									simple_fact = new SimpleFact(predicate, object);
+								} else {
 									simple_fact = new SimpleFact(predicate);
-								}			
-								perceptions.put(subject, simple_fact);			
+								}
+								perceptions.put(subject, simple_fact);
 							}
 						}
 					}
 					percept_id = facts.getHeader().getSeq();
 				}
 			});
-			
-			
-			
-			
+
 		} catch (ParameterNotFoundException e) {
-			logger.severe("Parameter not found exception : "+e.getMessage());
+			logger.severe("Parameter not found exception : " + e.getMessage());
 			throw new RosRuntimeException(e);
 		}
 	}
-	
-	
-	public <T> void callAsyncService(String serviceName, RosCallback<T> rcb, Object[] paramValue){
+
+	public <T> void callAsyncService(String serviceName, RosCallback<T> rcb, Map<String, Object> params) {
 		HashMap<String, String> mapInfoService = services_map.get(serviceName);
-		
-		if(mapInfoService != null && mapInfoService.containsKey("type")) {
+
+		if (mapInfoService != null && mapInfoService.containsKey("type")) {
 			String type = mapInfoService.get("type");
-			type = type.replace('/', '.')+"Request";
-			call_service(serviceName, type, rcb, paramValue);
-		} else {
-			logger.info("Service ("+serviceName+") not declared in yaml or type not filled");
-		}
-	}
-	
-	public <T> void callAsyncService(String serviceName, RosCallback<T> rcb, Map<String, Object> params){
-		HashMap<String, String> mapInfoService = services_map.get(serviceName);
-		
-		if(mapInfoService != null && mapInfoService.containsKey("type")) {
-			String type = mapInfoService.get("type");
-			type = type.replace('/', '.')+"Request";
+			type = type.replace('/', '.') + "Request";
 			call_service(serviceName, type, rcb, params);
 		} else {
-			logger.info("Service ("+serviceName+") not declared in yaml or type not filled");
+			logger.info("Service (" + serviceName + ") not declared in yaml or type not filled");
 		}
 	}
-	
+
+	public <T> void callAsyncService(String serviceName, ServiceResponseListener<T> srl, Map<String, Object> params) {
+		HashMap<String, String> mapInfoService = services_map.get(serviceName);
+
+		if (mapInfoService != null && mapInfoService.containsKey("type")) {
+			String type = mapInfoService.get("type");
+			type = type.replace('/', '.') + "Request";
+			call_service(serviceName, type, srl, params);
+		} else {
+			logger.info("Service (" + serviceName + ") not declared in yaml or type not filled");
+		}
+	}
+
+	public <T> T callSyncService(String service, ServiceResponseListener<T> respListener, Map<String, Object> params) {
+		CompletableFuture<T> future = new CompletableFuture<T>();
+
+		ServiceResponseListener<T> srl = new ServiceResponseListener<T>() {
+
+			@Override
+			public void onFailure(RemoteException e) {
+				respListener.onFailure(e);
+				future.complete(null);
+			}
+
+			@Override
+			public void onSuccess(T response) {
+				logger.info("message return: " + response.toString());
+				respListener.onSuccess(response);
+				future.complete(response);
+			}
+		};
+
+		callAsyncService(service, srl, params);
+
+		T response = null;
+		try {
+			response = future.get();
+		} catch (InterruptedException | ExecutionException e) {
+			e.printStackTrace();
+		}
+		return response;
+	}
+
 	public <T> T callSyncService(String service, Map<String, Object> params) {
 		CompletableFuture<T> future = new CompletableFuture<T>();
-		RosCallback<T> rcb = new RosCallback<T>() {
-			
+
+		ServiceResponseListener<T> srl = new ServiceResponseListener<T>() {
+
 			@Override
-			public void callback(T msg) {
-				logger.info("message return: "+msg.toString());
-				future.complete(msg);
+			public void onFailure(RemoteException e) {
+				future.complete(null);
+				RosRuntimeException RRE = new RosRuntimeException(e);
+				logger.info(Tools.getStackTrace((Exception) RRE));
+				throw RRE;
+			}
+
+			@Override
+			public void onSuccess(T response) {
+				logger.info("message return: " + response.toString());
+				future.complete(response);
 			}
 		};
-		
-		callAsyncService(service, rcb, params);
-		
-		T response = null;
-		try {
-			response = future.get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return response;
-	}
-	
-	public <T> T callSyncService(String service, Object[] params) {
-		CompletableFuture<T> future = new CompletableFuture<T>();
-		RosCallback<T> rcb = new RosCallback<T>() {
-			
-			@Override
-			public void callback(T msg) {
-				future.complete(msg);
-			}
-		};
-		
-		callAsyncService(service, rcb, params);
-		
+
+		callAsyncService(service, srl, params);
+
 		T response = null;
 		try {
 			response = future.get();
@@ -418,19 +390,18 @@ public class RosNode extends AbstractNodeMain {
 		return response;
 	}
 
-	public <T> void call_service(String serviceName, String className, RosCallback<T> rcb, Map<String, Object> params) {
-		logger.info("Calling service ("+serviceName+") with class: "+ className);
+	public <T> void call_service(String serviceName, String className, ServiceResponseListener<T> srl,
+			Map<String, Object> params) {
+		logger.info("Calling service (" + serviceName + ") with class: " + className);
 		Message msg = service_clients.get(serviceName).newMessage();
-		
-
 
 		List<Method> setMethods = new ArrayList<Method>();
 		try {
 			Class<?> c = Class.forName(className);
 			Method[] methods = c.getDeclaredMethods();
-			for(int i=0; i<methods.length; i++) {
-				logger.info("Current method: "+ methods[i].getName());
-				if("set".equalsIgnoreCase(methods[i].getName().substring(0, 3))) {
+			for (int i = 0; i < methods.length; i++) {
+				logger.info("Current method: " + methods[i].getName());
+				if ("set".equalsIgnoreCase(methods[i].getName().substring(0, 3))) {
 					logger.info("Is a set method");
 					setMethods.add(methods[i]);
 				}
@@ -438,103 +409,57 @@ public class RosNode extends AbstractNodeMain {
 		} catch (ClassNotFoundException | IllegalArgumentException e) {
 			e.printStackTrace();
 		}
-		
-		for(String name : params.keySet()) {
+
+		for (String name : params.keySet()) {
 			boolean noMethod = true;
-			for(Method curMethod : setMethods) {
-				if(curMethod.getName().substring(3).toLowerCase().equalsIgnoreCase(name))
+			for (Method curMethod : setMethods) {
+				if (curMethod.getName().substring(3).toLowerCase().equalsIgnoreCase(name))
 					noMethod = false;
 			}
-			
-			if(noMethod) {
-				logger.info("Warning: Parameter "+ name + " doesn't have a corresponding setter in "+ className);
+
+			if (noMethod) {
+				logger.info("Warning: Parameter " + name + " doesn't have a corresponding setter in " + className);
 				logger.info("List of setters for this class: ");
-				for(Method curMethod : setMethods) {
-					logger.info("  -  "+ curMethod.getName());
+				for (Method curMethod : setMethods) {
+					logger.info("  -  " + curMethod.getName());
 				}
 			}
 		}
-		
-		for(int i=0; i<setMethods.size(); i++) {
+
+		for (int i = 0; i < setMethods.size(); i++) {
 			try {
 				Method setM = setMethods.get(i);
-				if(setM.getParameterTypes().length==1) {
-					//Needed to check types ?
+				if (setM.getParameterTypes().length == 1) {
+					// Needed to check types ?
 					@SuppressWarnings("unused")
 					Class<?> parmType = setM.getParameterTypes()[0];
-					
+
 					String paramName = setM.getName().substring(3).toLowerCase();
-					if(params.containsKey(paramName)) {
-						logger.info("Setting "+paramName+" with value: " + params.get(paramName));
+					if (params.containsKey(paramName)) {
+						logger.info("Setting " + paramName + " with value: " + params.get(paramName));
 						setM.invoke(msg, params.get(paramName));
 					} else {
-						logger.info("No value defined for parameter: "+ paramName);
+						logger.info("No value defined for parameter: " + paramName);
 					}
-					
 
 				} else {
-					logger.info("Error: incorrect number of parameters: "+setM.getParameterTypes().length);
+					logger.info("Error: incorrect number of parameters: " + setM.getParameterTypes().length);
 				}
-					
+
 			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 				e.printStackTrace();
 			}
 		}
-		
-		//Possible de remplacer Message par T ? Le cast fait-il planter ?
-		ServiceResponseListener<Message> respList = (ServiceResponseListener<Message>) getResponseListener(rcb);
+
 		logger.info("Calling CALL method");
-		service_clients.get(serviceName).call(msg, respList);
+		service_clients.get(serviceName).call(msg, (ServiceResponseListener<Message>) srl);
 	}
-	
-	public <T> void call_service(String serviceName, String className, RosCallback<T> rcb, Object[] paramValue) {
-		logger.info("Calling service ("+serviceName+") with class: "+ className);
-		Message msg = service_clients.get(serviceName).newMessage();
-		
 
-		List<Method> setMethods = new ArrayList<Method>();
-		try {
-			Class<?> c = Class.forName(className);
-			Method[] methods = c.getDeclaredMethods();
-			for(int i=0; i<methods.length; i++) {
-				logger.info("Current method: "+ methods[i].getName());
-				if("set".equalsIgnoreCase(methods[i].getName().substring(0, 3))) {
-					logger.info("Is a set method");
-					setMethods.add(methods[i]);
-				}
-			}
-		} catch (ClassNotFoundException | IllegalArgumentException e) {
-			e.printStackTrace();
-		}
-		
-		if(setMethods.size() == paramValue.length) {
-			for(int i=0; i<setMethods.size(); i++) {
-				try {
-					Method setM = setMethods.get(i);
-					if(setM.getParameterTypes().length==1) {
-						//Needed to check types ?
-						@SuppressWarnings("unused")
-						Class<?> parmType = setM.getParameterTypes()[0];
-						setM.invoke(msg, paramValue[i]);
-
-					} else {
-						logger.info("Error: incorrect number of parameters: "+setM.getParameterTypes().length);
-					}
-						
-				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-					e.printStackTrace();
-				}
-			}
-			
-			//Possible de remplacer Message par T ? Le cast fait-il planter ?
-			ServiceResponseListener<Message> respList = (ServiceResponseListener<Message>) getResponseListener(rcb);
-			logger.info("Calling CALL method");
-			service_clients.get(serviceName).call(msg, respList);
-		} else {
-			logger.info("Error: number of set ("+setMethods.size()+") is different from number of parameters ("+paramValue.length+")");
-		}
+	public <T> void call_service(String serviceName, String className, RosCallback<T> rcb, Map<String, Object> params) {
+		ServiceResponseListener<T> respList = getResponseListener(rcb);
+		call_service(serviceName, className, respList, params);
 	}
-	
+
 	public <T> ServiceResponseListener<T> getResponseListener(RosCallback<T> rcb) {
 		return new ServiceResponseListener<T>() {
 
@@ -548,39 +473,39 @@ public class RosNode extends AbstractNodeMain {
 				logger.info("Response received on ServiceResponseListener");
 				rcb.callback(response);
 			}
-			
+
 		};
 	}
-	
+
 	public void set_task_result(String success, String id) {
-		if(guiding_as != null) {
-			if(success.equals("succeeded"))
+		if (guiding_as != null) {
+			if (success.equals("succeeded"))
 				guiding_as.setSucceed(id);
 			else
 				guiding_as.setAbort(id);
-		}else {
+		} else {
 			logger.info("guiding as null");
 		}
 	}
-	
+
 	public HashMap<String, Boolean> init_service_clients() {
-		HashMap<String, Boolean> services_status = new HashMap<String, Boolean>();		
-		
-		for(Entry<String, HashMap<String, String>> entry : services_map.entrySet()) {
+		HashMap<String, Boolean> services_status = new HashMap<String, Boolean>();
+
+		for (Entry<String, HashMap<String, String>> entry : services_map.entrySet()) {
 			services_status.put(entry.getKey(), create_service_client(entry.getKey()));
 		}
 		return services_status;
 	}
-	
-	public HashMap<String, Boolean> retry_init_service_clients(Set<String> clients_to_init){
+
+	public HashMap<String, Boolean> retry_init_service_clients(Set<String> clients_to_init) {
 		HashMap<String, Boolean> services_status = new HashMap<String, Boolean>();
-		
-		for(String client : clients_to_init) {
+
+		for (String client : clients_to_init) {
 			services_status.put(client, create_service_client(client));
 		}
 		return services_status;
 	}
-	
+
 	private boolean create_service_client(String key) {
 		boolean status = false;
 		String srv_name = services_map.get(key).get("name");
@@ -588,15 +513,15 @@ public class RosNode extends AbstractNodeMain {
 		if (ls.toString().isEmpty()) {
 			service_clients.put(key, null);
 			status = false;
-		}else {
-	        ServiceClient<Message, Message> serv_client;
+		} else {
+			ServiceClient<Message, Message> serv_client;
 			try {
-				logger.info("connect to "+srv_name);
+				logger.info("connect to " + srv_name);
 				serv_client = connectedNode.newServiceClient(srv_name, services_map.get(key).get("type"));
-				service_clients.put(key, serv_client);	
+				service_clients.put(key, serv_client);
 				status = true;
-			}catch (ServiceNotFoundException e) {
-				logger.severe("Service not found exception : "+e.getMessage());
+			} catch (ServiceNotFoundException e) {
+				logger.severe("Service not found exception : " + e.getMessage());
 				throw new RosRuntimeException(e);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -604,197 +529,33 @@ public class RosNode extends AbstractNodeMain {
 		}
 		return status;
 	}
-	
-	/*public void call_get_uwds_name_srv(String id) {
-		uwds_name_resp = null;
-		final GetNameRequest request = (GetNameRequest) service_clients.get("get_uwds_name").newMessage();
-		request.setId(id);
-		request.setWorld("robot/merged_visibilities");
-		service_clients.get("get_uwds_name").call(request, new ServiceResponseListener<Message>() {
 
-			@Override
-			public void onSuccess(Message response) {
-				uwds_name_resp = (GetNameResponse) response;
-				
-			}
-
-			@Override
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-				
-			}
-		});
-	}*/
-
-	/*public void call_onto_individual_srv(String action, String param) {
-		onto_individual_resp = null;
-		final OntologeniusServiceRequest request = (OntologeniusServiceRequest) service_clients.get("get_individual_info").newMessage();
-		request.setAction(action);
-		request.setParam(param);
-		service_clients.get("get_individual_info").call(request, new ServiceResponseListener<Message>() {
-
-			@Override
-			public void onSuccess(Message response) {
-				onto_individual_resp = connectedNode.getServiceResponseMessageFactory().newFromType(OntologeniusService._TYPE);
-				if(((OntologeniusServiceResponse) response).getValues().isEmpty()) {
-					onto_individual_resp.setCode((short) Code.ERROR.getCode());
-				}else {
-					onto_individual_resp.setCode((short) Code.OK.getCode());
-					onto_individual_resp.setValues(((OntologeniusServiceResponse) response).getValues());
-				}
-				
-			}
-
-			@Override
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-				
-			}
-		});
-	}*/
-	
-	public void call_onto_class_srv(String action, String param) {
-		onto_class_resp = null;
-		final OntologeniusServiceRequest request = (OntologeniusServiceRequest) service_clients.get("get_class_info").newMessage();
-		request.setAction(action);
-		request.setParam(param);
-		service_clients.get("get_class_info").call(request, new ServiceResponseListener<Message>() {
-
-			@Override
-			public void onSuccess(Message response) {
-				onto_class_resp = connectedNode.getServiceResponseMessageFactory().newFromType(OntologeniusService._TYPE);
-				if(((OntologeniusServiceResponse) response).getValues().isEmpty()) {
-					onto_class_resp.setCode((short) Code.ERROR.getCode());
-				}else {
-					onto_class_resp.setCode((short) Code.OK.getCode());
-					onto_class_resp.setValues(((OntologeniusServiceResponse) response).getValues());
-				}
-				
-			}
-
-			@Override
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-				
-			}
-		});
+	public <T> T newServiceResponseFromType(String type) {
+		return connectedNode.getServiceResponseMessageFactory().newFromType(type);
 	}
 
-	public void call_get_route_srv(String from, String to, String persona, boolean signpost) {
-		get_route_resp = null;
-		final SemanticRouteRequest request = (SemanticRouteRequest) service_clients.get("get_route").newMessage();
-		request.setFrom(from);
-		request.setTo(to);
-		request.setPersona(persona);
-		request.setSignpost(signpost);
-		service_clients.get("get_route").call(request, new ServiceResponseListener<Message>() {
-			public void onSuccess(Message response) {
-				get_route_resp = new SemanticRouteResponseImpl(
-						((SemanticRouteResponse) response).getCosts(), 
-						((SemanticRouteResponse) response).getGoals(), 
-						((SemanticRouteResponse) response).getRoutes());
-				if(((SemanticRouteResponse) response).getRoutes().isEmpty()) {
-					get_route_resp.setCode(Code.ERROR.getCode());
-				}else {
-					get_route_resp.setCode(Code.OK.getCode());
-				}
-			}
-
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-			}
-		});
-	}
-	
-
-
-	
-	public void call_visibility_score_srv(String agent, String frame) {
-		visibility_score_resp = null;
-		final VisibilityScoreRequest request = (VisibilityScoreRequest) service_clients.get("is_visible").newMessage();
-		request.setAgentName(agent);
-		request.setTargetName(frame);
-		service_clients.get("is_visible").call(request, new ServiceResponseListener<Message>() {
-
-			public void onFailure(RemoteException e) {
-				logger.info(e.toString());
-				throw new RosRuntimeException(e);
-			}
-
-			public void onSuccess(Message response) {
-				visibility_score_resp = (VisibilityScoreResponse) response;
-			}
-			
-		});
-	}
-	
-	public void call_point_at_srv(String frame, boolean with_head, boolean with_base, ServiceResponseListener<Message> responseListener) {
-		point_at_resp = null;
-		final PointAtRequest request = (PointAtRequest) service_clients.get("point_at").newMessage();
+	public PointStamped build_point_stamped(String frame) {
 		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
 		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
 		header.setFrameId(frame);
 		point.setHeader(header);
-		request.setPoint(point);
-		request.setWithBase(with_base);
-		request.setWithHead(with_head);
-		service_clients.get("point_at").call(request, responseListener);
+		return point;
 	}
-	
-	public void call_look_at_srv(PointStamped point_stamped, boolean with_base) {
-		look_at_resp = null;
-		final LookAtRequest request = (LookAtRequest) service_clients.get("look_at").newMessage();
-		request.setPoint(point_stamped);
-		request.setWithBase(with_base);
-		service_clients.get("look_at").call(request, new ServiceResponseListener<Message>() {
 
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-			}
+	public PointStamped buld_point_stamped(ActionExec action, String frame) {
+		MessageFactory messageFactory = connectedNode.getTopicMessageFactory();
+		PointStamped point_stamped = build_point_stamped(frame);
 
-			public void onSuccess(Message response) {
-				look_at_resp = (LookAtResponse) response;
-			}
-			
-		});
-	}
-	
-	public void call_can_point_at_srv(String frame) {
-		can_point_at_resp = null;
-		final CanPointAtRequest request = (CanPointAtRequest) service_clients.get("can_point_at").newMessage();
-		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
-		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
-		header.setFrameId(frame);
-		point.setHeader(header);
-		request.setPoint(point);
-		service_clients.get("can_point_at").call(request, new ServiceResponseListener<Message>() {
+		if (action.getActionTerm().getArity() != 1) {
+			ListTermImpl point_term = ((ListTermImpl) action.getActionTerm().getTerm(1));
+			Point point = messageFactory.newFromType(Point._TYPE);
+			point.setX(((NumberTermImpl) point_term.get(0)).solve());
+			point.setY(((NumberTermImpl) point_term.get(1)).solve());
+			point.setZ(((NumberTermImpl) point_term.get(2)).solve());
+			point_stamped.setPoint(point);
+		}
 
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-			}
-
-			public void onSuccess(Message response) {
-				can_point_at_resp = (CanPointAtResponse) response;
-			}
-			
-		});
-	}
-	
-	public void call_can_look_at_srv(PointStamped point_stamped) {
-		can_look_at_resp = null;
-		final CanLookAtRequest request = (CanLookAtRequest) service_clients.get("can_look_at").newMessage();
-		request.setPoint(point_stamped);
-		service_clients.get("can_look_at").call(request, new ServiceResponseListener<Message>() {
-
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-			}
-
-			public void onSuccess(Message response) {
-				can_look_at_resp = (CanLookAtResponse) response;
-			}
-			
-		});
+		return point_stamped;
 	}
 
 //	public void call_speak_to_srv(String look_at, String text) {
@@ -818,136 +579,7 @@ public class RosNode extends AbstractNodeMain {
 //			
 //		});
 //	}
-	
-	public void call_speak_to_srv(String look_at, String text) {
-		speak_to_resp = null;
-		final SayRequest request = (SayRequest) service_clients.get("speak_to").newMessage();
-//		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
-//		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
-//		header.setFrameId(look_at);
-//		point.setHeader(header);
-//		request.setLookAt(point);
-		request.setText(text);
-		service_clients.get("speak_to").call(request, new ServiceResponseListener<Message>() {
 
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-			}
-
-			public void onSuccess(Message response) {
-				speak_to_resp = (SayResponse) response;
-			}
-			
-		});
-	}
-	
-	public void call_route_verbalization_srv(List<String> route, String start_place, String goal_shop) {
-		verbalization_resp = null;
-		final VerbalizeRegionRouteRequest request = (VerbalizeRegionRouteRequest) service_clients.get("route_verbalization").newMessage();
-		request.setRoute(route);
-		request.setStartPlace(start_place);
-		request.setGoalShop(goal_shop);
-		service_clients.get("route_verbalization").call(request, new ServiceResponseListener<Message>() {
-
-			@Override
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-			}
-
-			@Override
-			public void onSuccess(Message response) {
-				verbalization_resp = (VerbalizeRegionRouteResponse) response;
-			}
-		});
-	}
-	
-	public void call_dialogue_inform_srv(String sentence_code) {
-		call_dialogue_inform_srv(sentence_code,  "");
-	}
-	
-	public void call_dialogue_inform_srv(String sentence_code, String param) {
-		d_inform_resp = null;
-		final SuperInformRequest request = (SuperInformRequest) service_clients.get("dialogue_inform").newMessage();
-		request.setStatus(sentence_code);
-		request.setReturnValue(param);
-		service_clients.get("dialogue_inform").call(request, new ServiceResponseListener<Message>() {
-
-			@Override
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-			}
-
-			@Override
-			public void onSuccess(Message response) {
-				// empty
-				d_inform_resp = (SuperInformResponse) response;
-			}
-		});
-	}
-	
-	public void call_dialogue_query_srv(String sentence_code) {
-		call_dialogue_query_srv(sentence_code,  "");
-	}
-	
-	public void call_dialogue_query_srv(String sentence_code, String param) {
-		d_query_resp = null;
-		final SuperQueryRequest request = (SuperQueryRequest) service_clients.get("dialogue_query").newMessage();
-		request.setStatus(sentence_code);
-		request.setReturnValue(param);
-		logger.info(sentence_code+"("+param+")");
-		service_clients.get("dialogue_query").call(request, new ServiceResponseListener<Message>() {
-
-			@Override
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-			}
-
-			@Override
-			public void onSuccess(Message response) {
-				d_query_resp = (SuperQueryResponse) response;
-			}
-		});
-	}
-	
-	public void call_svp_planner_srv(String target_ld, String direction_ld, String human) {
-		placements_resp = null;
-		final PointingPlannerRequest request = (PointingPlannerRequest) service_clients.get("pointing_planner").newMessage();
-		request.setTargetLandmark(target_ld);
-		request.setDirectionLandmark(direction_ld);
-		request.setHuman(human);
-		service_clients.get("pointing_planner").call(request, new ServiceResponseListener<Message>() {
-
-			@Override
-			public void onFailure(RemoteException arg0) {
-				NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
-				MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
-				placements_resp = messageFactory.newFromType(PointingPlannerResponse._TYPE);
-				placements_resp.setPointedLandmarks(new ArrayList<String>());
-			}
-
-			@Override
-			public void onSuccess(Message response) {
-				placements_resp = (PointingPlannerResponse) response;
-				
-			}
-		});
-	}
-	
-	public void call_stand_pose_srv() {
-		final GoToPostureRequest request = (GoToPostureRequest) service_clients.get("stand_pose").newMessage();
-		request.setPostureName("StandInit");
-		service_clients.get("stand_pose").call(request, new ServiceResponseListener<Message>() {
-
-			@Override
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-			}
-
-			@Override
-			public void onSuccess(Message response) {}
-		});
-	}
-	
 	public boolean face_human_sm(String human) {
 		face_human_resp = null;
 		TransformTree tfTree = getTfTree();
@@ -955,115 +587,125 @@ public class RosNode extends AbstractNodeMain {
 		String frame1 = "base_link";
 		String frame2 = human;
 		frame2 = frame2.replaceAll("^\"|\"$", "");
-		if(tfTree.canTransform(frame1, frame2)) {
+		if (tfTree.canTransform(frame1, frame2)) {
 			try {
 
 				transform = tfTree.lookupMostRecent(frame1, frame2);
 				float d = (float) Math.atan2(transform.translation.y, transform.translation.x);
 				rotation_sm("face_human", d);
 				return true;
-			}
-			catch (Exception e) {
+			} catch (Exception e) {
 				return false;
 			}
-		}else {
+		} else {
 			return false;
 		}
 	}
-	
+
 	public boolean rotate_sm(ListTerm quaternion) {
 		rotate_resp = null;
-		Quaternion q = new Quaternion(((NumberTermImpl) quaternion.get(0)).solve(), ((NumberTermImpl) quaternion.get(1)).solve(), 
-									  ((NumberTermImpl) quaternion.get(2)).solve(), ((NumberTermImpl) quaternion.get(3)).solve());
+		Quaternion q = new Quaternion(((NumberTermImpl) quaternion.get(0)).solve(),
+				((NumberTermImpl) quaternion.get(1)).solve(), ((NumberTermImpl) quaternion.get(2)).solve(),
+				((NumberTermImpl) quaternion.get(3)).solve());
 		double d = q.getTheta();
 		rotation_sm("rotate", (float) d);
 		return true;
 	}
-	
-	
-	private void rotation_sm(String id, float d) {
-		final MetaStateMachineRegisterRequest request = (MetaStateMachineRegisterRequest) service_clients.get("pepper_synchro").newMessage();
+
+	private MetaStateMachineHeader build_meta_header() {
 		NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
 		MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
-		SubStateMachine_pepper_base_manager_msgs substatemachine = messageFactory.newFromType(SubStateMachine_pepper_base_manager_msgs._TYPE);
-		pepper_base_manager_msgs.StateMachine statemachine = messageFactory.newFromType(pepper_base_manager_msgs.StateMachine._TYPE);
-		StateMachineStatePrioritizedAngle state = messageFactory.newFromType(StateMachineStatePrioritizedAngle._TYPE);
-		StateMachineStateHeader stateheader = messageFactory.newFromType(StateMachineStateHeader._TYPE);
-		StateMachineTransition smtransition = messageFactory.newFromType(StateMachineTransition._TYPE);
-		EndCondition end_condition = messageFactory.newFromType(EndCondition._TYPE);
-		SubStateMachineHeader subsmheader = messageFactory.newFromType(SubStateMachineHeader._TYPE);
-		MetaStateMachineHeader metaheader = messageFactory.newFromType(MetaStateMachineHeader._TYPE);
+
 		MessagePriority priority = messageFactory.newFromType(MessagePriority._TYPE);
-		state.setData(d);
-		stateheader.setId(id);
+		priority.setValue(MessagePriority.URGENT);
+
+		MetaStateMachineHeader metaheader = messageFactory.newFromType(MetaStateMachineHeader._TYPE);
+		metaheader.setBeginDeadLine(connectedNode.getCurrentTime().add(new Duration(5)));
+		metaheader.setTimeout(new Duration(-1));
+		metaheader.setPriority(priority);
+
+		return metaheader;
+	}
+
+	private SubStateMachine_pepper_base_manager_msgs build_state_machine_pepper_base_manager(String id, float d) {
+		NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
+		MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+
+		// Build End Condition: __done__
+		EndCondition end_condition = messageFactory.newFromType(EndCondition._TYPE);
 		end_condition.setDuration(new Duration(-1));
 		end_condition.setTimeout(new Duration(-1));
 		ArrayList<String> a = new ArrayList<String>();
 		a.add("__done__");
 		end_condition.setRegexEndCondition(a);
+
+		// Set State Machine Transition from End Condition
+		StateMachineTransition smtransition = messageFactory.newFromType(StateMachineTransition._TYPE);
 		smtransition.setEndCondition(end_condition);
 		smtransition.setNextState("end");
+
+		// Set State Header from Transition
+		StateMachineStateHeader stateheader = messageFactory.newFromType(StateMachineStateHeader._TYPE);
+		stateheader.setId(id);
 		stateheader.setTransitions(Arrays.asList(smtransition));
+
+		// Creating corresponding state
+		StateMachineStatePrioritizedAngle state = messageFactory.newFromType(StateMachineStatePrioritizedAngle._TYPE);
+		state.setData(d);
 		state.setHeader(stateheader);
+
+		pepper_base_manager_msgs.StateMachine statemachine = messageFactory
+				.newFromType(pepper_base_manager_msgs.StateMachine._TYPE);
 		statemachine.setStatesPrioritizedAngle(Arrays.asList(state));
+
+		SubStateMachineHeader subsmheader = messageFactory.newFromType(SubStateMachineHeader._TYPE);
 		subsmheader.setInitialState("rotate");
 		subsmheader.setBeginDeadLine(connectedNode.getCurrentTime().add(new Duration(5)));
 		subsmheader.setTimeout(new Duration(-1));
+
+		SubStateMachine_pepper_base_manager_msgs substatemachine = messageFactory
+				.newFromType(SubStateMachine_pepper_base_manager_msgs._TYPE);
 		substatemachine.setHeader(subsmheader);
 		substatemachine.setStateMachine(statemachine);
-		request.setStateMachinePepperBaseManager(substatemachine);
-		metaheader.setBeginDeadLine(connectedNode.getCurrentTime().add(new Duration(5)));
-		metaheader.setTimeout(new Duration(-1));
-		priority.setValue(MessagePriority.URGENT);
-		metaheader.setPriority(priority);
-		request.setHeader(metaheader);
-		service_clients.get("pepper_synchro").call(request, new ServiceResponseListener<Message>() {
+		return substatemachine;
+	}
+
+	private void rotation_sm(String id, float d) {
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put("statemachinepepperbasemanager", build_state_machine_pepper_base_manager(id, d));
+		parameters.put("header", build_meta_header());
+
+		ServiceResponseListener<MetaStateMachineRegisterResponse> respListener = new ServiceResponseListener<MetaStateMachineRegisterResponse>() {
 
 			@Override
-			public void onFailure(RemoteException arg0) {
-				if(id.equals("face_human"))
+			public void onFailure(RemoteException e) {
+				if (id.equals("face_human"))
 					face_human_resp.setError("fail to rotate");
-				else if(id.equals("rotate"))
+				else if (id.equals("rotate"))
 					rotate_resp.setError("fail to rotate");
 			}
 
 			@Override
-			public void onSuccess(Message response) {
-				if(id.equals("face_human"))
-					face_human_resp = (MetaStateMachineRegisterResponse) response;
-				else if(id.equals("rotate"))
-					rotate_resp = (MetaStateMachineRegisterResponse) response;
+			public void onSuccess(MetaStateMachineRegisterResponse response) {
+				if (id.equals("face_human"))
+					face_human_resp = response;
+				else if (id.equals("rotate"))
+					rotate_resp = response;
 			}
-		});
+		};
+
+		MetaStateMachineRegisterResponse response = callSyncService("pepper_synchro", respListener, parameters);
+
 	}
-	
-	public void call_hatp_planner(String task, String type) {
-		call_hatp_planner(task, type, new ArrayList<String>());
-	}
-	
-	public void call_hatp_planner(String task, String type, List<String> parameters) {
-		hatp_planner_resp = null;
-		final PlanningRequestRequest request = (PlanningRequestRequest) service_clients.get("hatp_planner").newMessage();
+
+	public hatp_msgs.Request build_hatp_request(String task, String type, List<String> parameters) {
 		hatp_msgs.Request r_request = connectedNode.getTopicMessageFactory().newFromType(hatp_msgs.Request._TYPE);
 		r_request.setTask(task);
 		r_request.setType(type);
-		if(!parameters.isEmpty()) {
+		if (parameters != null && !parameters.isEmpty()) {
 			r_request.setParameters(parameters);
 		}
-		request.setRequest(r_request);
-		service_clients.get("hatp_planner").call(request, new ServiceResponseListener<Message>() {
-
-			@Override
-			public void onSuccess(Message response) {
-				PlanningRequestResponse resp = (PlanningRequestResponse) response;
-				hatp_planner_resp = resp.getSolution();
-			}
-
-			@Override
-			public void onFailure(RemoteException e) {
-				throw new RosRuntimeException(e);
-			}
-		});
+		return r_request;
 	}
 
 	public boolean call_svp_planner(String target_ld, String direction_ld, String human, int max_attempt) {
@@ -1090,13 +732,10 @@ public class RosNode extends AbstractNodeMain {
 				count += 1;
 				logger.info("No actionlib svp server found ");
 			}
-		}while(!server_started & count < max_attempt);
+		} while (!server_started & count < max_attempt);
 		return false;
 	}
-	
-	
-	
-	
+
 //	public boolean call_move_to_as(PoseStamped pose, int max_attempt) {
 //		move_to_fb = null;
 //		move_to_result = null;
@@ -1126,72 +765,72 @@ public class RosNode extends AbstractNodeMain {
 //		return false;	
 //			
 //	}
-	
+
 	public boolean call_move_to_as(PoseStamped pose, int max_attempt) {
 		move_to_fb = null;
 		move_to_result = null;
 		MoveBaseActionGoal goal_msg;
 		goal_msg = move_to_goal_pub.newMessage();
-		
+
 		NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
 		MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
-		MoveBaseGoal move_to_goal = messageFactory.newFromType(MoveBaseGoal._TYPE);;
+		MoveBaseGoal move_to_goal = messageFactory.newFromType(MoveBaseGoal._TYPE);
+
 		move_to_goal.setTargetPose(pose);
 		goal_msg.setGoal(move_to_goal);
-		
+
 		move_to_goal_pub.publish(goal_msg);
 		return true;
-			
+
 	}
+
 	public boolean call_dialogue_as(List<String> subjects, int max_attempt) {
 		return call_dialogue_as(subjects, new ArrayList<String>(), max_attempt);
 	}
-	
+
 	public boolean call_dialogue_as(List<String> subjects, List<String> verbs, int max_attempt) {
 		listening_fb = null;
-		listening_result =  null;
+		listening_result = null;
 		logger.info("wait to start dialogue_as");
 		boolean server_started;
 		int count = 0;
 		do {
 			server_started = get_human_answer_ac.waitForActionServerToStart(new Duration(3));
-			if(server_started) {
+			if (server_started) {
 				logger.info("dialogue started");
-				
+
 				listen_goal_msg = get_human_answer_ac.newGoalMessage();
 				dialogue_actionGoal listen_goal = listen_goal_msg.getGoal();
-				if(!subjects.isEmpty()) {
+				if (!subjects.isEmpty()) {
 					listen_goal.setSubjects(subjects);
-				}else {
+				} else {
 					listen_goal.setEnableOnlyVerb(true);
 				}
-				if(!verbs.isEmpty()) {
+				if (!verbs.isEmpty()) {
 					listen_goal.setVerbs(verbs);
-				}else {
+				} else {
 					listen_goal.setEnableOnlySubject(true);
 				}
 				listen_goal_msg.setGoal(listen_goal);
-				
+
 				get_human_answer_ac.sendGoal(listen_goal_msg);
-	//			logger.info(listen_goal_msg.getGoalId().toString());
+				// logger.info(listen_goal_msg.getGoalId().toString());
 				logger.info(listen_goal_msg.getGoalId().getId());
 				logger.info(listen_goal_msg.getGoalId().getStamp().toString());
 				return true;
-			}else {
+			} else {
 				count += 1;
 				logger.info("No actionlib dialogue server found ");
 			}
-		}while(!server_started & count < max_attempt);
-		return false;	
+		} while (!server_started & count < max_attempt);
+		return false;
 	}
-	
 
-	
 	public void cancel_goal_dialogue() {
-		if(get_human_answer_ac != null & listen_goal_msg != null)
+		if (get_human_answer_ac != null & listen_goal_msg != null)
 			get_human_answer_ac.sendCancel(listen_goal_msg.getGoalId());
 	}
-	
+
 	public taskActionGoal getNew_guiding_goal() {
 		return new_guiding_goal;
 	}
@@ -1204,27 +843,13 @@ public class RosNode extends AbstractNodeMain {
 		return stack_guiding_goals;
 	}
 
-	public OntologeniusServiceResponse getOnto_class_resp() {
-		return onto_class_resp;
-	}
-
-	public SemanticRouteResponseImpl get_get_route_resp() {
-		return get_route_resp;
-	}
-
-
 	public PointingActionResult get_placements_result() {
 		return placements_result;
 	}
-	
+
 	public PointingActionFeedback getPlacements_fb() {
 		return placements_fb;
 	}
-	
-	public PointingPlannerResponse getPlacements_resp() {
-		return placements_resp;
-	}
-
 
 	public MetaStateMachineRegisterResponse getRotate_resp() {
 		return rotate_resp;
@@ -1250,50 +875,6 @@ public class RosNode extends AbstractNodeMain {
 		return move_to_fb;
 	}
 
-	public VisibilityScoreResponse getVisibility_score_resp() {
-		return visibility_score_resp;
-	}
-
-//	public SpeakToResponse getSpeak_to_resp() {
-//		return speak_to_resp;
-//	}
-	
-	public SayResponse getSpeak_to_resp() {
-		return speak_to_resp;
-	}
-
-	public SuperInformResponse getD_inform_resp() {
-		return d_inform_resp;
-	}
-
-	public SuperQueryResponse getD_query_resp() {
-		return d_query_resp;
-	}
-
-	public PointAtResponse getPoint_at_resp() {
-		return point_at_resp;
-	}
-
-	public LookAtResponse getLook_at_resp() {
-		return look_at_resp;
-	}
-
-	public CanPointAtResponse getCan_point_at_resp() {
-		return can_point_at_resp;
-	}
-
-	public CanLookAtResponse getCan_look_at_resp() {
-		return can_look_at_resp;
-	}
-
-	public VerbalizeRegionRouteResponse getVerbalization_resp() {
-		return verbalization_resp;
-	}
-
-	public hatp_msgs.Plan getHatp_planner_resp() {
-		return hatp_planner_resp;
-	}
-
 	public Multimap<String, SimpleFact> getPerceptions() {
 		return perceptions;
 	}
@@ -1305,12 +886,11 @@ public class RosNode extends AbstractNodeMain {
 	public void setPerceptions(Multimap<String, SimpleFact> perceptions) {
 		this.perceptions = perceptions;
 	}
-	
 
 	public ConnectedNode getConnectedNode() {
 		return connectedNode;
 	}
-	
+
 	public TransformTree getTfTree() {
 		return tfl.getTree();
 	}
@@ -1318,8 +898,6 @@ public class RosNode extends AbstractNodeMain {
 	public ParameterTree getParameters() {
 		return parameters;
 	}
-	
-	
 
 	public Publisher<std_msgs.Int32> getPerson_of_interest_pub() {
 		return person_of_interest_pub;
@@ -1340,8 +918,4 @@ public class RosNode extends AbstractNodeMain {
 		Subscriber<T> sub = getConnectedNode().newSubscriber(getParameters().getString(topic), type);
 		sub.addMessageListener(ml);
 	}
-
-
-
-
 }

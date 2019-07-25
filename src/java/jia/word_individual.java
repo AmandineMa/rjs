@@ -11,6 +11,7 @@ import arch.ROSAgArch;
 
 import jason.asSemantics.*;
 import jason.asSyntax.*;
+import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceResponse;
 import utils.Code;
 
@@ -30,7 +31,15 @@ public class word_individual extends DefaultInternalAction {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put("action", action);
 		parameters.put("param", param);
-		OntologeniusServiceResponse places = ROSAgArch.getM_rosnode().callSyncService("get_individual_info", parameters);
+		OntologeniusServiceResponse onto_individual_resp = ROSAgArch.getM_rosnode().callSyncService("get_individual_info", parameters);
+		
+		OntologeniusServiceResponse places = ROSAgArch.getM_rosnode().newServiceResponseFromType(OntologeniusService._TYPE);
+		if(onto_individual_resp.getValues().isEmpty()) {
+			places.setCode((short) Code.ERROR.getCode());
+		}else {
+			places.setCode((short) Code.OK.getCode());
+			places.setValues(onto_individual_resp.getValues());
+		}
 		
 		if(places.getCode() == Code.OK.getCode() & !places.getValues().isEmpty()) {
 			if(places.getValues().size() == 1) {

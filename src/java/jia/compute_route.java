@@ -3,7 +3,9 @@
 package jia;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import arch.ROSAgArch;
@@ -45,23 +47,23 @@ public class compute_route extends DefaultInternalAction {
 		boolean at_least_one_ok = false;
 		// we get all the possible routes for the different places 
 		// (we will be able then to choose between the best toilet or atm to go)
-		for (Term t: to_list) {
+		for (Term t: to_list) {		
+			Map<String, Object> parameters = new HashMap<String, Object>();
+			parameters.put("from", from);
+			parameters.put("to", ((StringTermImpl)t).getString());
+			parameters.put("persona", args[2].toString());
+			parameters.put("signpost", Boolean.parseBoolean(args[3].toString()));
 			// call the service to compute route
-			ROSAgArch.getM_rosnode().call_get_route_srv(from, 
-					((StringTermImpl)t).getString(),
-					args[2].toString(), 
-					Boolean.parseBoolean(args[3].toString()));
-
-			SemanticRouteResponseImpl resp = new SemanticRouteResponseImpl();
-			// we wait the result return from the service
-			do {
-				resp = ROSAgArch.getM_rosnode().get_get_route_resp();
-				if (resp != null) {
-					routes.add(resp);
-				}
-				sleep(100);
-			}while(resp == null);
-			if(resp.getCode() != Code.ERROR.getCode()) {
+			SemanticRouteResponse resp = ROSAgArch.getM_rosnode().callSyncService("get_route", parameters);
+			SemanticRouteResponseImpl get_route_resp = new SemanticRouteResponseImpl(resp.getCosts(), resp.getGoals(), resp.getRoutes());
+			if(resp.getRoutes().isEmpty()) {
+				get_route_resp.setCode(Code.ERROR.getCode());
+			}else {
+				get_route_resp.setCode(Code.OK.getCode());
+			}
+			
+			routes.add(get_route_resp);
+			if(get_route_resp.getCode() != Code.ERROR.getCode()) {
 				at_least_one_ok = true;
 			}
 		}        

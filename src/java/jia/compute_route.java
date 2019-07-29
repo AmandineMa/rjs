@@ -45,6 +45,7 @@ public class compute_route extends DefaultInternalAction {
 		}
 		List<SemanticRouteResponse> routes = new ArrayList<SemanticRouteResponse>();
 		boolean at_least_one_ok = false;
+		boolean result = false;
 		// we get all the possible routes for the different places 
 		// (we will be able then to choose between the best toilet or atm to go)
 		for (Term t: to_list) {		
@@ -55,21 +56,21 @@ public class compute_route extends DefaultInternalAction {
 			parameters.put("signpost", Boolean.parseBoolean(args[3].toString()));
 			// call the service to compute route
 			SemanticRouteResponse resp = ROSAgArch.getM_rosnode().callSyncService("get_route", parameters);
-			SemanticRouteResponseImpl get_route_resp = new SemanticRouteResponseImpl(resp.getCosts(), resp.getGoals(), resp.getRoutes());
-			if(resp.getRoutes().isEmpty()) {
-				get_route_resp.setCode(Code.ERROR.getCode());
-			}else {
-				get_route_resp.setCode(Code.OK.getCode());
-			}
-			
-			routes.add(get_route_resp);
-			if(get_route_resp.getCode() != Code.ERROR.getCode()) {
-				at_least_one_ok = true;
+			if(resp!= null) {
+				SemanticRouteResponseImpl get_route_resp = new SemanticRouteResponseImpl(resp.getCosts(), resp.getGoals(), resp.getRoutes());
+				if(resp.getRoutes().isEmpty()) {
+					get_route_resp.setCode(Code.ERROR.getCode());
+				}else {
+					get_route_resp.setCode(Code.OK.getCode());
+				}
+				
+				routes.add(get_route_resp);
+				if(get_route_resp.getCode() != Code.ERROR.getCode()) {
+					at_least_one_ok = true;
+				}
 			}
 		}        
-		if(!at_least_one_ok) {
-			return false;
-		}else {
+		if(at_least_one_ok){
 			int n_routes = Integer.parseInt(args[4].toString());
 			
 			if(n_routes == 1) {
@@ -82,7 +83,7 @@ public class compute_route extends DefaultInternalAction {
 				LiteralImpl l = new LiteralImpl("route");
 				l.addTerm(new StringTermImpl(route.getGoal()));
 				l.addTerm(route_list);
-				return un.unifies(args[5], l);
+				result = un.unifies(args[5], l);
 			}else if(n_routes == 2) {
 				RouteImpl[] best_routes;
 				best_routes = select_2_best_routes(routes);
@@ -107,21 +108,12 @@ public class compute_route extends DefaultInternalAction {
 				l.addTerm(new StringTermImpl(best_routes[1].getGoal()));
 				l.addTerm(route_list);
 				list.add(l);
-				return un.unifies(args[5], list);
-			}else {
-				return false;
+				result = un.unifies(args[5], list);
 			}
 			
 		}
-				
+		return result;	
     }
-    
-    void sleep(long msec) {
-		try {
-			Thread.sleep(msec);
-		} catch (InterruptedException ex) {
-		}
-	}
     
     public RouteImpl select_best_route(List<SemanticRouteResponse> routes_resp_list) {
 		RouteImpl best_route = new RouteImpl();

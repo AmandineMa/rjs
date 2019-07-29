@@ -59,7 +59,6 @@ import perspectives_msgs.HasMeshRequest;
 import perspectives_msgs.HasMeshResponse;
 import pointing_planner.PointingPlannerResponse;
 import pointing_planner.VisibilityScoreResponse;
-import ros.RosCallback;
 import route_verbalization_msgs.VerbalizeRegionRouteResponse;
 import rpn_recipe_planner_msgs.SuperInformResponse;
 import rpn_recipe_planner_msgs.SuperQueryResponse;
@@ -67,6 +66,7 @@ import semantic_route_description_msgs.Route;
 import semantic_route_description_msgs.SemanticRouteResponse;
 import std_msgs.Header;
 import utils.Code;
+import utils.Quaternion;
 import utils.Tools;
 
 public class RobotAgArch extends ROSAgArch {
@@ -195,20 +195,22 @@ public class RobotAgArch extends ROSAgArch {
 						parameters.put("signpost", Boolean.parseBoolean(action.getActionTerm().getTerm(3).toString()));
 						// call the service to compute route
 						SemanticRouteResponse resp = ROSAgArch.getM_rosnode().callSyncService("get_route", parameters);
-						SemanticRouteResponseImpl get_route_resp = new SemanticRouteResponseImpl(resp.getCosts(),
-								resp.getGoals(), resp.getRoutes());
-						if (resp.getRoutes().isEmpty()) {
-							get_route_resp.setCode(Code.ERROR.getCode());
-						} else {
-							get_route_resp.setCode(Code.OK.getCode());
-						}
-						routes.add(get_route_resp);
-						if (get_route_resp.getCode() == Code.ERROR.getCode()) {
-							action.setResult(false);
-							action.setFailureReason(new Atom("route_not_found"), "No route has been found");
-
-						} else {
-							at_least_one_ok = true;
+						if(resp != null) {
+							SemanticRouteResponseImpl get_route_resp = new SemanticRouteResponseImpl(resp.getCosts(),
+									resp.getGoals(), resp.getRoutes());
+							if (resp.getRoutes().isEmpty()) {
+								get_route_resp.setCode(Code.ERROR.getCode());
+							} else {
+								get_route_resp.setCode(Code.OK.getCode());
+							}
+							routes.add(get_route_resp);
+							if (get_route_resp.getCode() == Code.ERROR.getCode()) {
+								action.setResult(false);
+								action.setFailureReason(new Atom("route_not_found"), "No route has been found");
+							
+							} else {
+								at_least_one_ok = true;
+							}
 						}
 					}
 					if (!at_least_one_ok) {
@@ -245,9 +247,12 @@ public class RobotAgArch extends ROSAgArch {
 					String individual = individual_o.replaceAll("^\"|\"$", "");
 					String belief_name = action.getActionTerm().getTerm(2).toString();
 
-					RosCallback<OntologeniusServiceResponse> rb = new RosCallback<OntologeniusServiceResponse>() {
-						@Override
-						public void callback(OntologeniusServiceResponse onto_individual_resp) {
+					ServiceResponseListener<OntologeniusServiceResponse> respListener = new ServiceResponseListener<OntologeniusServiceResponse>() {
+						public void onFailure(RemoteException e) {
+							handleFailure(action, action_name, e);
+						}
+
+						public void onSuccess(OntologeniusServiceResponse onto_individual_resp) {
 							OntologeniusServiceResponse places = m_rosnode
 									.newServiceResponseFromType(OntologeniusService._TYPE);
 							if (onto_individual_resp.getValues().isEmpty()) {
@@ -295,7 +300,7 @@ public class RobotAgArch extends ROSAgArch {
 					Map<String, Object> parameters = new HashMap<String, Object>();
 					parameters.put("action", param);
 					parameters.put("param", individual);
-					m_rosnode.callAsyncService("get_individual_info", rb, parameters);
+					m_rosnode.callAsyncService("get_individual_info", respListener, parameters);
 
 				} else if (action_name.equals("get_placements")) {
 					// to remove the extra ""
@@ -309,75 +314,6 @@ public class RobotAgArch extends ROSAgArch {
 					String human = params.get(2);
 					int tar_is_dir = Integer.parseInt(params.get(3));
 
-					RosCallback<PointingPlannerResponse> rb = new RosCallback<PointingPlannerResponse>() {
-						@Override
-						public void callback(PointingPlannerResponse placements_result) {
-							try {
-								if (!placements_result.getPointedLandmarks().isEmpty()) {
-									PoseCustom robot_pose = new PoseCustom(placements_result.getRobotPose().getPose());
-									String r_frame = placements_result.getRobotPose().getHeader().getFrameId();
-									PoseCustom human_pose = new PoseCustom(placements_result.getHumanPose().getPose());
-									String h_frame = placements_result.getHumanPose().getHeader().getFrameId();
-									TransformTree tfTree = getTfTree();
-									Transform robot_pose_now;
-									robot_pose_now = tfTree.lookupMostRecent("map", "base_footprint");
-									double r_dist_to_new_pose = Math.hypot(
-											robot_pose_now.translation.x - robot_pose.getPosition().getX(),
-											robot_pose_now.translation.y - robot_pose.getPosition().getY());
-									if (r_dist_to_new_pose > m_rosnode.getParameters()
-											.getDouble("guiding/tuning_param/robot_should_move_dist_th")) {
-										getTS().getAg().addBel(Literal.parseLiteral("robot_pose(" + r_frame + ","
-												+ robot_pose.toString() + ")[" + task_id + "]"));
-										Transform human_pose_now = tfTree.lookupMostRecent("map", human);
-										double h_dist_to_new_pose = Math.hypot(
-												human_pose_now.translation.x - robot_pose.getPosition().getX(),
-												human_pose_now.translation.y - robot_pose.getPosition().getY());
-										if (h_dist_to_new_pose < m_rosnode.getParameters()
-												.getDouble("guiding/tuning_param/human_move_first_dist_th")) {
-											String side;
-											geometry_msgs.Vector3 vector_msg = messageFactory
-													.newFromType(geometry_msgs.Vector3._TYPE);
-											// isLeft from robot view then it is right from human view
-											side = Tools.isLeft(TransformFactory.vector2msg(robot_pose_now.translation),
-													TransformFactory.vector2msg(human_pose_now.translation),
-													Vector3.fromPointMessage(human_pose.getPosition())
-															.toVector3Message(vector_msg)) ? "right" : "left";
-											getTS().getAg().addBel(
-													Literal.parseLiteral("human_first(" + side + ")[" + task_id + "]"));
-										}
-									}
-									getTS().getAg().addBel(Literal.parseLiteral("human_pose(" + h_frame + ","
-											+ human_pose.toString() + ")[" + task_id + "]"));
-									int nb_ld_to_point = placements_result.getPointedLandmarks().size();
-									for (int i = 0; i < nb_ld_to_point; i++) {
-										String ld = placements_result.getPointedLandmarks().get(i);
-										if (tar_is_dir == 0) {
-											if (ld.equals(target)) {
-												getTS().getAg().addBel(Literal.parseLiteral(
-														"target_to_point(\"" + ld + "\")[" + task_id + "]"));
-											} else if (ld.equals(direction)) {
-												getTS().getAg().addBel(Literal
-														.parseLiteral("dir_to_point(\"" + ld + "\")[" + task_id + "]"));
-											}
-										} else {
-											if (ld.equals(target)) {
-												getTS().getAg().addBel(Literal
-														.parseLiteral("dir_to_point(\"" + ld + "\")[" + task_id + "]"));
-											}
-										}
-									}
-									getTS().getAg().addBel(Literal.parseLiteral("ld_to_point[" + task_id + "]"));
-								} else {
-									getTS().getAg().addBel(Literal.parseLiteral("~ld_to_point[" + task_id + "]"));
-								}
-							} catch (RevisionFailedException e) {
-								e.printStackTrace();
-							}
-							action.setResult(true);
-							actionExecuted(action);
-						}
-					};
-
 					ServiceResponseListener<PointingPlannerResponse> respListener = new ServiceResponseListener<PointingPlannerResponse>() {
 
 						public void onFailure(RemoteException e) {
@@ -386,12 +322,11 @@ public class RobotAgArch extends ROSAgArch {
 							PointingPlannerResponse placements_resp = messageFactory
 									.newFromType(PointingPlannerResponse._TYPE);
 							placements_resp.setPointedLandmarks(new ArrayList<String>());
-							rb.callback(placements_resp);
+							pointPlan(placements_resp, task_id, human, tar_is_dir, target, direction, action);
 						}
 
 						public void onSuccess(PointingPlannerResponse placements_resp) {
-							logger.info("Response received on ServiceResponseListener");
-							rb.callback(placements_resp);
+							pointPlan(placements_resp, task_id, human, tar_is_dir, target, direction, action);
 						}
 
 					};
@@ -405,15 +340,15 @@ public class RobotAgArch extends ROSAgArch {
 				} else if (action_name.equals("has_mesh")) {
 					// to remove the extra ""
 					final String param = action.getActionTerm().getTerm(0).toString().replaceAll("^\"|\"$", "");
+					
+					ServiceResponseListener<HasMeshResponse> respListener = new ServiceResponseListener<HasMeshResponse>() {
+						public void onFailure(RemoteException e) {
+							handleFailure(action, action_name, e);
+						}
 
-					RosCallback<HasMeshResponse> rb = new RosCallback<HasMeshResponse>() {
-						@Override
-						public void callback(HasMeshResponse has_mesh) {
-							if (has_mesh.getHasMesh()) {
-								logger.info("Action success with param : " + param);
-								action.setResult(true);
-							} else {
-								action.setResult(false);
+						public void onSuccess(HasMeshResponse has_mesh) {
+							action.setResult(has_mesh.getHasMesh());
+							if (!has_mesh.getHasMesh()) {
 								if (has_mesh.getSuccess()) {
 									action.setFailureReason(new Atom("has_no_mesh"), param + " does not have a mesh");
 								} else {
@@ -423,19 +358,23 @@ public class RobotAgArch extends ROSAgArch {
 							actionExecuted(action);
 						}
 					};
+
 					Map<String, Object> parameters = new HashMap<String, Object>();
 					parameters.put("world", "base");
 					parameters.put("name", param);
-					m_rosnode.callAsyncService("has_mesh", rb, parameters);
+					m_rosnode.callAsyncService("has_mesh", respListener, parameters);
 
 				} else if (action_name.equals("can_be_visible")) {
 					// to remove the extra ""
 					final String human = action.getActionTerm().getTerm(0).toString().replaceAll("^\"|\"$", "");
 					final String place = action.getActionTerm().getTerm(1).toString().replaceAll("^\"|\"$", "");
+					
+					ServiceResponseListener<VisibilityScoreResponse> respListener = new ServiceResponseListener<VisibilityScoreResponse>() {
+						public void onFailure(RemoteException e) {
+							handleFailure(action, action_name, e);
+						}
 
-					RosCallback<VisibilityScoreResponse> rb = new RosCallback<VisibilityScoreResponse>() {
-						@Override
-						public void callback(VisibilityScoreResponse vis_resp) {
+						public void onSuccess(VisibilityScoreResponse vis_resp) {
 							if (vis_resp.getIsVisible()) {
 								action.setResult(true);
 								try {
@@ -458,20 +397,24 @@ public class RobotAgArch extends ROSAgArch {
 							actionExecuted(action);
 						}
 					};
+					
 					Map<String, Object> parameters = new HashMap<String, Object>();
 					parameters.put("agentname", human);
 					parameters.put("targetname", place);
-					m_rosnode.callAsyncService("is_visible", rb, parameters);
+					m_rosnode.callAsyncService("is_visible", respListener, parameters);
 
 				} else if (action_name.equals("point_at")) {
 					// to remove the extra ""
 					final String frame = action.getActionTerm().getTerm(0).toString().replaceAll("^\"|\"$", "");
 					boolean with_head = Boolean.parseBoolean(action.getActionTerm().getTerm(1).toString());
 					boolean with_base = Boolean.parseBoolean(action.getActionTerm().getTerm(2).toString());
+					
+					ServiceResponseListener<PointAtResponse> respListener = new ServiceResponseListener<PointAtResponse>() {
+						public void onFailure(RemoteException e) {
+							handleFailure(action, action_name, e);
+						}
 
-					RosCallback<PointAtResponse> rb = new RosCallback<PointAtResponse>() {
-						@Override
-						public void callback(PointAtResponse response) {
+						public void onSuccess(PointAtResponse response) {
 							action.setResult(response.getSuccess());
 							if (!action.getResult())
 								action.setFailureReason(new Atom("point_at_failed"),
@@ -484,74 +427,89 @@ public class RobotAgArch extends ROSAgArch {
 					parameters.put("withhead", with_head);
 					parameters.put("withbase", with_base);
 
-					m_rosnode.callAsyncService("point_at", rb, parameters);
+					m_rosnode.callAsyncService("point_at", respListener, parameters);
 
 				} else if (action_name.equals("face_human")) {
+					String id = action_name;
 					// to remove the extra ""
 					String frame = action.getActionTerm().getTerm(0).toString();
 					frame = frame.replaceAll("^\"|\"$", "");
-					if (m_rosnode.face_human_sm(frame)) {
-						MetaStateMachineRegisterResponse face_resp;
-						do {
-							face_resp = m_rosnode.getFace_human_resp();
-							sleep(100);
-						} while (face_resp == null);
-						if (face_resp.getError().equals("fail to rotate")) {
-							action.setFailureReason(new Atom("cannot_face_human"), "face human failed for " + frame);
+					
+					TransformTree tfTree = getTfTree();
+					Transform transform;
+					String frame1 = "base_link";
+					if (tfTree.canTransform(frame1, frame)) {
+						transform = tfTree.lookupMostRecent(frame1, frame);
+						float d = (float) Math.atan2(transform.translation.y, transform.translation.x);
+						
+						Map<String, Object> parameters = new HashMap<String, Object>();
+						parameters.put("statemachinepepperbasemanager", m_rosnode.build_state_machine_pepper_base_manager(id, (float) d));
+						parameters.put("header", m_rosnode.build_meta_header());
+						
+						MetaStateMachineRegisterResponse face_resp = m_rosnode.callSyncService("pepper_synchro", parameters);
+						
+						if(face_resp == null) {
+							action.setFailureReason(new Atom("cannot_face_human"), "Service Failure, face human failed for " + frame);
 							action.setResult(false);
 						} else {
 							sleep(5000);
-							Map<String, Object> parameters = new HashMap<String, Object>();
-							parameters.put("posturename", "StandInit");
+							Map<String, Object> params = new HashMap<String, Object>();
+							params.put("posturename", "StandInit");
 							GoToPostureResponse go_to_posture_resp = m_rosnode.callSyncService("stand_pose",
-									parameters);
-							action.setResult(true);
+									params);
+							action.setResult(go_to_posture_resp != null);
 						}
+
 					} else {
 						action.setResult(false);
-						action.setFailureReason(new Atom("cannot_face_human"), "face human failed for " + frame);
+						action.setFailureReason(new Atom("cannot_face_human"), "Cannot Transform, face human failed for " + frame);
 					}
 					actionExecuted(action);
+					
 				} else if (action_name.equals("rotate")) {
+					String id = action_name;
 					// to remove the extra ""
-					ListTerm q = (ListTerm) action.getActionTerm().getTerm(0);
-					if (m_rosnode.rotate_sm(q)) {
-						MetaStateMachineRegisterResponse rotate_resp;
-						do {
-							rotate_resp = m_rosnode.getRotate_resp();
-							sleep(100);
-						} while (rotate_resp == null);
-						if (rotate_resp.getError().equals("fail to rotate")) {
-							action.setFailureReason(new Atom("cannot_rotate"), "rotation failed");
-							action.setResult(false);
-						} else {
-							action.setResult(true);
-						}
-					} else {
-						action.setResult(false);
+					ListTerm quaternion = (ListTerm) action.getActionTerm().getTerm(0);
+
+					Quaternion q = new Quaternion(((NumberTermImpl) quaternion.get(0)).solve(),
+							((NumberTermImpl) quaternion.get(1)).solve(), ((NumberTermImpl) quaternion.get(2)).solve(),
+							((NumberTermImpl) quaternion.get(3)).solve());
+					double d = q.getTheta();
+					
+					Map<String, Object> parameters = new HashMap<String, Object>();
+					parameters.put("statemachinepepperbasemanager", m_rosnode.build_state_machine_pepper_base_manager(id, (float) d));
+					parameters.put("header", m_rosnode.build_meta_header());
+
+					MetaStateMachineRegisterResponse response = m_rosnode.callSyncService("pepper_synchro", parameters);
+					
+					action.setResult(response != null);
+					if(response == null) {
 						action.setFailureReason(new Atom("cannot_rotate"), "rotation failed");
 					}
 					actionExecuted(action);
+
+
 				} else if (action_name.equals("look_at")) {
 					// to remove the extra ""
 					final String frame = action.getActionTerm().getTerm(0).toString().replaceAll("^\"|\"$", "");
 					boolean with_base = Boolean.parseBoolean(action.getActionTerm().getTerm(2).toString());
-					RosCallback<LookAtResponse> rb = new RosCallback<LookAtResponse>() {
-						@Override
-						public void callback(LookAtResponse look_at_resp) {
-							if (look_at_resp.getSuccess()) {
-								action.setResult(true);
-							} else {
-								action.setResult(false);
+					ServiceResponseListener<LookAtResponse> respListener = new ServiceResponseListener<LookAtResponse>() {
+						public void onFailure(RemoteException e) {
+							handleFailure(action, action_name, e);
+						}
+
+						public void onSuccess(LookAtResponse look_at_resp) {
+							action.setResult(look_at_resp.getSuccess());
+							if (!look_at_resp.getSuccess()) {
 								action.setFailureReason(new Atom("look_at_failed"), "the look at failed for " + frame);
 							}
 							actionExecuted(action);
 						}
 					};
 					Map<String, Object> parameters = new HashMap<String, Object>();
-					parameters.put("point", m_rosnode.buld_point_stamped(action, frame));
+					parameters.put("point", m_rosnode.build_point_stamped(action, frame));
 					parameters.put("withbase", with_base);
-					m_rosnode.callAsyncService("look_at", rb, parameters);
+					m_rosnode.callAsyncService("look_at", respListener, parameters);
 
 				} else if (action_name.equals("text2speech")) {
 					// to remove the extra ""
@@ -693,6 +651,7 @@ public class RobotAgArch extends ROSAgArch {
 						return;
 					}
 					if (hwu_dial & !text.isEmpty()) {
+						boolean result = true;
 						if (text.contains("?")) {
 
 							Map<String, Object> parameters = new HashMap<String, Object>();
@@ -700,34 +659,39 @@ public class RobotAgArch extends ROSAgArch {
 							if (bel_arg != null)
 								parameters.put("returnvalue", bel_arg);
 							SuperQueryResponse dial_resp = m_rosnode.callSyncService("dialogue_query", parameters);
-
-							String resp;
-							if (dial_resp.getResult().equals("true")) {
-								resp = "yes";
-							} else if (dial_resp.getResult().equals("false")) {
-								resp = "no";
+							if(dial_resp == null) {
+								result = false;
 							} else {
-								resp = dial_resp.getResult();
-							}
-							try {
-								getTS().getAg().addBel(Literal.parseLiteral(
-										"listen_result(" + bel_functor + ",\"" + resp + "\")[" + task_id + "]"));
-							} catch (RevisionFailedException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
+								String resp;
+								if (dial_resp.getResult().equals("true")) {
+									resp = "yes";
+								} else if (dial_resp.getResult().equals("false")) {
+									resp = "no";
+								} else {
+									resp = dial_resp.getResult();
+								}
+								try {
+									getTS().getAg().addBel(Literal.parseLiteral(
+											"listen_result(" + bel_functor + ",\"" + resp + "\")[" + task_id + "]"));
+								} catch (RevisionFailedException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
 							}
 						} else {
 							Map<String, Object> parameters = new HashMap<String, Object>();
-							String sentence_code = ((!bel_functor.equals("failed") && !bel_functor.equals("succeeded"))
-									? "verbalisation."
-									: "") + bel_functor;
+
+							String sentence_code = bel_functor;
+							if(!bel_functor.equals("failed") && !bel_functor.equals("succeeded"))
+								sentence_code = "verbalisation." + bel_functor;
 							parameters.put("status", sentence_code);
 							if (bel_arg != null)
 								parameters.put("returnvalue", bel_arg);
 							SuperInformResponse super_inform_resp = m_rosnode.callSyncService("dialogue_inform",
 									parameters);
+							if(super_inform_resp == null) result = false; 
 						}
-						action.setResult(true);
+						action.setResult(result);
 					} else {
 						if (!text.equals("succeeded")) {
 
@@ -741,7 +705,7 @@ public class RobotAgArch extends ROSAgArch {
 //								action.setResult(false);
 //								action.setFailureReason(new Atom("speak_to_failed"), "the speech service failed");
 //							}
-							action.setResult(true);
+							action.setResult(speak_to_resp != null);
 						}
 					}
 					actionExecuted(action);
@@ -757,10 +721,13 @@ public class RobotAgArch extends ROSAgArch {
 					robot_place = robot_place.replaceAll("^\"|\"$", "");
 					String place = action.getActionTerm().getTerm(2).toString();
 					place = place.replaceAll("^\"|\"$", "");
+					
+					ServiceResponseListener<VerbalizeRegionRouteResponse> respListener = new ServiceResponseListener<VerbalizeRegionRouteResponse>() {
+						public void onFailure(RemoteException e) {
+							handleFailure(action, action_name, e);
+						}
 
-					RosCallback<VerbalizeRegionRouteResponse> rb = new RosCallback<VerbalizeRegionRouteResponse>() {
-						@Override
-						public void callback(VerbalizeRegionRouteResponse verba_resp) {
+						public void onSuccess(VerbalizeRegionRouteResponse verba_resp) {
 							String verba = new String(verba_resp.getRegionRoute());
 							if (verba_resp.getSuccess() & verba != "") {
 								action.setResult(true);
@@ -779,11 +746,12 @@ public class RobotAgArch extends ROSAgArch {
 							actionExecuted(action);
 						}
 					};
+					
 					Map<String, Object> parameters = new HashMap<String, Object>();
 					parameters.put("route", route);
 					parameters.put("startplace", robot_place);
 					parameters.put("goalshop", place);
-					m_rosnode.callAsyncService("route_verbalization", rb, parameters);
+					m_rosnode.callAsyncService("route_verbalization", respListener, parameters);
 
 				} else if (action_name.equals("listen")) {
 					boolean hwu_dial = m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu");
@@ -920,10 +888,12 @@ public class RobotAgArch extends ROSAgArch {
 				} else if (action_name.equals("get_hatp_plan")) {
 					String task_name = action.getActionTerm().getTerm(0).toString();
 					task_name = task_name.replaceAll("^\"|\"$", "");
+					ServiceResponseListener<PlanningRequestResponse> respListener = new ServiceResponseListener<PlanningRequestResponse>() {
+						public void onFailure(RemoteException e) {
+							handleFailure(action, action_name, e);
+						}
 
-					RosCallback<PlanningRequestResponse> rb = new RosCallback<PlanningRequestResponse>() {
-						@Override
-						public void callback(PlanningRequestResponse resp) {
+						public void onSuccess(PlanningRequestResponse resp) {
 							hatp_msgs.Plan plan = resp.getSolution();
 							if (plan.getReport().equals("OK")) {
 								action.setResult(true);
@@ -979,7 +949,7 @@ public class RobotAgArch extends ROSAgArch {
 
 					Map<String, Object> parameters = new HashMap<String, Object>();
 					parameters.put("request", m_rosnode.build_hatp_request(task_name, "plan", params));
-					m_rosnode.callAsyncService("hatp_planner", rb, parameters);
+					m_rosnode.callAsyncService("hatp_planner", respListener, parameters);
 				} else {
 					action.setResult(false);
 					action.setFailureReason(new Atom("act_not_found"), "no action " + action_name + " is implemented");
@@ -991,6 +961,15 @@ public class RobotAgArch extends ROSAgArch {
 
 	}
 
+	public void handleFailure(ActionExec action, String srv_name, RuntimeException e) {
+		RosRuntimeException RRE = new RosRuntimeException(e);
+		logger.info(Tools.getStackTrace(RRE));
+		
+		action.setResult(false);
+		action.setFailureReason(new Atom(srv_name+ "_ros_failure"), srv_name+" service failed");
+		actionExecuted(action);
+	}
+	
 	public RouteImpl select_best_route(List<SemanticRouteResponse> routes_resp_list) {
 		RouteImpl best_route = new RouteImpl();
 		float min_cost = Float.MAX_VALUE;
@@ -1044,6 +1023,72 @@ public class RobotAgArch extends ROSAgArch {
 
 		return best_routes;
 
+	}
+	
+	public void pointPlan(PointingPlannerResponse placements_result, String task_id, String human, int tar_is_dir, String target, String direction, ActionExec action ) {
+		try {
+			if (placements_result != null && !placements_result.getPointedLandmarks().isEmpty()) {
+				PoseCustom robot_pose = new PoseCustom(placements_result.getRobotPose().getPose());
+				String r_frame = placements_result.getRobotPose().getHeader().getFrameId();
+				PoseCustom human_pose = new PoseCustom(placements_result.getHumanPose().getPose());
+				String h_frame = placements_result.getHumanPose().getHeader().getFrameId();
+				TransformTree tfTree = getTfTree();
+				Transform robot_pose_now;
+				robot_pose_now = tfTree.lookupMostRecent("map", "base_footprint");
+				double r_dist_to_new_pose = Math.hypot(
+						robot_pose_now.translation.x - robot_pose.getPosition().getX(),
+						robot_pose_now.translation.y - robot_pose.getPosition().getY());
+				if (r_dist_to_new_pose > m_rosnode.getParameters()
+						.getDouble("guiding/tuning_param/robot_should_move_dist_th")) {
+					getTS().getAg().addBel(Literal.parseLiteral("robot_pose(" + r_frame + ","
+							+ robot_pose.toString() + ")[" + task_id + "]"));
+					Transform human_pose_now = tfTree.lookupMostRecent("map", human);
+					double h_dist_to_new_pose = Math.hypot(
+							human_pose_now.translation.x - robot_pose.getPosition().getX(),
+							human_pose_now.translation.y - robot_pose.getPosition().getY());
+					if (h_dist_to_new_pose < m_rosnode.getParameters()
+							.getDouble("guiding/tuning_param/human_move_first_dist_th")) {
+						String side;
+						geometry_msgs.Vector3 vector_msg = messageFactory
+								.newFromType(geometry_msgs.Vector3._TYPE);
+						// isLeft from robot view then it is right from human view
+						side = Tools.isLeft(TransformFactory.vector2msg(robot_pose_now.translation),
+								TransformFactory.vector2msg(human_pose_now.translation),
+								Vector3.fromPointMessage(human_pose.getPosition())
+										.toVector3Message(vector_msg)) ? "right" : "left";
+						getTS().getAg().addBel(
+								Literal.parseLiteral("human_first(" + side + ")[" + task_id + "]"));
+					}
+				}
+				getTS().getAg().addBel(Literal.parseLiteral("human_pose(" + h_frame + ","
+						+ human_pose.toString() + ")[" + task_id + "]"));
+				int nb_ld_to_point = placements_result.getPointedLandmarks().size();
+				for (int i = 0; i < nb_ld_to_point; i++) {
+					String ld = placements_result.getPointedLandmarks().get(i);
+					if (tar_is_dir == 0) {
+						if (ld.equals(target)) {
+							getTS().getAg().addBel(Literal.parseLiteral(
+									"target_to_point(\"" + ld + "\")[" + task_id + "]"));
+						} else if (ld.equals(direction)) {
+							getTS().getAg().addBel(Literal
+									.parseLiteral("dir_to_point(\"" + ld + "\")[" + task_id + "]"));
+						}
+					} else {
+						if (ld.equals(target)) {
+							getTS().getAg().addBel(Literal
+									.parseLiteral("dir_to_point(\"" + ld + "\")[" + task_id + "]"));
+						}
+					}
+				}
+				getTS().getAg().addBel(Literal.parseLiteral("ld_to_point[" + task_id + "]"));
+			} else {
+				getTS().getAg().addBel(Literal.parseLiteral("~ld_to_point[" + task_id + "]"));
+			}
+		} catch (RevisionFailedException e) {
+			e.printStackTrace();
+		}
+		action.setResult(true);
+		actionExecuted(action);
 	}
 
 	@Override

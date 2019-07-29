@@ -33,34 +33,28 @@ public class word_individual extends DefaultInternalAction {
 		parameters.put("param", param);
 		OntologeniusServiceResponse onto_individual_resp = ROSAgArch.getM_rosnode().callSyncService("get_individual_info", parameters);
 		
-		OntologeniusServiceResponse places = ROSAgArch.getM_rosnode().newServiceResponseFromType(OntologeniusService._TYPE);
-		if(onto_individual_resp.getValues().isEmpty()) {
-			places.setCode((short) Code.ERROR.getCode());
-		}else {
-			places.setCode((short) Code.OK.getCode());
-			places.setValues(onto_individual_resp.getValues());
-		}
-		
-		if(places.getCode() == Code.OK.getCode() & !places.getValues().isEmpty()) {
-			if(places.getValues().size() == 1) {
-				return un.unifies(args[2], new StringTermImpl(places.getValues().get(0)));
+		boolean result = false;
+		if(onto_individual_resp != null) {
+			OntologeniusServiceResponse places = ROSAgArch.getM_rosnode().newServiceResponseFromType(OntologeniusService._TYPE);
+			if(onto_individual_resp.getValues().isEmpty()) {
+				places.setCode((short) Code.ERROR.getCode());
 			}else {
-				ListTermImpl places_list = new ListTermImpl();
-				for(String place : places.getValues()) {
-					places_list.add(new StringTermImpl(place));
-				}
-	        	return un.unifies(args[2], places_list);
+				places.setCode((short) Code.OK.getCode());
+				places.setValues(onto_individual_resp.getValues());
 			}
-        }else {
-        	return false;
-        }
-    }
-    
-    void sleep(long msec) {
-		try {
-			Thread.sleep(msec);
-		} catch (InterruptedException ex) {
+			
+			if(places.getCode() == Code.OK.getCode() & !places.getValues().isEmpty()) {
+				if(places.getValues().size() == 1) {
+					result = un.unifies(args[2], new StringTermImpl(places.getValues().get(0)));
+				}else {
+					ListTermImpl places_list = new ListTermImpl();
+					for(String place : places.getValues()) {
+						places_list.add(new StringTermImpl(place));
+					}
+					result = un.unifies(args[2], places_list);
+				}
+	        }
 		}
-	}
-
+		return result;
+    }
 }

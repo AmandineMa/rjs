@@ -28,15 +28,11 @@ public class has_mesh extends DefaultInternalAction {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put("world", "robot/merged");
 		parameters.put("name", param);
-		HasMeshResponse result = ROSAgArch.getM_rosnode().callSyncService("has_mesh", parameters);
-		return result.getHasMesh();
+		HasMeshResponse resp = ROSAgArch.getM_rosnode().callSyncService("has_mesh", parameters);
+		boolean result = false;
+		if(resp != null)
+			result = resp.getHasMesh();
+		return result;
     }
-    
-    void sleep(long msec) {
-		try {
-			Thread.sleep(msec);
-		} catch (InterruptedException ex) {
-		}
-	}
 
 }

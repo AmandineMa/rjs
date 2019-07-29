@@ -33,26 +33,20 @@ public class word_class extends DefaultInternalAction {
 		parameters.put("param", param);
 		OntologeniusServiceResponse onto_class_resp = ROSAgArch.getM_rosnode().callSyncService("get_class_info", parameters);
 		
-		OntologeniusServiceResponse places = ROSAgArch.getM_rosnode().newServiceResponseFromType(OntologeniusService._TYPE);
-		if(((OntologeniusServiceResponse) onto_class_resp).getValues().isEmpty()) {
-			places.setCode((short) Code.ERROR.getCode());
-		}else {
-			places.setCode((short) Code.OK.getCode());
-			places.setValues(((OntologeniusServiceResponse) onto_class_resp).getValues());
+		boolean result = false;
+		if(onto_class_resp != null) {
+			OntologeniusServiceResponse places = ROSAgArch.getM_rosnode().newServiceResponseFromType(OntologeniusService._TYPE);
+			if(((OntologeniusServiceResponse) onto_class_resp).getValues().isEmpty()) {
+				places.setCode((short) Code.ERROR.getCode());
+			}else {
+				places.setCode((short) Code.OK.getCode());
+				places.setValues(((OntologeniusServiceResponse) onto_class_resp).getValues());
+			}
+			
+			if(places.getCode() == Code.OK.getCode() & !places.getValues().isEmpty()) {
+				result = un.unifies(args[2], new StringTermImpl(places.getValues().get(0)));
+	        }
 		}
-		
-		if(places.getCode() == Code.OK.getCode() & !places.getValues().isEmpty()) {
-        	return un.unifies(args[2], new StringTermImpl(places.getValues().get(0)));
-        }else {
-        	return false;
-        }
+		return result;
     }
-    
-    void sleep(long msec) {
-		try {
-			Thread.sleep(msec);
-		} catch (InterruptedException ex) {
-		}
-	}
-
 }

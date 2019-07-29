@@ -60,6 +60,7 @@ import guiding_as_msgs.taskActionFeedback;
 import guiding_as_msgs.taskActionGoal;
 import guiding_as_msgs.taskActionResult;
 import jason.asSemantics.ActionExec;
+import jason.asSyntax.Atom;
 import jason.asSyntax.ListTerm;
 import jason.asSyntax.ListTermImpl;
 import jason.asSyntax.NumberTermImpl;
@@ -115,8 +116,6 @@ public class RosNode extends AbstractNodeMain {
 	private ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult> get_human_answer_ac;
 	private ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult> move_to_ac;
 	private Subscriber<perspectives_msgs.FactArrayStamped> facts_sub;
-	private MetaStateMachineRegisterResponse face_human_resp;
-	private MetaStateMachineRegisterResponse rotate_resp;
 	private PointingActionResult placements_result;
 	private PointingActionFeedback placements_fb;
 	private dialogue_actionActionResult listening_result;
@@ -276,11 +275,13 @@ public class RosNode extends AbstractNodeMain {
 									parameters.put("id", subject);
 									parameters.put("world", "robot/merged_visibilities");
 									GetNameResponse uwds_name_resp = callSyncService("get_uwds_name", parameters);
-									subject = uwds_name_resp.getName();
-									if (!subject.startsWith("\""))
-										subject = "\"" + subject + "\"";
-									simple_fact = new SimpleFact(predicate, subject);
-									perceptions.put(object, simple_fact);
+									if(uwds_name_resp != null) {
+										subject = uwds_name_resp.getName();
+										if (!subject.startsWith("\""))
+											subject = "\"" + subject + "\"";
+										simple_fact = new SimpleFact(predicate, subject);
+										perceptions.put(object, simple_fact);
+									}
 								}
 
 							} else {
@@ -305,17 +306,6 @@ public class RosNode extends AbstractNodeMain {
 		}
 	}
 
-	public <T> void callAsyncService(String serviceName, RosCallback<T> rcb, Map<String, Object> params) {
-		HashMap<String, String> mapInfoService = services_map.get(serviceName);
-
-		if (mapInfoService != null && mapInfoService.containsKey("type")) {
-			String type = mapInfoService.get("type");
-			type = type.replace('/', '.') + "Request";
-			call_service(serviceName, type, rcb, params);
-		} else {
-			logger.info("Service (" + serviceName + ") not declared in yaml or type not filled");
-		}
-	}
 
 	public <T> void callAsyncService(String serviceName, ServiceResponseListener<T> srl, Map<String, Object> params) {
 		HashMap<String, String> mapInfoService = services_map.get(serviceName);
@@ -329,36 +319,6 @@ public class RosNode extends AbstractNodeMain {
 		}
 	}
 
-	public <T> T callSyncService(String service, ServiceResponseListener<T> respListener, Map<String, Object> params) {
-		CompletableFuture<T> future = new CompletableFuture<T>();
-
-		ServiceResponseListener<T> srl = new ServiceResponseListener<T>() {
-
-			@Override
-			public void onFailure(RemoteException e) {
-				respListener.onFailure(e);
-				future.complete(null);
-			}
-
-			@Override
-			public void onSuccess(T response) {
-				logger.info("message return: " + response.toString());
-				respListener.onSuccess(response);
-				future.complete(response);
-			}
-		};
-
-		callAsyncService(service, srl, params);
-
-		T response = null;
-		try {
-			response = future.get();
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return response;
-	}
-
 	public <T> T callSyncService(String service, Map<String, Object> params) {
 		CompletableFuture<T> future = new CompletableFuture<T>();
 
@@ -369,7 +329,6 @@ public class RosNode extends AbstractNodeMain {
 				future.complete(null);
 				RosRuntimeException RRE = new RosRuntimeException(e);
 				logger.info(Tools.getStackTrace((Exception) RRE));
-				throw RRE;
 			}
 
 			@Override
@@ -455,7 +414,7 @@ public class RosNode extends AbstractNodeMain {
 		service_clients.get(serviceName).call(msg, (ServiceResponseListener<Message>) srl);
 	}
 
-	public <T> void call_service(String serviceName, String className, RosCallback<T> rcb, Map<String, Object> params) {
+/*	public <T> void call_service(String serviceName, String className, RosCallback<T> rcb, Map<String, Object> params) {
 		ServiceResponseListener<T> respList = getResponseListener(rcb);
 		call_service(serviceName, className, respList, params);
 	}
@@ -475,7 +434,7 @@ public class RosNode extends AbstractNodeMain {
 			}
 
 		};
-	}
+	}*/
 
 	public void set_task_result(String success, String id) {
 		if (guiding_as != null) {
@@ -542,7 +501,7 @@ public class RosNode extends AbstractNodeMain {
 		return point;
 	}
 
-	public PointStamped buld_point_stamped(ActionExec action, String frame) {
+	public PointStamped build_point_stamped(ActionExec action, String frame) {
 		MessageFactory messageFactory = connectedNode.getTopicMessageFactory();
 		PointStamped point_stamped = build_point_stamped(frame);
 
@@ -580,39 +539,7 @@ public class RosNode extends AbstractNodeMain {
 //		});
 //	}
 
-	public boolean face_human_sm(String human) {
-		face_human_resp = null;
-		TransformTree tfTree = getTfTree();
-		Transform transform;
-		String frame1 = "base_link";
-		String frame2 = human;
-		frame2 = frame2.replaceAll("^\"|\"$", "");
-		if (tfTree.canTransform(frame1, frame2)) {
-			try {
-
-				transform = tfTree.lookupMostRecent(frame1, frame2);
-				float d = (float) Math.atan2(transform.translation.y, transform.translation.x);
-				rotation_sm("face_human", d);
-				return true;
-			} catch (Exception e) {
-				return false;
-			}
-		} else {
-			return false;
-		}
-	}
-
-	public boolean rotate_sm(ListTerm quaternion) {
-		rotate_resp = null;
-		Quaternion q = new Quaternion(((NumberTermImpl) quaternion.get(0)).solve(),
-				((NumberTermImpl) quaternion.get(1)).solve(), ((NumberTermImpl) quaternion.get(2)).solve(),
-				((NumberTermImpl) quaternion.get(3)).solve());
-		double d = q.getTheta();
-		rotation_sm("rotate", (float) d);
-		return true;
-	}
-
-	private MetaStateMachineHeader build_meta_header() {
+	public MetaStateMachineHeader build_meta_header() {
 		NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
 		MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
 
@@ -627,7 +554,7 @@ public class RosNode extends AbstractNodeMain {
 		return metaheader;
 	}
 
-	private SubStateMachine_pepper_base_manager_msgs build_state_machine_pepper_base_manager(String id, float d) {
+	public SubStateMachine_pepper_base_manager_msgs build_state_machine_pepper_base_manager(String id, float d) {
 		NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
 		MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
 
@@ -668,34 +595,6 @@ public class RosNode extends AbstractNodeMain {
 		substatemachine.setHeader(subsmheader);
 		substatemachine.setStateMachine(statemachine);
 		return substatemachine;
-	}
-
-	private void rotation_sm(String id, float d) {
-		Map<String, Object> parameters = new HashMap<String, Object>();
-		parameters.put("statemachinepepperbasemanager", build_state_machine_pepper_base_manager(id, d));
-		parameters.put("header", build_meta_header());
-
-		ServiceResponseListener<MetaStateMachineRegisterResponse> respListener = new ServiceResponseListener<MetaStateMachineRegisterResponse>() {
-
-			@Override
-			public void onFailure(RemoteException e) {
-				if (id.equals("face_human"))
-					face_human_resp.setError("fail to rotate");
-				else if (id.equals("rotate"))
-					rotate_resp.setError("fail to rotate");
-			}
-
-			@Override
-			public void onSuccess(MetaStateMachineRegisterResponse response) {
-				if (id.equals("face_human"))
-					face_human_resp = response;
-				else if (id.equals("rotate"))
-					rotate_resp = response;
-			}
-		};
-
-		MetaStateMachineRegisterResponse response = callSyncService("pepper_synchro", respListener, parameters);
-
 	}
 
 	public hatp_msgs.Request build_hatp_request(String task, String type, List<String> parameters) {
@@ -851,14 +750,6 @@ public class RosNode extends AbstractNodeMain {
 		return placements_fb;
 	}
 
-	public MetaStateMachineRegisterResponse getRotate_resp() {
-		return rotate_resp;
-	}
-
-	public MetaStateMachineRegisterResponse getFace_human_resp() {
-		return face_human_resp;
-	}
-
 	public dialogue_actionActionResult getListening_result() {
 		return listening_result;
 	}
@@ -907,12 +798,6 @@ public class RosNode extends AbstractNodeMain {
 		return marker_pub;
 	}
 
-	void sleep(long msec) {
-		try {
-			Thread.sleep(msec);
-		} catch (InterruptedException ex) {
-		}
-	}
 
 	public <T> void addListener(String topic, String type, MessageListener<T> ml) {
 		Subscriber<T> sub = getConnectedNode().newSubscriber(getParameters().getString(topic), type);

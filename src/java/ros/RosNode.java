@@ -215,22 +215,7 @@ public class RosNode extends AbstractNodeMain {
 			marker_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher("/pp_debug", visualization_msgs.Marker._TYPE);
 			person_of_interest_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher(parameters.getString("/guiding/topics/person_of_interest"), std_msgs.Int32._TYPE);
 			guiding_as = new ActionServer<>(connectedNode, "/guiding_task", taskActionGoal._TYPE, taskActionFeedback._TYPE, taskActionResult._TYPE);
-			guiding_as.attachListener(new ActionServerListener<taskActionGoal>() {
-
-				@Override
-				public void goalReceived(taskActionGoal goal) {}
-
-				@Override
-				public void cancelReceived(GoalID id) {
-					new_guiding_goal = null;
-				}
-
-				@Override
-				public boolean acceptGoal(taskActionGoal goal) {
-					stack_guiding_goals.push(goal);
-					return true;
-				}
-			});
+			
 			
 			get_human_answer_ac = new ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult>(
 					connectedNode, parameters.getString("/guiding/action_servers/dialogue"), dialogue_actionActionGoal._TYPE, dialogue_actionActionFeedback._TYPE, dialogue_actionActionResult._TYPE);
@@ -1190,6 +1175,10 @@ public class RosNode extends AbstractNodeMain {
 	public void cancel_goal_dialogue() {
 		if(get_human_answer_ac != null & listen_goal_msg != null)
 			get_human_answer_ac.sendCancel(listen_goal_msg.getGoalId());
+	}
+	
+	public void set_guiding_as_listener(ActionServerListener<taskActionGoal> listener) {
+		guiding_as.attachListener(listener);
 	}
 	
 	public taskActionGoal getNew_guiding_goal() {

@@ -2,9 +2,8 @@
 //^!guiding_goal_negociation(ID, Human,_)[state(S)] : S == started | S = resumed <- .resume(monitoring(Human)). 
 all_places(false).
 
-^!guiding_goal_negociation(ID, Human, Place)[state(started)] : not started <- +started; +monitoring(ID, Human).	
+//^!guiding_goal_negociation(ID, Human, Place)[state(started)] : not started <- +started; +monitoring(ID, Human).	
 +!guiding_goal_negociation(ID, Human,Place): true <-
-	+guiding_goal_negociation;
 	if(jia.word_class(find, Place, Class)){
 		jia.word_class(find, Place, Class);
 		jia.word_individual(getType, Class, Places);
@@ -37,28 +36,27 @@ all_places(false).
 	}else{
 		jia.word_individual(find, Place, PlaceOnto);
 	}
-	jia.word_individual(getName, PlaceOnto, PlaceName);
-	+guiding_goal_nego(PlaceName, PlaceOnto);
-	-guiding_goal_negociation.
+//	jia.word_individual(getName, PlaceOnto, PlaceName);
+	+guiding_goal_nego(ID, PlaceOnto).
 	
 	
 // recovery plan
-+!guiding_goal_negociation(ID, Human) : individual_not_found(Individual) <-
-		!speak(ID, no_place(Individual));
-		?shop_names(X);
-		.concat(X, ["atm", "toilet"], Y);
-		// listen to places in the ontology
-		// TODO add timeout
-		listen(no_place,Y);
-		?listen_result(no_place,Word);
-		-individual_not_found(Individual);
-		!guiding_goal_negociation(ID, Human, Word).
+//+!guiding_goal_negociation(ID, Human) : individual_not_found(Individual) <-
+//		!speak(ID, no_place(Individual));
+//		?shop_names(X);
+//		.concat(X, ["atm", "toilet"], Y);
+//		// listen to places in the ontology
+//		// TODO add timeout
+//		listen(no_place,Y);
+//		?listen_result(no_place,Word);
+//		-individual_not_found(Individual);
+//		!guiding_goal_negociation(ID, Human, Word).
 		
-+not_exp_ans(4) : guiding_goal_negociation <-
-	-guiding_goal_negociation;
-	.drop_desire(guiding_goal_negociation(ID, Human,_));
-	!speak(ID,max_sorry); 
-	!drop_current_task(ID, max_attempts, "multiple wrong answers", max_attempts).
+//+not_exp_ans(4) : guiding_goal_negociation <-
+//	-guiding_goal_negociation;
+//	.drop_desire(guiding_goal_negociation(ID, Human,_));
+//	!speak(ID,max_sorry); 
+//	!drop_current_task(ID, max_attempts, "multiple wrong answers", max_attempts).
 
 // in case of the original plan failure	
 -!guiding_goal_negociation(ID, Human, Place)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)]: true <-
@@ -68,7 +66,6 @@ all_places(false).
 		!drop_current_task(ID, guiding_goal_negociation, Failure, Code); 
 //	  	!guiding_goal_negociation(ID, Human);
   	}else{
-  		-guiding_goal_negociation;
   		!drop_current_task(ID, guiding_goal_negociation, Failure, Code); 
   	}.
 	

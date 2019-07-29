@@ -23,7 +23,7 @@
 	human_to_monitor(H);
 	.wait(isPerceiving(Human),4000).
 	
-+!person_of_interest(H) : true <- jia.person_of_interest(H); .wait(500); !person_of_interest(H).
+@poi[no_log]+!person_of_interest(H) : true <- jia.person_of_interest(H); .wait(500); !person_of_interest(H).
 
 -!start_monitoring(ID, Human) : not isPerceiving(Human) <-
 	!look_for_human(Human).

@@ -167,23 +167,6 @@ public class RosNode extends AbstractNodeMain {
 					.newPublisher(parameters.getString("/guiding/topics/person_of_interest"), std_msgs.Int32._TYPE);
 			guiding_as = new ActionServer<>(connectedNode, "/guiding_task", taskActionGoal._TYPE,
 					taskActionFeedback._TYPE, taskActionResult._TYPE);
-			guiding_as.attachListener(new ActionServerListener<taskActionGoal>() {
-
-				@Override
-				public void goalReceived(taskActionGoal goal) {
-				}
-
-				@Override
-				public void cancelReceived(GoalID id) {
-					new_guiding_goal = null;
-				}
-
-				@Override
-				public boolean acceptGoal(taskActionGoal goal) {
-					stack_guiding_goals.push(goal);
-					return true;
-				}
-			});
 
 			get_human_answer_ac = new ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult>(
 					connectedNode, parameters.getString("/guiding/action_servers/dialogue"),
@@ -191,31 +174,30 @@ public class RosNode extends AbstractNodeMain {
 					dialogue_actionActionResult._TYPE);
 
 			get_human_answer_ac.setLogLevel(Level.OFF);
+			
+			get_human_answer_ac.attachListener(new ActionClientListener<dialogue_actionActionFeedback, dialogue_actionActionResult>() {
 
-			get_human_answer_ac.attachListener(
-					new ActionClientListener<dialogue_actionActionFeedback, dialogue_actionActionResult>() {
+				@Override
+				public void feedbackReceived(dialogue_actionActionFeedback fb) {
+					listening_fb = fb;
+				}
 
-						@Override
-						public void feedbackReceived(dialogue_actionActionFeedback fb) {
-							listening_fb = fb;
-						}
+				@Override
+				public void resultReceived(dialogue_actionActionResult result) {
+					listening_result = result;
+					if(result.getStatus().getStatus()==actionlib_msgs.GoalStatus.SUCCEEDED) {
+						logger.info("result succeeded :"+result.getResult().getSubject());
+					}
+					if(result.getStatus().getStatus()==actionlib_msgs.GoalStatus.PREEMPTED) {
+						logger.info("result preempted");
+					}
+					
+					
+				}
 
-						@Override
-						public void resultReceived(dialogue_actionActionResult result) {
-							listening_result = result;
-							if (result.getStatus().getStatus() == actionlib_msgs.GoalStatus.SUCCEEDED) {
-								logger.info("result succeeded :" + result.getResult().getSubject());
-							}
-							if (result.getStatus().getStatus() == actionlib_msgs.GoalStatus.PREEMPTED) {
-								logger.info("result preempted");
-							}
-
-						}
-
-						@Override
-						public void statusReceived(GoalStatusArray arg0) {
-						}
-					});
+				@Override
+				public void statusReceived(GoalStatusArray arg0) {}
+			});
 
 //			move_to_ac = new ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult>(
 //					connectedNode, parameters.getString("/guiding/action_servers/move_to"), MoveBaseActionGoal._TYPE, MoveBaseActionFeedback._TYPE, MoveBaseActionResult._TYPE);
@@ -728,6 +710,10 @@ public class RosNode extends AbstractNodeMain {
 	public void cancel_goal_dialogue() {
 		if (get_human_answer_ac != null & listen_goal_msg != null)
 			get_human_answer_ac.sendCancel(listen_goal_msg.getGoalId());
+	}
+	
+	public void set_guiding_as_listener(ActionServerListener<taskActionGoal> listener) {
+		guiding_as.attachListener(listener);
 	}
 
 	public taskActionGoal getNew_guiding_goal() {

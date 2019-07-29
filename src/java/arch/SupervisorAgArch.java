@@ -17,6 +17,7 @@ import org.ros.node.DefaultNodeMainExecutor;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
 
+import com.github.rosjava_actionlib.ActionServerListener;
 import com.github.rosjava_actionlib.GoalIDGenerator;
 import com.google.common.collect.Lists;
 
@@ -110,6 +111,41 @@ public class SupervisorAgArch extends ROSAgArch {
 					}
 					actionExecuted(action);
 					
+				}else if(action_name.equals("initGuidingAs")) {
+					ActionServerListener<taskActionGoal> listener = new ActionServerListener<taskActionGoal>() {
+
+						@Override
+						public void goalReceived(taskActionGoal goal) {}
+
+						@Override
+						public void cancelReceived(GoalID id) {
+							try {
+								getTS().getAg().addBel(Literal.parseLiteral("cancel_goal(\""+id.getId()+"\")"));
+							} catch (RevisionFailedException e) {
+								e.printStackTrace();
+							}
+						}
+
+						@Override
+						public boolean acceptGoal(taskActionGoal goal) {
+							GoalID goalID = goal.getGoalId();
+							if(goal.getGoalId().getId().isEmpty()) {
+								goalIDGenerator.generateID(goalID);
+							}
+							String person = "\""+goal.getGoal().getPersonFrame()+"\"";
+							if(m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu"))
+								person = person.replaceAll("human-", "");
+							try {
+								getTS().getAg().addBel(Literal.parseLiteral("guiding_goal(\""+goal.getGoalId().getId()+"\","+person+",\""+goal.getGoal().getPlaceFrame()+"\")"));
+							} catch (RevisionFailedException e) {
+								e.printStackTrace();
+							}
+							return true;
+						}
+					};
+					m_rosnode.set_guiding_as_listener(listener);
+					action.setResult(true);
+					actionExecuted(action);
 				}else if(action_name.equals("retryInitServices")){
 					action.setResult(true);
 					LogicalFormula logExpr = Literal.parseLiteral("~connected_srv(X)");
@@ -135,29 +171,6 @@ public class SupervisorAgArch extends ROSAgArch {
 							logger.info("Belief could not be added to the belief base :"+e.getMessage());
 						}
 					}
-					actionExecuted(action);
-				}else if(action_name.equals("check_guiding_goal")) {
-					Stack<taskActionGoal> stack = m_rosnode.getStack_guiding_goals();
-					if(!stack.empty()) {
-						taskActionGoal goal = stack.peek();
-						if(goal != current_guiding_goal) {
-							try {
-								GoalID goalID = goal.getGoalId();
-								if(goal.getGoalId().getId().isEmpty()) {
-									goalIDGenerator.generateID(goalID);
-								}
-								String person = "\""+goal.getGoal().getPersonFrame()+"\"";
-								if(m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu"))
-									person = person.replaceAll("human-", "");
-								getTS().getAg().addBel(Literal.parseLiteral("guiding_goal(\""+goal.getGoalId().getId()+"\","+person+",\""+goal.getGoal().getPlaceFrame()+"\")"));
-							} catch (RevisionFailedException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							current_guiding_goal = goal;
-						}
-					}
-					action.setResult(true);
 					actionExecuted(action);
 				}else if(action_name.equals("set_guiding_result")){
 					String success = action.getActionTerm().getTerm(0).toString();

@@ -54,7 +54,7 @@ public class ROSAgArch extends MindInspectorAgArch {
 			if(percept_id != m_rosnode.getPercept_id()) {
 				Multimap<String,SimpleFact> mm = m_rosnode.getPerceptions();
 				synchronized (mm) {
-					Collection<SimpleFact> perceptions = new ArrayList<SimpleFact>(mm.get(getAgName()));
+					Collection<SimpleFact> perceptions = new ArrayList<SimpleFact>(mm.get("\""+getAgName()+"\""));
 					if(perceptions != null) {
 						for(SimpleFact percept : perceptions) {
 							if(percept.getObject().isEmpty()) {

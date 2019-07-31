@@ -10,7 +10,7 @@
 +!start : true <- .my_name(N); .print(N).
 
 +!communicate_belief(Belief) : true <-
-	if(not .believes((Belief))){
+	if(not jia.believes((Belief))){
 		.add_plan({@comm_beliefa[Belief] +Belief : true <- .send(robot,tell,Belief)});
 		.add_plan({
 			@comm_beliefr[Belief] -Belief : true <- 
@@ -29,4 +29,14 @@
 	.remove_plan(comm_beliefr[Belief]);.
 
 	
-	
+-isEngagedWith(O) : true <-
+	.my_name(N);
+	.term2string(N, S);
+	.send(interac, untell, isEngagedWith(S, O));
+	.send(interac, tell, ~isEngagedWith(S, O)).	
+
++isEngagedWith(O) : true <-
+	.my_name(N);
+	.term2string(N, S);
+	.send(interac, tell, isEngagedWith(S, O));
+	.send(interac, untell, ~isEngagedWith(S, O)).		

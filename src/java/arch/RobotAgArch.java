@@ -529,6 +529,12 @@ public class RobotAgArch extends ROSAgArch {
 					}
 
 					switch (bel_functor) {
+					case "hello":
+						text = new String("Hello ! Nice to meet you");
+						break;
+					case "goodbye":
+						text = new String("Goodbye");
+						break;
 					case "thinking":
 						text = new String("Wait, I'm thinking");
 						break;

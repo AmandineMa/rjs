@@ -9,7 +9,7 @@ import com.google.common.collect.Multimap;
 import jason.asSyntax.Literal;
 import utils.SimpleFact;
 
-public class InteractAgArch extends ROSAgArch {
+public class InteractAgArch extends RobotAgArch {
 
 	@Override
 	public Collection<Literal> perceive() {
@@ -22,18 +22,10 @@ public class InteractAgArch extends ROSAgArch {
 					if(perceptions != null) {
 						for(String agent : perceptions.keySet()) {
 							for(SimpleFact percept : perceptions.get(agent)) {
-								if(agent.contains("human")) {
-									if(percept.getPredicate().equals("canSee")
-											|| percept.getPredicate().equals("isSpeakingTo")
-											|| percept.getPredicate().equals("isClose")
-											|| percept.getPredicate().equals("isInFrontOf")) {
-
-										if(percept.getObject().isEmpty()) {
-											l.add(Literal.parseLiteral(percept.getPredicate()+"("+agent+")"));
-										}else {
-											l.add(Literal.parseLiteral(percept.getPredicate()+"("+agent+","+percept.getObject()+")"));
-										}
-									}
+								if(percept.getPredicate().equals("isEngagingWith")) {
+									l.add(Literal.parseLiteral(percept.getPredicate()+"("+agent+","+percept.getObject()+")"));
+								}else if(percept.getPredicate().equals("isPerceiving")) {
+									l.add(Literal.parseLiteral(percept.getPredicate()+"("+agent+","+percept.getObject()+")"));
 								}
 							}
 						}

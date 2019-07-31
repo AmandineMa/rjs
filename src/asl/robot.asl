@@ -20,14 +20,15 @@
 +!start : true <- .verbose(2).
 
 +!guiding(ID, Human, Place) : true <-	
+	.send(interac, tell, inTaskWith(Human));
 	+task(ID, guiding, Human, Place)[ID];
 	-finished;
 	-point_at(point);
 	-look_at(look);
-	.all_names(Agents);
-	if(not .member(Human, Agents)){
-		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
-	}
+//	.all_names(Agents);
+//	if(not .member(Human, Agents)){
+//		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
+//	}
 	+task(ID, guiding, Human, Place)[ID];
 	!guiding_goal_negociation(ID, Human, Place);
 	?guiding_goal_nego(ID, PlaceNego);
@@ -85,6 +86,7 @@
 	.findall(B[ID,source(X),add_time(Y)],B[ID,source(X),add_time(Y)], L);
 	.send(history, tell, L);
 	jia.reset_att_counter;
+	.send(interac, untell, inTaskWith(Human));
 	.abolish(_[ID]).	
 	
 // Utils

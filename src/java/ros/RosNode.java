@@ -159,7 +159,10 @@ public class RosNode extends AbstractNodeMain {
 			}
 			msc = new MasterStateClient(connectedNode, uri);
 			service_clients = new HashMap<String, ServiceClient<Message, Message>>();
-			services_map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services");
+			if(parameters.has("/guiding/services"))
+				services_map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services");
+			else 
+				services_map = new HashMap<String, HashMap<String, String>>();
 			stack_guiding_goals = new Stack<taskActionGoal>();
 			marker_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher("/pp_debug",
 					visualization_msgs.Marker._TYPE);
@@ -223,17 +226,19 @@ public class RosNode extends AbstractNodeMain {
 //				}
 //			});
 
-			move_to_goal_pub = connectedNode.newPublisher(
-					parameters.getString("/guiding/action_servers/move_to") + "/goal", MoveBaseActionGoal._TYPE);
-			move_to_result_sub = connectedNode.newSubscriber(
-					parameters.getString("/guiding/action_servers/move_to") + "/result", MoveBaseActionResult._TYPE);
-			move_to_result_sub.addMessageListener(new MessageListener<MoveBaseActionResult>() {
-
-				@Override
-				public void onNewMessage(MoveBaseActionResult result) {
-					move_to_result = result;
-				}
-			});
+			if(parameters.has("/guiding/action_servers/move_to")) {
+				move_to_goal_pub = connectedNode.newPublisher(
+						parameters.getString("/guiding/action_servers/move_to") + "/goal", MoveBaseActionGoal._TYPE);
+				move_to_result_sub = connectedNode.newSubscriber(
+						parameters.getString("/guiding/action_servers/move_to") + "/result", MoveBaseActionResult._TYPE);
+				move_to_result_sub.addMessageListener(new MessageListener<MoveBaseActionResult>() {
+	
+					@Override
+					public void onNewMessage(MoveBaseActionResult result) {
+						move_to_result = result;
+					}
+				});
+			}
 
 			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"),
 					perspectives_msgs.FactArrayStamped._TYPE);
@@ -274,6 +279,8 @@ public class RosNode extends AbstractNodeMain {
 								} else {
 									simple_fact = new SimpleFact(predicate);
 								}
+								if (!subject.startsWith("\""))
+									subject = "\"" + subject + "\"";
 								perceptions.put(subject, simple_fact);
 							}
 						}
@@ -315,7 +322,7 @@ public class RosNode extends AbstractNodeMain {
 
 			@Override
 			public void onSuccess(T response) {
-				logger.info("message return: " + response.toString());
+//				logger.info("message return: " + response.toString());
 				future.complete(response);
 			}
 		};
@@ -333,7 +340,7 @@ public class RosNode extends AbstractNodeMain {
 
 	public <T> void call_service(String serviceName, String className, ServiceResponseListener<T> srl,
 			Map<String, Object> params) {
-		logger.info("Calling service (" + serviceName + ") with class: " + className);
+//		logger.info("Calling service (" + serviceName + ") with class: " + className);
 		Message msg = service_clients.get(serviceName).newMessage();
 
 		List<Method> setMethods = new ArrayList<Method>();
@@ -341,9 +348,9 @@ public class RosNode extends AbstractNodeMain {
 			Class<?> c = Class.forName(className);
 			Method[] methods = c.getDeclaredMethods();
 			for (int i = 0; i < methods.length; i++) {
-				logger.info("Current method: " + methods[i].getName());
+//				logger.info("Current method: " + methods[i].getName());
 				if ("set".equalsIgnoreCase(methods[i].getName().substring(0, 3))) {
-					logger.info("Is a set method");
+//					logger.info("Is a set method");
 					setMethods.add(methods[i]);
 				}
 			}
@@ -377,7 +384,7 @@ public class RosNode extends AbstractNodeMain {
 
 					String paramName = setM.getName().substring(3).toLowerCase();
 					if (params.containsKey(paramName)) {
-						logger.info("Setting " + paramName + " with value: " + params.get(paramName));
+//						logger.info("Setting " + paramName + " with value: " + params.get(paramName));
 						setM.invoke(msg, params.get(paramName));
 					} else {
 						logger.info("No value defined for parameter: " + paramName);
@@ -392,7 +399,7 @@ public class RosNode extends AbstractNodeMain {
 			}
 		}
 
-		logger.info("Calling CALL method");
+//		logger.info("Calling CALL method");
 		service_clients.get(serviceName).call(msg, (ServiceResponseListener<Message>) srl);
 	}
 
@@ -498,28 +505,6 @@ public class RosNode extends AbstractNodeMain {
 
 		return point_stamped;
 	}
-
-//	public void call_speak_to_srv(String look_at, String text) {
-//		speak_to_resp = null;
-//		final SpeakToRequest request = (SpeakToRequest) service_clients.get("speak_to").newMessage();
-//		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
-//		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
-//		header.setFrameId(look_at);
-//		point.setHeader(header);
-//		request.setLookAt(point);
-//		request.setText(text);
-//		service_clients.get("speak_to").call(request, new ServiceResponseListener<Message>() {
-//
-//			public void onFailure(RemoteException e) {
-//				throw new RosRuntimeException(e);
-//			}
-//
-//			public void onSuccess(Message response) {
-//				speak_to_resp = (SpeakToResponse) response;
-//			}
-//			
-//		});
-//	}
 
 	public MetaStateMachineHeader build_meta_header() {
 		NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();

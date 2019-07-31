@@ -1,12 +1,11 @@
 /******* monitoring **********/	
 
-+monitoring(ID, Human) : isPerceiving(Human) <-
-	!start_monitoring(ID, Human).
-	
-+monitoring(ID, Human) : not isPerceiving(Human) <-
++monitoring(ID, Human) : true <-
+	.send(interac, tell, monitoring(Human));
 	!start_monitoring(ID, Human).
 
 -monitoring(ID,Human) : true <- 
+	.send(interac, untell, monitoring(Human));
 	human_to_monitor(""); 
 	.succeed_goal(start_monitoring(ID, Human));
 	.succeed_goal(wait_before_looking(Human));
@@ -76,6 +75,7 @@
 -!look_for_human(Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : not isPerceiving(Human) <- 
 	?task(ID, _, Human, _);
 	if(.substring(Error,max_attempts)){
+		.send(interac, tell, left_task(Human));
 		!speak(ID,cannot_find); 
 		!drop_current_task(ID, look_for_human, Failure, Code);
 	}else{

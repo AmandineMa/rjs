@@ -75,8 +75,9 @@
 -!look_for_human(Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : not isPerceiving(Human) <- 
 	?task(ID, _, Human, _);
 	if(.substring(Error,max_attempts)){
-		.send(interac, tell, left_task(Human));
 		!speak(ID,cannot_find); 
+		.wait(1000);
+		.send(interac, tell, left_task(Human));
 		!drop_current_task(ID, look_for_human, Failure, Code);
 	}else{
 		!look_for_human(Human);

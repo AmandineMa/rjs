@@ -53,7 +53,7 @@
 //	engage(Human);
 	text2speech(Human, hello).
 	
-+~isEngagedWith(Human, _) : inSession(Human) & isPerceiving(_, Human) & ((monitoring(Human) & inTask(Human)) | not inTask(Human)) <-
++~isEngagedWith(Human, _) : inSession(Human) & isPerceiving(_, Human) & ((monitoring(Human) & inTaskWith(Human)) | not inTaskWith(Human)) <-
 //	not_engaged(Human);
 	.print(not_engaged).
 	
@@ -69,7 +69,7 @@
 
 -!bye(Human) : true <- true.
 
--isPerceiving(_, Human) : not inTask(Human) & inSession(Human) <-
+-isPerceiving(_, Human) : not inTaskWith(Human) & inSession(Human) <-
 	!wait_human(Human).
 	
 +!wait_human(Human) : true <-

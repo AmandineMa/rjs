@@ -14,7 +14,6 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.ros.exception.ParameterNotFoundException;
@@ -35,11 +34,9 @@ import org.ros.node.service.ServiceClient;
 import org.ros.node.service.ServiceResponseListener;
 import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
-import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
-import com.github.rosjava_actionlib.ActionClient;
-import com.github.rosjava_actionlib.ActionClientListener;
+
 import com.github.rosjava_actionlib.ActionServer;
 import com.github.rosjava_actionlib.ActionServerListener;
 import com.google.common.collect.ArrayListMultimap;
@@ -47,7 +44,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
 import actionlib_msgs.GoalID;
-import actionlib_msgs.GoalStatusArray;
 import arch.ROSAgArch;
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionGoal;
@@ -60,8 +56,6 @@ import guiding_as_msgs.taskActionFeedback;
 import guiding_as_msgs.taskActionGoal;
 import guiding_as_msgs.taskActionResult;
 import jason.asSemantics.ActionExec;
-import jason.asSyntax.Atom;
-import jason.asSyntax.ListTerm;
 import jason.asSyntax.ListTermImpl;
 import jason.asSyntax.NumberTermImpl;
 import move_base_msgs.MoveBaseActionFeedback;
@@ -69,15 +63,12 @@ import move_base_msgs.MoveBaseActionGoal;
 import move_base_msgs.MoveBaseActionResult;
 import move_base_msgs.MoveBaseGoal;
 import pepper_base_manager_msgs.StateMachineStatePrioritizedAngle;
-import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterResponse;
 import pepper_resources_synchronizer_msgs.SubStateMachine_pepper_base_manager_msgs;
 import perspectives_msgs.Fact;
 import perspectives_msgs.FactArrayStamped;
 import perspectives_msgs.GetNameResponse;
 import pointing_planner.PointingActionFeedback;
-import pointing_planner.PointingActionGoal;
 import pointing_planner.PointingActionResult;
-import pointing_planner.PointingGoal;
 import resource_management_msgs.EndCondition;
 import resource_management_msgs.MessagePriority;
 import resource_management_msgs.StateMachineStateHeader;
@@ -85,7 +76,6 @@ import resource_management_msgs.StateMachineTransition;
 import resource_synchronizer_msgs.MetaStateMachineHeader;
 import resource_synchronizer_msgs.SubStateMachineHeader;
 import std_msgs.Header;
-import utils.Quaternion;
 import utils.SimpleFact;
 import utils.Tools;
 
@@ -98,8 +88,6 @@ import utils.Tools;
  *
  */
 public class RosNode extends AbstractNodeMain {
-	@SuppressWarnings("unused")
-	private String name;
 	private Logger logger = Logger.getLogger(RosNode.class.getName());
 
 	private ConnectedNode connectedNode;
@@ -108,33 +96,26 @@ public class RosNode extends AbstractNodeMain {
 	private MasterStateClient msc;
 	HashMap<String, HashMap<String, String>> services_map;
 	private HashMap<String, ServiceClient<Message, Message>> service_clients;
-	private HashMap<String, String> service_types;
 	private ActionServer<taskActionGoal, taskActionFeedback, taskActionResult> guiding_as;
 	private taskActionGoal new_guiding_goal = null;
 	private Stack<taskActionGoal> stack_guiding_goals;
-	private ActionClient<PointingActionGoal, PointingActionFeedback, PointingActionResult> get_placements_ac;
-	private ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult> get_human_answer_ac;
-	private ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult> move_to_ac;
 	private Subscriber<perspectives_msgs.FactArrayStamped> facts_sub;
 	private PointingActionResult placements_result;
 	private PointingActionFeedback placements_fb;
 	private dialogue_actionActionResult listening_result;
 	private dialogue_actionActionFeedback listening_fb;
-	private dialogue_actionActionGoal listen_goal_msg;
 	private MoveBaseActionResult move_to_result;
 	private MoveBaseActionFeedback move_to_fb;
 	private Publisher<MoveBaseActionGoal> move_to_goal_pub;
-	private Subscriber<MoveBaseActionResult> move_to_result_sub;
+	private Publisher<dialogue_actionActionGoal> dialogue_pub;
+	private Publisher<GoalID> dialogue_cancel_pub;
 	private Publisher<visualization_msgs.Marker> marker_pub;
 	private Publisher<std_msgs.Int32> person_of_interest_pub;
-	private Subscriber<guiding_as_msgs.Task> goal_listener;
-
 	private Multimap<String, SimpleFact> perceptions = Multimaps
 			.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
 	private volatile int percept_id = 0;
 
 	public RosNode(String name) {
-		this.name = name;
 	}
 
 	public GraphName getDefaultNodeName() {
@@ -171,74 +152,46 @@ public class RosNode extends AbstractNodeMain {
 			guiding_as = new ActionServer<>(connectedNode, "/guiding_task", taskActionGoal._TYPE,
 					taskActionFeedback._TYPE, taskActionResult._TYPE);
 
-			get_human_answer_ac = new ActionClient<dialogue_actionActionGoal, dialogue_actionActionFeedback, dialogue_actionActionResult>(
-					connectedNode, parameters.getString("/guiding/action_servers/dialogue"),
-					dialogue_actionActionGoal._TYPE, dialogue_actionActionFeedback._TYPE,
-					dialogue_actionActionResult._TYPE);
-
-			get_human_answer_ac.setLogLevel(Level.OFF);
-			
-			get_human_answer_ac.attachListener(new ActionClientListener<dialogue_actionActionFeedback, dialogue_actionActionResult>() {
-
-				@Override
-				public void feedbackReceived(dialogue_actionActionFeedback fb) {
-					listening_fb = fb;
-				}
-
-				@Override
-				public void resultReceived(dialogue_actionActionResult result) {
-					listening_result = result;
-					if(result.getStatus().getStatus()==actionlib_msgs.GoalStatus.SUCCEEDED) {
-						logger.info("result succeeded :"+result.getResult().getSubject());
-					}
-					if(result.getStatus().getStatus()==actionlib_msgs.GoalStatus.PREEMPTED) {
-						logger.info("result preempted");
-					}
-					
-					
-				}
-
-				@Override
-				public void statusReceived(GoalStatusArray arg0) {}
-			});
-
-//			move_to_ac = new ActionClient<MoveBaseActionGoal, MoveBaseActionFeedback, MoveBaseActionResult>(
-//					connectedNode, parameters.getString("/guiding/action_servers/move_to"), MoveBaseActionGoal._TYPE, MoveBaseActionFeedback._TYPE, MoveBaseActionResult._TYPE);
-//			
-//			move_to_ac.setLogLevel(Level.OFF);
-//			
-//			move_to_ac.attachListener(new ActionClientListener<MoveBaseActionFeedback, MoveBaseActionResult>() {
-//
-//				@Override
-//				public void feedbackReceived(MoveBaseActionFeedback fb) {
-//					move_to_fb = fb;
-//					
-//				}
-//
-//				@Override
-//				public void resultReceived(MoveBaseActionResult result) {
-//					move_to_result = result;
-//					
-//				}
-//
-//				@Override
-//				public void statusReceived(GoalStatusArray arg0) {
-//				}
-//			});
-
 			if(parameters.has("/guiding/action_servers/move_to")) {
 				move_to_goal_pub = connectedNode.newPublisher(
 						parameters.getString("/guiding/action_servers/move_to") + "/goal", MoveBaseActionGoal._TYPE);
-				move_to_result_sub = connectedNode.newSubscriber(
-						parameters.getString("/guiding/action_servers/move_to") + "/result", MoveBaseActionResult._TYPE);
-				move_to_result_sub.addMessageListener(new MessageListener<MoveBaseActionResult>() {
+				
+				MessageListener<MoveBaseActionResult> ml_move = new MessageListener<MoveBaseActionResult>() {
 	
 					@Override
 					public void onNewMessage(MoveBaseActionResult result) {
 						move_to_result = result;
 					}
-				});
+				};
+				addListenerResult("/guiding/action_servers/move_to", MoveBaseActionResult._TYPE, ml_move);
 			}
+			
+			if(parameters.has("/guiding/action_servers/dialogue")) {
+				dialogue_pub = connectedNode.newPublisher(
+						parameters.getString("/guiding/action_servers/dialogue") + "/goal", dialogue_actionActionGoal._TYPE);
+				dialogue_cancel_pub = connectedNode.newPublisher(
+						parameters.getString("/guiding/action_servers/dialogue") + "/cancel", GoalID._TYPE);
+				
+				MessageListener<dialogue_actionActionResult> ml_dialogue = new MessageListener<dialogue_actionActionResult>() {
+	
+					@Override
+					public void onNewMessage(dialogue_actionActionResult result) {
+						listening_result = result;
+						if(result.getStatus().getStatus()==actionlib_msgs.GoalStatus.SUCCEEDED) {
+							logger.info("result succeeded :"+result.getResult().getSubject());
+						}	
+					}
+				};
+				addListenerResult("/guiding/action_servers/dialogue", dialogue_actionActionResult._TYPE, ml_dialogue);
+				MessageListener<dialogue_actionActionFeedback> ml_dialogue_fb = new MessageListener<dialogue_actionActionFeedback>() {
+					@Override
+					public void onNewMessage(dialogue_actionActionFeedback fb) {
+						listening_fb = fb;
+					}
+				};
+				addListenerFb("/guiding/action_servers/dialogue", dialogue_actionActionFeedback._TYPE, ml_dialogue_fb);
+			}
+			
 
 			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"),
 					perspectives_msgs.FactArrayStamped._TYPE);
@@ -338,6 +291,7 @@ public class RosNode extends AbstractNodeMain {
 		return response;
 	}
 
+	@SuppressWarnings("unchecked")
 	public <T> void call_service(String serviceName, String className, ServiceResponseListener<T> srl,
 			Map<String, Object> params) {
 //		logger.info("Calling service (" + serviceName + ") with class: " + className);
@@ -378,9 +332,7 @@ public class RosNode extends AbstractNodeMain {
 			try {
 				Method setM = setMethods.get(i);
 				if (setM.getParameterTypes().length == 1) {
-					// Needed to check types ?
-					@SuppressWarnings("unused")
-					Class<?> parmType = setM.getParameterTypes()[0];
+					setM.getParameterTypes();
 
 					String paramName = setM.getName().substring(3).toLowerCase();
 					if (params.containsKey(paramName)) {
@@ -574,65 +526,7 @@ public class RosNode extends AbstractNodeMain {
 		return r_request;
 	}
 
-	public boolean call_svp_planner(String target_ld, String direction_ld, String human, int max_attempt) {
-		placements_result = null;
-		placements_fb = null;
-		boolean server_started;
-		int count = 0;
-		logger.info("wait to start svp planner");
-		do {
-			server_started = get_placements_ac.waitForActionServerToStart(new Duration(3));
-			// TODO send info to supervisor agent
-			if (server_started) {
-				logger.info("SVP Planner action server started.\n");
-				PointingActionGoal goal_msg;
-				goal_msg = get_placements_ac.newGoalMessage();
-				PointingGoal svp_goal = goal_msg.getGoal();
-				svp_goal.setHuman(human);
-				svp_goal.setDirectionLandmark(direction_ld);
-				svp_goal.setTargetLandmark(target_ld);
-				goal_msg.setGoal(svp_goal);
-				get_placements_ac.sendGoal(goal_msg);
-				return true;
-			} else {
-				count += 1;
-				logger.info("No actionlib svp server found ");
-			}
-		} while (!server_started & count < max_attempt);
-		return false;
-	}
-
-//	public boolean call_move_to_as(PoseStamped pose, int max_attempt) {
-//		move_to_fb = null;
-//		move_to_result = null;
-//		logger.info("wait to start move_to");
-//		boolean server_started;
-//		int count = 0;
-//		do {
-//			server_started = move_to_ac.waitForActionServerToStart(new Duration(3));
-//			if(server_started) {
-//				logger.info("move to as started");
-//				
-//				MoveBaseActionGoal goal_msg;
-//				goal_msg = move_to_ac.newGoalMessage();
-//				
-//				NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
-//				MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
-//				MoveBaseGoal move_to_goal = messageFactory.newFromType(MoveBaseGoal._TYPE);;
-//				move_to_goal.setTargetPose(pose);
-//				goal_msg.setGoal(move_to_goal);
-//				move_to_ac.sendGoal(goal_msg);
-//				return true;
-//			}else {
-//				logger.info("No actionlib move_to server found ");
-//				count += 1;
-//			}
-//		}while(!server_started & count < max_attempt);
-//		return false;	
-//			
-//	}
-
-	public boolean call_move_to_as(PoseStamped pose, int max_attempt) {
+	public void call_move_to_as(PoseStamped pose) {
 		move_to_fb = null;
 		move_to_result = null;
 		MoveBaseActionGoal goal_msg;
@@ -646,55 +540,35 @@ public class RosNode extends AbstractNodeMain {
 		goal_msg.setGoal(move_to_goal);
 
 		move_to_goal_pub.publish(goal_msg);
-		return true;
-
 	}
 
-	public boolean call_dialogue_as(List<String> subjects, int max_attempt) {
-		return call_dialogue_as(subjects, new ArrayList<String>(), max_attempt);
+	public void call_dialogue_as(List<String> subjects) {
+		call_dialogue_as(subjects, new ArrayList<String>());
 	}
-
-	public boolean call_dialogue_as(List<String> subjects, List<String> verbs, int max_attempt) {
+	
+	public void call_dialogue_as(List<String> subjects, List<String> verbs) {
 		listening_fb = null;
 		listening_result = null;
-		logger.info("wait to start dialogue_as");
-		boolean server_started;
-		int count = 0;
-		do {
-			server_started = get_human_answer_ac.waitForActionServerToStart(new Duration(3));
-			if (server_started) {
-				logger.info("dialogue started");
-
-				listen_goal_msg = get_human_answer_ac.newGoalMessage();
-				dialogue_actionGoal listen_goal = listen_goal_msg.getGoal();
-				if (!subjects.isEmpty()) {
-					listen_goal.setSubjects(subjects);
-				} else {
-					listen_goal.setEnableOnlyVerb(true);
-				}
-				if (!verbs.isEmpty()) {
-					listen_goal.setVerbs(verbs);
-				} else {
-					listen_goal.setEnableOnlySubject(true);
-				}
-				listen_goal_msg.setGoal(listen_goal);
-
-				get_human_answer_ac.sendGoal(listen_goal_msg);
-				// logger.info(listen_goal_msg.getGoalId().toString());
-				logger.info(listen_goal_msg.getGoalId().getId());
-				logger.info(listen_goal_msg.getGoalId().getStamp().toString());
-				return true;
-			} else {
-				count += 1;
-				logger.info("No actionlib dialogue server found ");
-			}
-		} while (!server_started & count < max_attempt);
-		return false;
-	}
-
-	public void cancel_goal_dialogue() {
-		if (get_human_answer_ac != null & listen_goal_msg != null)
-			get_human_answer_ac.sendCancel(listen_goal_msg.getGoalId());
+		NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
+		MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+		dialogue_actionActionGoal listen_goal_msg = messageFactory.newFromType(dialogue_actionActionGoal._TYPE);
+		dialogue_actionGoal listen_goal = listen_goal_msg.getGoal();
+		if (!subjects.isEmpty()) {
+			listen_goal.setSubjects(subjects);
+		} else {
+			listen_goal.setEnableOnlyVerb(true);
+		}
+		if (!verbs.isEmpty()) {
+			listen_goal.setVerbs(verbs);
+		} else {
+			listen_goal.setEnableOnlySubject(true);
+		}
+		listen_goal_msg.setGoal(listen_goal);
+		GoalID goalID = messageFactory.newFromType(GoalID._TYPE);
+		goalID.setId("");
+		dialogue_cancel_pub.publish(goalID);
+		dialogue_pub.publish(listen_goal_msg);
+		logger.info("dialogue_as listening");
 	}
 	
 	public void set_guiding_as_listener(ActionServerListener<taskActionGoal> listener) {
@@ -774,4 +648,22 @@ public class RosNode extends AbstractNodeMain {
 		Subscriber<T> sub = getConnectedNode().newSubscriber(getParameters().getString(topic), type);
 		sub.addMessageListener(ml);
 	}
+	
+	public <T> void addListenerResult(String action_server, String type, MessageListener<T> ml) {
+		Subscriber<T> sub = getConnectedNode().newSubscriber(getParameters().getString(action_server) + "/result", type);
+		sub.addMessageListener(ml);
+	}
+	
+	public <T> void addListenerFb(String action_server, String type, MessageListener<T> ml) {
+		Subscriber<T> sub = getConnectedNode().newSubscriber(getParameters().getString(action_server) + "/feedback", type);
+		sub.addMessageListener(ml);
+	}
+	
+	void sleep(long msec) {
+		try {
+			Thread.sleep(msec);
+		} catch (InterruptedException ex) {
+		}
+	}
+	
 }

@@ -51,10 +51,6 @@
 	.wait(look_at(look),4000);
 	look_at_events(stop_look_at);
 	?task(ID, Task, Human, Param);
- 	if(.substring(Failure, dialogue_as_failed)){
- 		.print(STOP_LISTEN);
- 		stop_listen;
- 	}
  	if(.substring(Failure, dialogue_as_failed) | .substring(Failure, dialogue_as_not_found)){
  		Speech = "listening";
  	}elif(.substring(Failure, route_verba_failed)){
@@ -96,8 +92,6 @@
 	text2speech(Human, ToSay).
 	
 -!speak(ID, ToSay) : true <-	true.
-
-+end_task(_, _) : listening <- stop_listen.
   	
 +cancel(ID) : true <-
 	-cancel(ID)[add_time(_), source(_)];

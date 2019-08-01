@@ -8,8 +8,6 @@ import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import javax.xml.transform.TransformerFactory;
-
 import org.ros.exception.RemoteException;
 import org.ros.exception.RosRuntimeException;
 import org.ros.message.MessageFactory;
@@ -17,7 +15,6 @@ import org.ros.message.MessageListener;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.service.ServiceResponseListener;
 import org.ros.node.topic.Publisher;
-import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformFactory;
 import org.ros.rosjava.tf.TransformTree;
@@ -30,8 +27,6 @@ import deictic_gestures.PointAtResponse;
 import deictic_gestures.PointAtStatus;
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionResult;
-import geometry_msgs.Point;
-import geometry_msgs.PointStamped;
 import geometry_msgs.PoseStamped;
 import hatp_msgs.PlanningRequestResponse;
 import jason.RevisionFailedException;
@@ -55,7 +50,6 @@ import nao_interaction_msgs.SayResponse;
 import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceResponse;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterResponse;
-import perspectives_msgs.HasMeshRequest;
 import perspectives_msgs.HasMeshResponse;
 import pointing_planner.PointingPlannerResponse;
 import pointing_planner.VisibilityScoreResponse;
@@ -75,8 +69,6 @@ public class RobotAgArch extends ROSAgArch {
 	private Logger logger = Logger.getLogger(RobotAgArch.class.getName());
 	private int max_attempt = 1;
 
-	private Subscriber<PointAtStatus> point_at_status;
-	private Subscriber<LookAtStatus> look_at_status;
 	private Publisher<std_msgs.String> human_to_monitor;
 	private Publisher<std_msgs.String> look_at_events_pub;
 	NodeConfiguration nodeConfiguration;
@@ -87,7 +79,7 @@ public class RobotAgArch extends ROSAgArch {
 		nodeConfiguration = NodeConfiguration.newPrivate();
 		messageFactory = nodeConfiguration.getTopicMessageFactory();
 
-		MessageListener<PointAtStatus> ml = new MessageListener<PointAtStatus>() {
+		MessageListener<PointAtStatus> ml_point_at = new MessageListener<PointAtStatus>() {
 			public void onNewMessage(PointAtStatus status) {
 				try {
 					switch (status.getStatus()) {
@@ -110,11 +102,9 @@ public class RobotAgArch extends ROSAgArch {
 
 			}
 		};
-		m_rosnode.addListener("guiding/topics/point_at_status", PointAtStatus._TYPE, ml);
+		m_rosnode.addListener("guiding/topics/point_at_status", PointAtStatus._TYPE, ml_point_at);
 
-		look_at_status = m_rosnode.getConnectedNode().newSubscriber(
-				m_rosnode.getParameters().getString("guiding/topics/look_at_status"), LookAtStatus._TYPE);
-		look_at_status.addMessageListener(new MessageListener<LookAtStatus>() {
+		MessageListener<LookAtStatus> ml_look_at = new MessageListener<LookAtStatus>()  {
 			public void onNewMessage(LookAtStatus status) {
 				try {
 					switch (status.getStatus()) {
@@ -136,7 +126,8 @@ public class RobotAgArch extends ROSAgArch {
 				}
 
 			}
-		});
+		};
+		m_rosnode.addListener("guiding/topics/look_at_status", LookAtStatus._TYPE, ml_look_at);
 
 		human_to_monitor = m_rosnode.getConnectedNode().newPublisher(
 				m_rosnode.getParameters().getString("guiding/topics/human_to_monitor"), std_msgs.String._TYPE);
@@ -767,54 +758,43 @@ public class RobotAgArch extends ROSAgArch {
 						for (Term term : (ListTermImpl) action.getActionTerm().getTerms().get(1)) {
 							words.add(term.toString().replaceAll("^\"|\"$", ""));
 						}
-						if (m_rosnode.call_dialogue_as(words, max_attempt)) {
-							try {
-								getTS().getAg().addBel(Literal.parseLiteral("listening[" + task_id + "]"));
-							} catch (RevisionFailedException e1) {
-								// TODO Auto-generated catch block
-								e1.printStackTrace();
-							}
-							dialogue_actionActionResult listening_result;
-							dialogue_actionActionFeedback listening_fb;
-							dialogue_actionActionFeedback listening_fb_prev = null;
-							int count = 0;
-							do {
-								listening_result = m_rosnode.getListening_result();
-								listening_fb = m_rosnode.getListening_fb();
-								if (listening_fb != null & listening_fb != listening_fb_prev) {
-									try {
-										getTS().getAg().abolish(Literal.parseLiteral("not_exp_ans(_)"), new Unifier());
-										getTS().getAg().addBel(Literal.parseLiteral(
-												"not_exp_ans(" + Integer.toString(count) + ")[" + task_id + "]"));
-									} catch (RevisionFailedException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
-									count += 1;
-									listening_fb_prev = listening_fb;
-								}
-								sleep(200);
-							} while (listening_result == null);
-							byte status = listening_result.getStatus().getStatus();
-							if (listening_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
+						m_rosnode.call_dialogue_as(words);
+						try {
+							getTS().getAg().addBel(Literal.parseLiteral("listening[" + task_id + "]"));
+						} catch (RevisionFailedException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+						dialogue_actionActionResult listening_result;
+						dialogue_actionActionFeedback listening_fb;
+						dialogue_actionActionFeedback listening_fb_prev = null;
+						int count = 0;
+						do {
+							listening_result = m_rosnode.getListening_result();
+							listening_fb = m_rosnode.getListening_fb();
+							if (listening_fb != null & listening_fb != listening_fb_prev) {
 								try {
-									getTS().getAg().addBel(Literal.parseLiteral("listen_result(" + question + ",\""
-											+ listening_result.getResult().getSubject() + "\")[" + task_id + "]"));
+									getTS().getAg().abolish(Literal.parseLiteral("not_exp_ans(_)"), new Unifier());
+									getTS().getAg().addBel(Literal.parseLiteral(
+											"not_exp_ans(" + Integer.toString(count) + ")[" + task_id + "]"));
 								} catch (RevisionFailedException e) {
 									// TODO Auto-generated catch block
 									e.printStackTrace();
 								}
-								action.setResult(true);
-							} else {
-								action.setResult(false);
-								action.setFailureReason(new Atom("dialogue_as_failed"), "");
-								if (listening_result.getStatus().getStatus() == GoalStatus.PREEMPTED)
-									logger.info("dialogue_as preempted");
+								count += 1;
+								listening_fb_prev = listening_fb;
 							}
-						} else {
-							action.setResult(false);
-							action.setFailureReason(new Atom("dialogue_as_not_found"), "");
+							sleep(200);
+						} while (listening_result == null || listening_result.getStatus().getStatus() != GoalStatus.SUCCEEDED);
+						byte status = listening_result.getStatus().getStatus();
+						try {
+							getTS().getAg().addBel(Literal.parseLiteral("listen_result(" + question + ",\""
+									+ listening_result.getResult().getSubject() + "\")[" + task_id + "]"));
+						} catch (RevisionFailedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
 						}
+						action.setResult(true);
 						try {
 							getTS().getAg().abolish(Literal.parseLiteral("listening"), new Unifier());
 						} catch (RevisionFailedException e1) {
@@ -824,11 +804,6 @@ public class RobotAgArch extends ROSAgArch {
 					} else {
 						action.setResult(true);
 					}
-					actionExecuted(action);
-				} else if (action_name.equals("stop_listen")) {
-
-					m_rosnode.cancel_goal_dialogue();
-					action.setResult(true);
 					actionExecuted(action);
 				} else if (action_name.equals("look_at_events")) {
 					String event = action.getActionTerm().getTerm(0).toString();
@@ -857,11 +832,11 @@ public class RobotAgArch extends ROSAgArch {
 					header.setFrameId(frame);
 					pose_stamped.setHeader(header);
 					pose_stamped.setPose(pose.getPose());
-					if (m_rosnode.call_move_to_as(pose_stamped, max_attempt)) {
-						MoveBaseActionResult move_to_result;
-						MoveBaseActionFeedback move_to_fb;
-						do {
-							move_to_result = m_rosnode.getMove_to_result();
+					m_rosnode.call_move_to_as(pose_stamped);
+					MoveBaseActionResult move_to_result;
+					MoveBaseActionFeedback move_to_fb;
+					do {
+						move_to_result = m_rosnode.getMove_to_result();
 //							move_to_fb = m_rosnode.getMove_to_fb();
 //							if(move_to_fb != null) {
 //								try {
@@ -872,23 +847,19 @@ public class RobotAgArch extends ROSAgArch {
 //									e.printStackTrace();
 //								}
 //							}
-							sleep(200);
-						} while (move_to_result == null);
-						if (move_to_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
-							try {
-								getTS().getAg().addBel(Literal.parseLiteral("move_goal_reached"));
-							} catch (RevisionFailedException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							action.setResult(true);
-						} else {
-							action.setResult(false);
-							action.setFailureReason(new Atom("move_to_failed"), "");
+						sleep(200);
+					} while (move_to_result == null);
+					if (move_to_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
+						try {
+							getTS().getAg().addBel(Literal.parseLiteral("move_goal_reached"));
+						} catch (RevisionFailedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
 						}
+						action.setResult(true);
 					} else {
 						action.setResult(false);
-						action.setFailureReason(new Atom("move_to_as_not_found"), "");
+						action.setFailureReason(new Atom("move_to_failed"), "");
 					}
 					actionExecuted(action);
 				} else if (action_name.equals("get_hatp_plan")) {

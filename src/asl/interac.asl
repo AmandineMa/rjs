@@ -45,9 +45,8 @@
 +isEngagingWith(Human,_) : not inSession(_) <-
 	+inSession(Human);
 	.all_names(Agents);
-	if(not .member(Human, Agents)){
+	if(not jia.member(Human, Agents)){
 		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
-		
 	}
 //	approach(Human);
 //	engage(Human);
@@ -69,7 +68,7 @@
 
 -!bye(Human) : true <- true.
 
--isPerceiving(_, Human) : not inTaskWith(Human) & inSession(Human) <-
+-isPerceiving(_, Human) : not inTaskWith(_) & inSession(Human) <-
 	!wait_human(Human).
 	
 +!wait_human(Human) : true <-

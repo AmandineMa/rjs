@@ -205,9 +205,9 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	
 +!be_at_good_pos(ID) : true <- 
 	?task(ID, guiding, Human, _);
-	!speak(ID, going_to_move);
 	?robot_pose(Rframe,Rposit, Rorient);
 	?human_pose(Hframe,Hposit,_);
+	!speak(ID, going_to_move);
 	jia.publish_marker(Rframe,Rposit, yellow);
 	jia.publish_marker(Hframe, Hposit, blue);
 	if(jia.believes(human_first(_))){
@@ -216,8 +216,8 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		.concat("human_", Human, HTF);
 		!check_dist(ID, HTF, Rposit, 0.5);
 	}
-	tf.quat_face_human(Rposit, Hposit, Q);
-	move_to(Rframe,Rposit, Q);
+//	tf.quat_face_human(Rposit, Hposit, Q);
+	move_to(Rframe,Rposit, Rorient);
 	!wait_human(ID).
 
 @cd[max_attempts(15)]+!check_dist(ID, HTF, Rposit, Dist) : true <- 
@@ -241,9 +241,9 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	!clean_task(ID).
 
 -!be_at_good_pos(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
-//	if(not .substring(Code, robot_pose)){
-		!drop_current_task(ID, be_at_good_pos, Failure, Code).
-//	}.
+	if(not .substring(robot_pose, Code)){
+		!drop_current_task(ID, be_at_good_pos, Failure, Code);
+	}.
 
 @wh[max_attempts(3)]+!wait_human(ID) : true <- 
 	?task(ID, guiding, Human, _);
@@ -269,22 +269,22 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		?target_to_point(T);
 		.concat("human_", Human, HTF);
 		can_be_visible(HTF, T);
-	}
-	rotate(Rorient).
+	}.
+//	move_to(Rframe,Rposit,Rorient).
 	
--!wait_human(ID)[Failure, code(_),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
+-!wait_human(ID)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
 	?task(ID, guiding, Human, _);
 	// TODO meme erreur que pour isPerceiving, ne permet pas de differencier les deux
-	if(.substring(Error, wait_timeout)){
+	if(.substring(wait_timeout, Error) & .substring(isPerceiving, Code)){
 		+~here(Human);
 		!speak(ID, come);
 		!wait_human(ID);
-	}elif(.substring(Error,max_attempts)){
+	}elif(.substring(max_attempts,Error) ){
 		.wait(look_at(look),4000);
 		look_at_events(stop_look_at);
 		!speak(ID,cannot_find); 
 		!drop_current_task(ID, wait_human, max_attempts, "wait too long");
-	}elif(.substring(Failure, not_visible)){
+	}elif(.substring(not_visible, Failure)){
 		jia.publish_marker(Hframe, orange);
 		!speak(ID, move_again);
 		!be_at_good_pos(ID);
@@ -371,10 +371,10 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	?task(ID, guiding, Human, _);
 	+should_check_target_seen(Human,Ld);
 	point_at(Ld,false,true);
-	.wait(point_at(point),15000);
+	.wait(point_at(point),30000);
 	-point_at(point);
 	!verbalization(ID, Ld);
-	.wait(point_at(finished),15000);
+	.wait(point_at(finished),30000);
 	-point_at(finished);
 	-should_check_target_seen(Human,Ld);
 	?(canSee(Ld)[source(Human)] | hasSeen(Ld)[source(Human)]);
@@ -385,7 +385,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 @pl_nl[max_attempts(3), atomic_r]+!point_look_at(ID, Ld) : not landmark_to_see(Ld) <-
 	?task(ID, guiding, Human, _);
 	point_at(Ld,false,true);
-	.wait(point_at(point),15000);
+	.wait(point_at(point),30000);
 	-point_at(point);
 	!verbalization(ID, Ld).
 

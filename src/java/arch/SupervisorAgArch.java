@@ -115,7 +115,12 @@ public class SupervisorAgArch extends ROSAgArch {
 					ActionServerListener<taskActionGoal> listener = new ActionServerListener<taskActionGoal>() {
 
 						@Override
-						public void goalReceived(taskActionGoal goal) {}
+						public void goalReceived(taskActionGoal goal) {
+							GoalID goalID = goal.getGoalId();
+							if(goal.getGoalId().getId().isEmpty()) {
+								goalIDGenerator.generateID(goalID);
+							}
+						}
 
 						@Override
 						public void cancelReceived(GoalID id) {
@@ -128,10 +133,6 @@ public class SupervisorAgArch extends ROSAgArch {
 
 						@Override
 						public boolean acceptGoal(taskActionGoal goal) {
-							GoalID goalID = goal.getGoalId();
-							if(goal.getGoalId().getId().isEmpty()) {
-								goalIDGenerator.generateID(goalID);
-							}
 							String person = "\""+goal.getGoal().getPersonFrame()+"\"";
 							if(m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu"))
 								person = person.replaceAll("human-", "");

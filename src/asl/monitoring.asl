@@ -20,7 +20,7 @@
 	!!person_of_interest(Human);
 	.concat("human-", Human, H);
 	human_to_monitor(H);
-	.wait(isPerceiving(Human),4000).
+	.wait(isPerceiving(Human),6000).
 	
 @poi[no_log]+!person_of_interest(H) : true <- jia.person_of_interest(H); .wait(500); !person_of_interest(H).
 

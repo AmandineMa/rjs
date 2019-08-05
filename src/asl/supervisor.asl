@@ -14,6 +14,7 @@
 	initGuidingAs;
 	jia.publish_marker(0);
 	.print("started");
+//	.create_agent(test, "src/asl/test.asl", [agentArchClass("arch.InteractAgArch"), beliefBaseClass("agent.TimeBB")]).
 	.create_agent(interac, "src/asl/interac.asl", [agentArchClass("arch.InteractAgArch"), beliefBaseClass("agent.TimeBB")]);
 	.create_agent(robot, "src/asl/robot.asl", [agentArchClass("arch.RobotAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]).
 
@@ -28,8 +29,8 @@
 	retryInitServices;
 	jia.publish_marker(0);
 	.print("started");
-	.create_agent(robot, "src/asl/robot.asl", [agentArchClass("arch.RobotAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]);
-	!check_guiding_goal.
+	.create_agent(interac, "src/asl/interac.asl", [agentArchClass("arch.InteractAgArch"), beliefBaseClass("agent.TimeBB")]);
+	.create_agent(robot, "src/asl/robot.asl", [agentArchClass("arch.RobotAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]).
 	
 -!retry_init_services : true <-
 	.wait(3000);

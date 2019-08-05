@@ -28,6 +28,32 @@ public class Quaternion extends org.ros.rosjava_geometry.Quaternion {
 	public double getTheta() {
 		return getAxis().getZ() * getAngle();
 	}
+	
+	public double getYaw() {
+		double yaw;
+
+		double sqw;
+		double sqx;
+		double sqy;
+		double sqz;
+
+		sqx = this.getX() * this.getX();
+		sqy = this.getY() * this.getY();
+		sqz = this.getZ() * this.getZ();
+		sqw = this.getW() * this.getW();
+
+		// Cases derived from https://orbitalstation.wordpress.com/tag/quaternion/
+		double sarg = -2 * (this.getX()*this.getZ() - this.getW()*this.getY()) / (sqx + sqy + sqz + sqw); /* normalization added from urdfom_headers */
+
+		if (sarg <= -0.99999) {
+			yaw   = -2 * Math.atan2(this.getY(), this.getX());
+		} else if (sarg >= 0.99999) {
+			yaw   = 2 * Math.atan2(this.getY(), this.getX());
+		} else {
+			yaw   = Math.atan2(2 * (this.getX()*this.getY() + this.getW()*this.getZ()), sqw + sqx - sqy - sqz);
+		}
+		return yaw;
+	}
 
 
 }

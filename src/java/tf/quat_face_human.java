@@ -20,8 +20,8 @@ public class quat_face_human extends DefaultInternalAction {
 	    public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
 	    	ListTerm robot_pose = (ListTerm) args[0];
 	    	ListTerm human_pose = (ListTerm) args[1];
-			float angle = (float) Math.atan2(((NumberTermImpl) robot_pose.get(1)).solve() - ((NumberTermImpl) human_pose.get(1)).solve(), 
-											((NumberTermImpl) robot_pose.get(0)).solve() - ((NumberTermImpl) human_pose.get(0)).solve());
+			float angle = (float) Math.atan2(((NumberTermImpl) human_pose.get(1)).solve() - ((NumberTermImpl) robot_pose.get(1)).solve(), 
+											((NumberTermImpl) human_pose.get(0)).solve() - ((NumberTermImpl) robot_pose.get(0)).solve());
 			Quaternion q = Quaternion.fromAxisAngle(new Vector3(0,0,1), angle);
 			ListTerm listterm_q = new ListTermImpl();
 			listterm_q.add(new NumberTermImpl(q.getX()));

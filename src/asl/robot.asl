@@ -1,6 +1,6 @@
 // Agent robot in project supervisor
 
-{ include("monitoring.asl")}
+//{ include("monitoring.asl")}
 { include("guiding_goal_negociation.asl")}
 { include("guiding.asl")}
 
@@ -25,10 +25,6 @@
 	-finished;
 	-point_at(point);
 	-look_at(look);
-//	.all_names(Agents);
-//	if(not .member(Human, Agents)){
-//		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
-//	}
 	+task(ID, guiding, Human, Place)[ID];
 	!guiding_goal_negociation(ID, Human, Place);
 	?guiding_goal_nego(ID, PlaceNego);

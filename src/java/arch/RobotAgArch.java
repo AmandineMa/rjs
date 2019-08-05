@@ -465,7 +465,7 @@ public class RobotAgArch extends ROSAgArch {
 					Quaternion q = new Quaternion(((NumberTermImpl) quaternion.get(0)).solve(),
 							((NumberTermImpl) quaternion.get(1)).solve(), ((NumberTermImpl) quaternion.get(2)).solve(),
 							((NumberTermImpl) quaternion.get(3)).solve());
-					double d = q.getTheta();
+					double d = q.getYaw();
 					
 					Map<String, Object> parameters = new HashMap<String, Object>();
 					parameters.put("statemachinepepperbasemanager", m_rosnode.build_state_machine_pepper_base_manager(id, (float) d));

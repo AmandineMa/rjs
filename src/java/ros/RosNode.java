@@ -505,7 +505,7 @@ public class RosNode extends AbstractNodeMain {
 		statemachine.setStatesPrioritizedAngle(Arrays.asList(state));
 
 		SubStateMachineHeader subsmheader = messageFactory.newFromType(SubStateMachineHeader._TYPE);
-		subsmheader.setInitialState("rotate");
+		subsmheader.setInitialState(id);
 		subsmheader.setBeginDeadLine(connectedNode.getCurrentTime().add(new Duration(5)));
 		subsmheader.setTimeout(new Duration(-1));
 
@@ -567,6 +567,7 @@ public class RosNode extends AbstractNodeMain {
 		GoalID goalID = messageFactory.newFromType(GoalID._TYPE);
 		goalID.setId("");
 		dialogue_cancel_pub.publish(goalID);
+		sleep(200);
 		dialogue_pub.publish(listen_goal_msg);
 		logger.info("dialogue_as listening");
 	}
@@ -646,17 +647,17 @@ public class RosNode extends AbstractNodeMain {
 
 	public <T> void addListener(String topic, String type, MessageListener<T> ml) {
 		Subscriber<T> sub = getConnectedNode().newSubscriber(getParameters().getString(topic), type);
-		sub.addMessageListener(ml);
+		sub.addMessageListener(ml, 10);
 	}
 	
 	public <T> void addListenerResult(String action_server, String type, MessageListener<T> ml) {
 		Subscriber<T> sub = getConnectedNode().newSubscriber(getParameters().getString(action_server) + "/result", type);
-		sub.addMessageListener(ml);
+		sub.addMessageListener(ml, 10);
 	}
 	
 	public <T> void addListenerFb(String action_server, String type, MessageListener<T> ml) {
 		Subscriber<T> sub = getConnectedNode().newSubscriber(getParameters().getString(action_server) + "/feedback", type);
-		sub.addMessageListener(ml);
+		sub.addMessageListener(ml, 10);
 	}
 	
 	void sleep(long msec) {

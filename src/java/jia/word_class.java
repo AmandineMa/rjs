@@ -3,15 +3,18 @@
 package jia;
 
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 
 import arch.ROSAgArch;
 
 //import java.util.logging.Logger;
-
-import jason.asSemantics.*;
-import jason.asSyntax.*;
+import jason.asSemantics.DefaultInternalAction;
+import jason.asSemantics.TransitionSystem;
+import jason.asSemantics.Unifier;
+import jason.asSyntax.ListTermImpl;
+import jason.asSyntax.StringTermImpl;
+import jason.asSyntax.Term;
 import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceResponse;
 import utils.Code;
@@ -25,6 +28,7 @@ public class word_class extends DefaultInternalAction {
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
     	String action = args[0].toString();
+    	action = action.replaceAll("^\"|\"$", "");
     	String param = args[1].toString();
 		param = param.replaceAll("^\"|\"$", "");
 		
@@ -44,7 +48,18 @@ public class word_class extends DefaultInternalAction {
 			}
 			
 			if(places.getCode() == Code.OK.getCode() & !places.getValues().isEmpty()) {
-				result = un.unifies(args[2], new StringTermImpl(places.getValues().get(0)));
+				if(places.getValues().size() == 1)
+					result = un.unifies(args[2], new StringTermImpl(places.getValues().get(0)));
+				else {
+					ListTermImpl l = new ListTermImpl();
+					Iterator<String> it = places.getValues().iterator();
+					while(it.hasNext()) {
+						l.add(StringTermImpl.parseString("\""+it.next()+"\""));
+					}
+					result = un.unifies(args[2], l);
+
+				}
+				
 	        }
 		}
 		return result;

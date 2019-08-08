@@ -70,7 +70,8 @@
 
 -isPerceiving(_, Human) : not inTaskWith(_) & inSession(Human) <-
 	!wait_human(Human).
-	
+
+//TODO si robot commence tache avec personne avec autre ID (parce que pb de reidentification), quitte la session en disant goodbye alors que tache en cours	
 +!wait_human(Human) : true <-
 	.wait(isPerceiving(_,Human), 10000).
 	

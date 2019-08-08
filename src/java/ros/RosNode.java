@@ -233,14 +233,14 @@ public class RosNode extends AbstractNodeMain {
 									simple_fact = new SimpleFact(predicate);
 								}
 								if (!subject.startsWith("\""))
-									subject = "\"" + subject + "\"";
+									subject = "\"" + subject + "\"";			
 								perceptions.put(subject, simple_fact);
 							}
 						}
 					}
 					percept_id = facts.getHeader().getSeq();
 				}
-			});
+			}, 10);
 
 		} catch (ParameterNotFoundException e) {
 			logger.severe("Parameter not found exception : " + e.getMessage());

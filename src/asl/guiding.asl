@@ -205,11 +205,16 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	
 +!be_at_good_pos(ID) : true <- 
 	?task(ID, guiding, Human, _);
-	?robot_pose(Rframe,Rposit, Rorient);
+	?robot_pose(RframeC,RpositC, RorientC);
+	jia.publish_marker(RframeC,RpositC, yellow);
 	?human_pose(Hframe,Hposit,_);
-	!speak(ID, going_to_move);
-	jia.publish_marker(Rframe,Rposit, yellow);
 	jia.publish_marker(Hframe, Hposit, blue);
+	if(jia.believes(robot_move(_,_, _))){
+		?robot_move(Rframe,Rposit, Rorient);
+		!speak(ID, going_to_move);
+	}else{
+		?robot_turn(Rframe,Rposit, Rorient);
+	}
 	if(jia.believes(human_first(_))){
 		?human_first(Side);
 		!speak(ID, step, Side);
@@ -244,7 +249,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	if(not .substring(robot_pose, Code)){
 		!drop_current_task(ID, be_at_good_pos, Failure, Code);
 	}.
-
+ 
 @wh[max_attempts(3)]+!wait_human(ID) : true <- 
 	?task(ID, guiding, Human, _);
 	?robot_pose(Rframe,Rposit, Rorient);
@@ -252,9 +257,15 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	.concat("human_", Human, HTF);
 	tf.get_transform(map, HTF, Point,_);
 	.nth(2, Point, Z);
+	if(Z > 1.8){
+		Zbis=1.8;
+	}else{
+		Zbis=Z;
+	}	
 //	Zbis = Z + 0.1;
-	jia.replace(2, Hposit, Z, Pointf);
+	jia.replace(2, Hposit, Zbis, Pointf);
 	jia.publish_marker(Hframe, Pointf, blue);
+	-look_at(look);
 	look_at(Hframe,Pointf,true);
 	.wait(isPerceiving(Human),4000);
 	-~here(Human);
@@ -263,12 +274,12 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	if(jia.believes(dir_to_point(_))){
 		?dir_to_point(D);
 		.concat("human_", Human, HTF);
-		can_be_visible(HTF, D);
+//		can_be_visible(HTF, D);
 	}
 	if(jia.believes(target_to_point(_))){
 		?target_to_point(T);
 		.concat("human_", Human, HTF);
-		can_be_visible(HTF, T);
+//		can_be_visible(HTF, T);
 	}.
 //	move_to(Rframe,Rposit,Rorient).
 	
@@ -276,10 +287,12 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	?task(ID, guiding, Human, _);
 	// TODO meme erreur que pour isPerceiving, ne permet pas de differencier les deux
 	if(.substring(wait_timeout, Error) & .substring(isPerceiving, Code)){
+		look_at_events(stop_look_at);
 		+~here(Human);
 		!speak(ID, come);
 		!wait_human(ID);
 	}elif(.substring(max_attempts,Error) ){
+		-look_at(look);
 		.wait(look_at(look),4000);
 		look_at_events(stop_look_at);
 		!speak(ID,cannot_find); 

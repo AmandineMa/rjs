@@ -51,7 +51,7 @@ public class ROSAgArch extends MindInspectorAgArch {
 	public Collection<Literal> perceive() {
 		Collection<Literal> l = new ArrayList<Literal>();
 		if(m_rosnode != null) {
-			if(percept_id != m_rosnode.getPercept_id()) {
+//			if(percept_id != m_rosnode.getPercept_id()) {
 				Multimap<String,SimpleFact> mm = m_rosnode.getPerceptions();
 				synchronized (mm) {
 					Collection<SimpleFact> perceptions = new ArrayList<SimpleFact>(mm.get("\""+getAgName()+"\""));
@@ -66,7 +66,7 @@ public class ROSAgArch extends MindInspectorAgArch {
 					}
 				}
 				percept_id = m_rosnode.getPercept_id();
-			}
+//			}
 		}
 		return l;
 		

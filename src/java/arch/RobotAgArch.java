@@ -67,7 +67,6 @@ public class RobotAgArch extends ROSAgArch {
 
 	@SuppressWarnings("unused")
 	private Logger logger = Logger.getLogger(RobotAgArch.class.getName());
-	private int max_attempt = 1;
 
 	private Publisher<std_msgs.String> human_to_monitor;
 	private Publisher<std_msgs.String> look_at_events_pub;
@@ -446,6 +445,7 @@ public class RobotAgArch extends ROSAgArch {
 							sleep(5000);
 							Map<String, Object> params = new HashMap<String, Object>();
 							params.put("posturename", "StandInit");
+							params.put("speed", (float) 0.8);
 							GoToPostureResponse go_to_posture_resp = m_rosnode.callSyncService("stand_pose",
 									params);
 							action.setResult(go_to_posture_resp != null);
@@ -1017,12 +1017,14 @@ public class RobotAgArch extends ROSAgArch {
 						robot_pose_now.translation.y - robot_pose.getPosition().getY());
 				if (r_dist_to_new_pose > m_rosnode.getParameters()
 						.getDouble("guiding/tuning_param/robot_should_move_dist_th")) {
-					getTS().getAg().addBel(Literal.parseLiteral("robot_pose(" + r_frame + ","
+					getTS().getAg().addBel(Literal.parseLiteral("robot_move(" + r_frame + ","
 							+ robot_pose.toString() + ")[" + task_id + "]"));
 					Transform human_pose_now = tfTree.lookupMostRecent("map", human);
 					double h_dist_to_new_pose = Math.hypot(
 							human_pose_now.translation.x - robot_pose.getPosition().getX(),
 							human_pose_now.translation.y - robot_pose.getPosition().getY());
+					logger.info("human pose now :"+human_pose_now);
+					logger.info("dist future robot pose and human now :"+h_dist_to_new_pose);
 					if (h_dist_to_new_pose < m_rosnode.getParameters()
 							.getDouble("guiding/tuning_param/human_move_first_dist_th")) {
 						String side;
@@ -1036,7 +1038,14 @@ public class RobotAgArch extends ROSAgArch {
 						getTS().getAg().addBel(
 								Literal.parseLiteral("human_first(" + side + ")[" + task_id + "]"));
 					}
+				}else {
+					getTS().getAg().addBel(Literal.parseLiteral("robot_turn(" + r_frame + ","
+							+ robot_pose_now.translation.x + ","+ robot_pose_now.translation.y + "," + robot_pose_now.translation.z+ ","  
+							+ robot_pose.getOrientation().getX()+ "," + robot_pose.getOrientation().getY()+ ","
+							+ robot_pose.getOrientation().getZ()+ "," + robot_pose.getOrientation().getW()+ ")[" + task_id + "]"));
 				}
+				getTS().getAg().addBel(Literal.parseLiteral("robot_pose(" + r_frame + ","
+						+ robot_pose.toString() + ")[" + task_id + "]"));
 				getTS().getAg().addBel(Literal.parseLiteral("human_pose(" + h_frame + ","
 						+ human_pose.toString() + ")[" + task_id + "]"));
 				int nb_ld_to_point = placements_result.getPointedLandmarks().size();

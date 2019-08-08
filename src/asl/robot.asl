@@ -35,16 +35,12 @@
 	!go_to_see_target(ID);
 	!show_landmarks(ID);
 	+end_task(succeeded, ID)[ID];
-	!clean_task(ID);
-////	 for hwu
-//  text2speech(Human, succeeded);
-	.send(supervisor, tell, end_task(succeeded, ID)).
+	!clean_task(ID).
 
 -!guiding(ID, Human, Place) : true <-
 	!clean_task(ID).
 
 +!drop_current_task(ID, Subgoal, Failure, Code) : true <-
-	.wait(look_at(look),4000);
 	look_at_events(stop_look_at);
 	?task(ID, Task, Human, Param);
  	if(.substring(Failure, dialogue_as_failed) | .substring(Failure, dialogue_as_not_found)){
@@ -60,13 +56,17 @@
  	}elif(.substring(verbalization, Failure)){
  		Speech = "verbalization";
  	}elif(.substring(self, Failure)){
- 		Speech = "my self";
+ 		if(.substring(wait, Code)){
+ 			Code=.. [W, [L, T], []];
+			L =.. [P, [_], []];
+			.concat("waiting ", P, Speech);
+ 		}else{
+ 			Speech = "my self";
+ 		}
  	}
 	.print("error with ",Code);
   	+failure(Subgoal, Failure, Code)[ID];
   	+end_task(failed, ID)[ID];
-  	.send(supervisor, tell, end_task(failed, ID));
-  	.send(supervisor, tell, failure(ID, Subgoal, Failure, Code));
   	if(.string(Speech)){
   		!speak(ID, failed(Speech));
   	}
@@ -80,6 +80,10 @@
 	jia.reset_att_counter;
 	.send(interac, untell, inTaskWith(Human));
 	.abolish(_[ID]).	
+
++end_task(Status, ID)[ID] : true <- .send(supervisor, tell, end_task(Status, ID)). //text2speech(Human, Status).
+
++failure(Subgoal, Failure, Code)[ID] : true <- .send(supervisor, tell, failure(ID, Subgoal, Failure, Code)).
 	
 // Utils
 +!speak(ID, ToSay) : true <-

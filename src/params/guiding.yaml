@@ -43,6 +43,9 @@ guiding:
     get_uwds_name: 
       name: /get_name
       type: perspectives_msgs/GetName
+    stand_pose:
+      name: /naoqi_driver/robot_posture/go_to_posture
+      type:  nao_interaction_msgs/GoToPosture
 #    dialogue_inform: 
 #      name: /rpn_supervision_server/inform
 #      type: rpn_recipe_planner_msgs/SuperInform
@@ -69,7 +72,7 @@ guiding:
     pointing_duration: 1 #seconds
     stop_tracking_dist_th: 0.3 #meters
     human_move_first_dist_th: 0.5 #meters
-    robot_should_move_dist_th: 0.5 #meters
+    robot_should_move_dist_th: 0.4 #meters
     take_robot_place_dist_th: 0.6 #meters
     lost_perception_timeout: 10 #seconds
     observe_landmark_timeout: 3 #seconds

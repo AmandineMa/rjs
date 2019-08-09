@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
@@ -45,6 +46,8 @@ import com.google.common.collect.Multimaps;
 
 import actionlib_msgs.GoalID;
 import arch.ROSAgArch;
+import dialogue_arbiter.DialogueArbiterActionGoal;
+import dialogue_arbiter.DialogueArbiterGoal;
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionGoal;
 import dialogue_as.dialogue_actionActionResult;
@@ -91,6 +94,8 @@ public class RosNode extends AbstractNodeMain {
 	private Logger logger = Logger.getLogger(RosNode.class.getName());
 
 	private ConnectedNode connectedNode;
+	private NodeConfiguration nodeConfiguration;
+	private MessageFactory messageFactory;
 	private TransformListener tfl;
 	private ParameterTree parameters;
 	private MasterStateClient msc;
@@ -109,6 +114,7 @@ public class RosNode extends AbstractNodeMain {
 	private Publisher<MoveBaseActionGoal> move_to_goal_pub;
 	private Publisher<dialogue_actionActionGoal> dialogue_pub;
 	private Publisher<GoalID> dialogue_cancel_pub;
+	private Publisher<DialogueArbiterActionGoal> engage_pub;
 	private Publisher<visualization_msgs.Marker> marker_pub;
 	private Publisher<std_msgs.Int32> person_of_interest_pub;
 	private Multimap<String, SimpleFact> perceptions = Multimaps
@@ -130,6 +136,8 @@ public class RosNode extends AbstractNodeMain {
 	@SuppressWarnings("unchecked")
 	public void init() {
 		try {
+			nodeConfiguration = NodeConfiguration.newPrivate();
+			messageFactory = nodeConfiguration.getTopicMessageFactory();
 			tfl = new TransformListener(connectedNode);
 			parameters = connectedNode.getParameterTree();
 			URI uri = null;
@@ -190,6 +198,11 @@ public class RosNode extends AbstractNodeMain {
 					}
 				};
 				addListenerFb("/guiding/action_servers/dialogue", dialogue_actionActionFeedback._TYPE, ml_dialogue_fb);
+			}
+			
+			if(parameters.has("/guiding/action_servers/engage")) {
+				engage_pub = connectedNode.newPublisher(
+						parameters.getString("/guiding/action_servers/engage") + "/goal", DialogueArbiterActionGoal._TYPE);
 			}
 			
 
@@ -459,8 +472,8 @@ public class RosNode extends AbstractNodeMain {
 	}
 
 	public MetaStateMachineHeader build_meta_header() {
-		NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
-		MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+		nodeConfiguration = NodeConfiguration.newPrivate();
+		messageFactory = nodeConfiguration.getTopicMessageFactory();
 
 		MessagePriority priority = messageFactory.newFromType(MessagePriority._TYPE);
 		priority.setValue(MessagePriority.URGENT);
@@ -474,8 +487,8 @@ public class RosNode extends AbstractNodeMain {
 	}
 
 	public SubStateMachine_pepper_base_manager_msgs build_state_machine_pepper_base_manager(String id, float d) {
-		NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
-		MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+		nodeConfiguration = NodeConfiguration.newPrivate();
+		messageFactory = nodeConfiguration.getTopicMessageFactory();
 
 		// Build End Condition: __done__
 		EndCondition end_condition = messageFactory.newFromType(EndCondition._TYPE);
@@ -532,14 +545,29 @@ public class RosNode extends AbstractNodeMain {
 		MoveBaseActionGoal goal_msg;
 		goal_msg = move_to_goal_pub.newMessage();
 
-		NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
-		MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+		nodeConfiguration = NodeConfiguration.newPrivate();
+		messageFactory = nodeConfiguration.getTopicMessageFactory();
 		MoveBaseGoal move_to_goal = messageFactory.newFromType(MoveBaseGoal._TYPE);
 
 		move_to_goal.setTargetPose(pose);
 		goal_msg.setGoal(move_to_goal);
 
 		move_to_goal_pub.publish(goal_msg);
+	}
+	
+	public void call_engage_as(String human_id) {
+		DialogueArbiterActionGoal goal_msg;
+		goal_msg = engage_pub.newMessage();
+		
+		nodeConfiguration = NodeConfiguration.newPrivate();
+		messageFactory = nodeConfiguration.getTopicMessageFactory();
+		DialogueArbiterGoal engage_goal = messageFactory.newFromType(DialogueArbiterGoal._TYPE);
+		
+		engage_goal.setId(UUID.randomUUID().toString());
+		engage_goal.setParams("\'{\"person_frame\": \"human-"+human_id+"\"}\'");
+		goal_msg.setGoal(engage_goal);
+		
+		engage_pub.publish(goal_msg);
 	}
 
 	public void call_dialogue_as(List<String> subjects) {
@@ -549,8 +577,8 @@ public class RosNode extends AbstractNodeMain {
 	public void call_dialogue_as(List<String> subjects, List<String> verbs) {
 		listening_fb = null;
 		listening_result = null;
-		NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
-		MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+		nodeConfiguration = NodeConfiguration.newPrivate();
+		messageFactory = nodeConfiguration.getTopicMessageFactory();
 		dialogue_actionActionGoal listen_goal_msg = messageFactory.newFromType(dialogue_actionActionGoal._TYPE);
 		dialogue_actionGoal listen_goal = listen_goal_msg.getGoal();
 		if (!subjects.isEmpty()) {

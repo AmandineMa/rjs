@@ -307,8 +307,8 @@ public class RobotAgArch extends ROSAgArch {
 					ServiceResponseListener<PointingPlannerResponse> respListener = new ServiceResponseListener<PointingPlannerResponse>() {
 
 						public void onFailure(RemoteException e) {
-							NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
-							MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
+							nodeConfiguration = NodeConfiguration.newPrivate();
+							messageFactory = nodeConfiguration.getTopicMessageFactory();
 							PointingPlannerResponse placements_resp = messageFactory
 									.newFromType(PointingPlannerResponse._TYPE);
 							placements_resp.setPointedLandmarks(new ArrayList<String>());
@@ -503,209 +503,10 @@ public class RobotAgArch extends ROSAgArch {
 					m_rosnode.callAsyncService("look_at", respListener, parameters);
 
 				} else if (action_name.equals("text2speech")) {
-					// to remove the extra ""
 					String human = action.getActionTerm().getTerm(0).toString();
 					human = human.replaceAll("^\"|\"$", "");
 					Literal bel = (Literal) action.getActionTerm().getTerm(1);
-					String text = "";
-					String bel_functor = bel.getFunctor();
-					String bel_arg = null;
-					boolean hwu_dial = m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu");
-					if (bel.getTerms().size() == 1) {
-						bel_arg = bel.getTerms().get(0).toString();
-						if (hwu_dial)
-							bel_arg = bel_arg.replaceAll("^\"|\"$", "");
-						else
-							bel_arg = bel_arg.replaceAll("^\"|\"$", "").replaceAll("\\[", "").replaceAll("\\]", "");
-					}
-
-					switch (bel_functor) {
-					case "hello":
-						text = new String("Hello ! Nice to meet you");
-						break;
-					case "goodbye":
-						text = new String("Goodbye");
-						break;
-					case "thinking":
-						text = new String("Wait, I'm thinking");
-						break;
-					case "list_places":
-						text = new String("There are " + bel_arg + ". Which one do you want to go to ?");
-						break;
-					case "closest":
-						text = new String("The closest ones are " + bel_arg + ". Which one do you want to go to ?");
-						break;
-					case "where_are_u":
-						text = new String("Where are you, I cannot see you");
-						break;
-					case "found_again":
-						text = new String("Ok I can see you again");
-						break;
-					case "cannot_find":
-						text = new String("I cannot find you, sorry");
-						break;
-					case "ask_stairs":
-						text = new String("It is upstairs. Are you able to climb stairs ?");
-						break;
-					case "ask_escalator":
-						text = new String("Can you take the escalator ?");
-						break;
-					case "able_to_see":
-						text = new String("I think that you're seeing the place right now, good");
-						break;
-					case "route_verbalization":
-						text = bel_arg;
-						break;
-					case "route_verbalization_n_vis":
-						text = "in this direction, " + bel_arg;
-						break;
-					case "no_place":
-						text = new String("The place you asked for does not exist. Do you want to go somewhere else ?");
-						break;
-					case "going_to_move":
-						text = new String("I'm going to move so I can show you");
-						break;
-					case "step":
-						text = new String("Can you make a few steps on your " + bel_arg + ", please ?");
-						break;
-					case "step_more":
-						text = new String("Can you move a bit more on your " + bel_arg + ", please ?");
-						break;
-					case "cannot_move":
-						text = new String("I'm sorry I cannot move, I'll try my best to show you from there");
-						break;
-					case "come":
-						text = new String("Please, come in front of me");
-						break;
-					case "move_again":
-						text = new String("I am sorry, we are going to move again");
-						break;
-					case "ask_explain_again":
-						text = new String("Should I explain you again ?");
-						break;
-					case "cannot_show":
-						text = new String("I am sorry, I cannot show you. I hope you will find your way");
-						break;
-					case "cannot_tell_seen":
-						text = new String("Have you seen " + bel_arg + " ?. I'm not sure.");
-						break;
-					case "ask_show_again":
-						text = new String("Should I show you again ?");
-						break;
-					case "sl_sorry":
-						text = new String("I am sorry if you did not understand. I won't explain one more time.");
-						break;
-					case "pl_sorry":
-						text = new String("I am sorry if you did not see. I won't show you again.");
-						break;
-					case "max_sorry":
-						text = new String(
-								"I am sorry, I give up, you asked me too many times something that I don't know.");
-						break;
-					case "tell_seen":
-						text = new String("I can tell that you've seen " + bel_arg);
-						break;
-					case "visible_target":
-						text = new String("Look, " + bel_arg + " is there");
-						break;
-					case "not_visible_target":
-						text = new String(bel_arg + " is not visible from here but it is in this direction");
-						break;
-					case "hope_find_way":
-						text = new String("I hope you will find your way");
-						break;
-					case "ask_understand":
-						text = new String("Did you understand ?");
-						break;
-					case "happy_end":
-						text = new String("I am happy that I was able to help you.");
-						break;
-					case "retire":
-						if (bel_arg == null)
-							throw new IllegalArgumentException("retire speech should have an argument");
-						switch (bel_arg) {
-						case "unknown_words":
-							text = new String("You didn't told me a place where I can guide you. ");
-							break;
-						}
-						if (!text.isEmpty()) {
-							text = text + new String("Let's play now!");
-							break;
-						} else {
-							text = new String("Let's play now!");
-							break;
-						}
-					case "failed":
-						text = new String("My component for " + bel_arg + " has crashed");
-						break;
-					case "succeeded":
-						text = new String("succeeded");
-						break;
-					default:
-						action.setResult(false);
-						action.setFailureReason(new Atom("unknown_string"), "no speech to say");
-						actionExecuted(action);
-						return;
-					}
-					if (hwu_dial & !text.isEmpty()) {
-						boolean result = true;
-						if (text.contains("?")) {
-
-							Map<String, Object> parameters = new HashMap<String, Object>();
-							parameters.put("status", "clarification." + bel_functor);
-							if (bel_arg != null)
-								parameters.put("returnvalue", bel_arg);
-							SuperQueryResponse dial_resp = m_rosnode.callSyncService("dialogue_query", parameters);
-							if(dial_resp == null) {
-								result = false;
-							} else {
-								String resp;
-								if (dial_resp.getResult().equals("true")) {
-									resp = "yes";
-								} else if (dial_resp.getResult().equals("false")) {
-									resp = "no";
-								} else {
-									resp = dial_resp.getResult();
-								}
-								try {
-									getTS().getAg().addBel(Literal.parseLiteral(
-											"listen_result(" + bel_functor + ",\"" + resp + "\")[" + task_id + "]"));
-								} catch (RevisionFailedException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
-							}
-						} else {
-							Map<String, Object> parameters = new HashMap<String, Object>();
-
-							String sentence_code = bel_functor;
-							if(!bel_functor.equals("failed") && !bel_functor.equals("succeeded"))
-								sentence_code = "verbalisation." + bel_functor;
-							parameters.put("status", sentence_code);
-							if (bel_arg != null)
-								parameters.put("returnvalue", bel_arg);
-							SuperInformResponse super_inform_resp = m_rosnode.callSyncService("dialogue_inform",
-									parameters);
-							if(super_inform_resp == null) result = false; 
-						}
-						action.setResult(result);
-					} else {
-						if (!text.equals("succeeded")) {
-
-							Map<String, Object> parameters = new HashMap<String, Object>();
-//							parameters.put("lookat", m_rosnode.build_point_stamped(human));
-							parameters.put("text", text);
-							SayResponse speak_to_resp = m_rosnode.callSyncService("speak_to", parameters);
-//							if(speak_to_resp.getSuccess()) {
-//								action.setResult(true);
-//							}else {
-//								action.setResult(false);
-//								action.setFailureReason(new Atom("speak_to_failed"), "the speech service failed");
-//							}
-							action.setResult(speak_to_resp != null);
-						}
-					}
-					actionExecuted(action);
+					text2speech(human, bel, task_id, action);
 				} else if (action_name.equals("get_route_verbalization")) {
 					// to remove the extra ""
 					@SuppressWarnings("unchecked")
@@ -1074,6 +875,213 @@ public class RobotAgArch extends ROSAgArch {
 			e.printStackTrace();
 		}
 		action.setResult(true);
+		actionExecuted(action);
+	}
+	
+	public void text2speech(String human, Literal bel, String task_id, ActionExec action) {
+		// to remove the extra ""
+		String text = "";
+		String bel_functor = bel.getFunctor();
+		String bel_arg = null;
+		boolean hwu_dial = m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu");
+		if (bel.getTerms().size() == 1) {
+			bel_arg = bel.getTerms().get(0).toString();
+			if (hwu_dial)
+				bel_arg = bel_arg.replaceAll("^\"|\"$", "");
+			else
+				bel_arg = bel_arg.replaceAll("^\"|\"$", "").replaceAll("\\[", "").replaceAll("\\]", "");
+		}
+
+		switch (bel_functor) {
+		case "hello":
+			text = new String("Hello ! Nice to meet you");
+			break;
+		case "goodbye":
+			text = new String("Goodbye");
+			break;
+		case "thinking":
+			text = new String("Wait, I'm thinking");
+			break;
+		case "list_places":
+			text = new String("There are " + bel_arg + ". Which one do you want to go to ?");
+			break;
+		case "closest":
+			text = new String("The closest ones are " + bel_arg + ". Which one do you want to go to ?");
+			break;
+		case "where_are_u":
+			text = new String("Where are you, I cannot see you");
+			break;
+		case "found_again":
+			text = new String("Ok I can see you again");
+			break;
+		case "cannot_find":
+			text = new String("I cannot find you, sorry");
+			break;
+		case "ask_stairs":
+			text = new String("It is upstairs. Are you able to climb stairs ?");
+			break;
+		case "ask_escalator":
+			text = new String("Can you take the escalator ?");
+			break;
+		case "able_to_see":
+			text = new String("I think that you're seeing the place right now, good");
+			break;
+		case "route_verbalization":
+			text = bel_arg;
+			break;
+		case "route_verbalization_n_vis":
+			text = "in this direction, " + bel_arg;
+			break;
+		case "no_place":
+			text = new String("The place you asked for does not exist. Do you want to go somewhere else ?");
+			break;
+		case "going_to_move":
+			text = new String("I'm going to move so I can show you");
+			break;
+		case "step":
+			text = new String("Can you make a few steps on your " + bel_arg + ", please ?");
+			break;
+		case "step_more":
+			text = new String("Can you move a bit more on your " + bel_arg + ", please ?");
+			break;
+		case "cannot_move":
+			text = new String("I'm sorry I cannot move, I'll try my best to show you from there");
+			break;
+		case "come":
+			text = new String("Please, come in front of me");
+			break;
+		case "move_again":
+			text = new String("I am sorry, we are going to move again");
+			break;
+		case "ask_explain_again":
+			text = new String("Should I explain you again ?");
+			break;
+		case "cannot_show":
+			text = new String("I am sorry, I cannot show you. I hope you will find your way");
+			break;
+		case "cannot_tell_seen":
+			text = new String("Have you seen " + bel_arg + " ?. I'm not sure.");
+			break;
+		case "ask_show_again":
+			text = new String("Should I show you again ?");
+			break;
+		case "sl_sorry":
+			text = new String("I am sorry if you did not understand. I won't explain one more time.");
+			break;
+		case "pl_sorry":
+			text = new String("I am sorry if you did not see. I won't show you again.");
+			break;
+		case "max_sorry":
+			text = new String(
+					"I am sorry, I give up, you asked me too many times something that I don't know.");
+			break;
+		case "tell_seen":
+			text = new String("I can tell that you've seen " + bel_arg);
+			break;
+		case "visible_target":
+			text = new String("Look, " + bel_arg + " is there");
+			break;
+		case "not_visible_target":
+			text = new String(bel_arg + " is not visible from here but it is in this direction");
+			break;
+		case "hope_find_way":
+			text = new String("I hope you will find your way");
+			break;
+		case "ask_understand":
+			text = new String("Did you understand ?");
+			break;
+		case "happy_end":
+			text = new String("I am happy that I was able to help you.");
+			break;
+		case "retire":
+			if (bel_arg == null)
+				throw new IllegalArgumentException("retire speech should have an argument");
+			switch (bel_arg) {
+			case "unknown_words":
+				text = new String("You didn't told me a place where I can guide you. ");
+				break;
+			}
+			if (!text.isEmpty()) {
+				text = text + new String("Let's play now!");
+				break;
+			} else {
+				text = new String("Let's play now!");
+				break;
+			}
+		case "failed":
+			text = new String("My component for " + bel_arg + " has crashed");
+			break;
+		case "succeeded":
+			text = new String("succeeded");
+			break;
+		default:
+			action.setResult(false);
+			action.setFailureReason(new Atom("unknown_string"), "no speech to say");
+			actionExecuted(action);
+			return;
+		}
+		if (hwu_dial & !text.isEmpty()) {
+			boolean result = true;
+			if (text.contains("?")) {
+
+				Map<String, Object> parameters = new HashMap<String, Object>();
+				parameters.put("status", "clarification." + bel_functor);
+				if (bel_arg != null)
+					parameters.put("returnvalue", bel_arg);
+				SuperQueryResponse dial_resp = m_rosnode.callSyncService("dialogue_query", parameters);
+				if(dial_resp == null) {
+					result = false;
+				} else {
+					String resp;
+					if (dial_resp.getResult().equals("true")) {
+						resp = "yes";
+					} else if (dial_resp.getResult().equals("false")) {
+						resp = "no";
+					} else {
+						resp = dial_resp.getResult();
+					}
+					try {
+						if(task_id != null)
+							getTS().getAg().addBel(Literal.parseLiteral(
+									"listen_result(" + bel_functor + ",\"" + resp + "\")[" + task_id + "]"));
+						else
+							getTS().getAg().addBel(Literal.parseLiteral(
+									"listen_result(" + bel_functor + ",\"" + resp + "\")"));
+					} catch (RevisionFailedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			} else {
+				Map<String, Object> parameters = new HashMap<String, Object>();
+
+				String sentence_code = bel_functor;
+				if(!bel_functor.equals("failed") && !bel_functor.equals("succeeded"))
+					sentence_code = "verbalisation." + bel_functor;
+				parameters.put("status", sentence_code);
+				if (bel_arg != null)
+					parameters.put("returnvalue", bel_arg);
+				SuperInformResponse super_inform_resp = m_rosnode.callSyncService("dialogue_inform",
+						parameters);
+				if(super_inform_resp == null) result = false; 
+			}
+			action.setResult(result);
+		} else {
+			if (!text.equals("succeeded")) {
+
+				Map<String, Object> parameters = new HashMap<String, Object>();
+//				parameters.put("lookat", m_rosnode.build_point_stamped(human));
+				parameters.put("text", text);
+				SayResponse speak_to_resp = m_rosnode.callSyncService("speak_to", parameters);
+//				if(speak_to_resp.getSuccess()) {
+//					action.setResult(true);
+//				}else {
+//					action.setResult(false);
+//					action.setFailureReason(new Atom("speak_to_failed"), "the speech service failed");
+//				}
+				action.setResult(speak_to_resp != null);
+			}
+		}
 		actionExecuted(action);
 	}
 

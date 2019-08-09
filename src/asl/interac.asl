@@ -49,21 +49,19 @@
 		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
 	}
 //	approach(Human);
-//	engage(Human);
+	engage(Human);
 	text2speech(Human, hello).
 	
 +~isEngagedWith(Human, _) : inSession(Human) & isPerceiving(_, Human) & ((monitoring(Human) & inTaskWith(Human)) | not inTaskWith(Human)) <-
-//	not_engaged(Human);
-	.print(not_engaged).
+	disengaging_human(Human);
+	.print(disengaging).
 	
 +left_task(Human) : true <- 
 	!bye(Human).
 
 +!bye(Human) : true <-
-	//	good_bye(Human);
-	-inSession(Human);
-	-~isEngagedWith(Human, _)[add_time(_), source(Human)];
-	-isEngagedWith(Human, _)[add_time(_), source(Human)];
+	terminate_interaction(Human);
+	!clean_facts(Human);
 	text2speech(Human, goodbye).
 
 -!bye(Human) : true <- true.
@@ -73,10 +71,15 @@
 
 //TODO si robot commence tache avec personne avec autre ID (parce que pb de reidentification), quitte la session en disant goodbye alors que tache en cours	
 +!wait_human(Human) : true <-
-	.wait(isPerceiving(_,Human), 10000).
+	.wait(isPerceiving(_,Human), 5000).
 	
 -!wait_human(Human) : true <-
 	!bye(Human).
 
-//+goodbye(Human) : true <- inSession(Human). //received by dialogue
++terminate_interaction(Human) : true <- !clean_facts(Human). //received by dialogue
+
++!clean_facts(Human): true <-
+	-inSession(Human);
+	-~isEngagedWith(Human, _)[add_time(_), source(_)];
+	-isEngagedWith(Human, _)[add_time(_), source(_)].
 	

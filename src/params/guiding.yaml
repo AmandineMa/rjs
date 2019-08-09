@@ -61,13 +61,16 @@ guiding:
     human_to_monitor: /human_point_publisher/human_to_look
     person_of_interest: /person_of_interest
     look_at_events: /pepper_head_manager/str_events
-
+    disengaging: /supervisor/disengaging_human
+    terminate_interaction: /terminate_interaction/goal
+   
   action_servers:
     move_to: m_move_to
 #    rotate: m_rotate
     dialogue: dialogue_as
     pointing_planner: /pointing_planner/SVP_Planner
-
+    engage: engage
+  
   tuning_param:
     pointing_duration: 1 #seconds
     stop_tracking_dist_th: 0.3 #meters

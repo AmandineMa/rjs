@@ -9,7 +9,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.Stack;
 
 import org.ros.helpers.ParameterLoaderNode;
 import org.ros.internal.loader.CommandLineLoader;
@@ -36,24 +35,7 @@ public class SupervisorAgArch extends ROSAgArch {
 	private NodeMainExecutor nodeMainExecutor = DefaultNodeMainExecutor.newDefault();
 	private NodeConfiguration nodeConfiguration;
 	private ParameterLoaderNode parameterLoaderNode;
-	private taskActionGoal current_guiding_goal;
 	private GoalIDGenerator goalIDGenerator;
-	
-	public void init() {
-		super.init();
-		List<String> emptyArgv = Lists.newArrayList("EmptyList");
-		CommandLineLoader loader = new CommandLineLoader(emptyArgv);
-		URI masterUri = null;
-		
-		nodeConfiguration = loader.build();	
-		try {
-			masterUri = new URI(System.getenv("ROS_MASTER_URI"));
-		} catch (URISyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		nodeConfiguration.setMasterUri(masterUri);
-	}
 	
 	@Override
     public void act(final ActionExec action) {
@@ -62,21 +44,34 @@ public class SupervisorAgArch extends ROSAgArch {
 			@Override
 			public void run() {
 				String action_name = action.getActionTerm().getFunctor();
-				if(action_name.equals("test")) {
-					try {
-						getTS().getAg().addBel(Literal.parseLiteral("dir_to_point"));
-					} catch (RevisionFailedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+				if(action_name.equals("configureNode")){
+					if(System.getenv("ROS_MASTER_URI") != null && System.getenv("ROS_IP") != null && !System.getenv("ROS_IP").equals("127.0.0.1")) {
+						List<String> emptyArgv = Lists.newArrayList("EmptyList");
+						CommandLineLoader loader = new CommandLineLoader(emptyArgv);
+						URI masterUri = null;
+						nodeConfiguration = loader.build();	
+						try {
+							masterUri = new URI(System.getenv("ROS_MASTER_URI"));			
+						} catch (URISyntaxException e) {
+							logger.info("Wrong URI syntax :" + e.getMessage());
+						} 
+						nodeConfiguration.setMasterUri(masterUri);
+						action.setResult(true);
+					}else {
+						action.setResult(false);
+						if(System.getenv("ROS_MASTER_URI") == null)
+							logger.info("ROS_MASTER_URI has not been set");
+						if(System.getenv("ROS_IP") == null)
+							logger.info("ROS_IP has not been set");
+						else if (System.getenv("ROS_IP").equals("127.0.0.1"))
+							logger.info("ROS_IP should not be localhost");
 					}
-					action.setResult(true);
-		        	actionExecuted(action);
-				}
-				if(action_name.equals("startParameterLoaderNode")){
+					actionExecuted(action);
+				}else if(action_name.equals("startParameterLoaderNode")){
 					@SuppressWarnings("serial")
 					List<ParameterLoaderNode.Resource> resourceList = new ArrayList<ParameterLoaderNode.Resource>() {{
 						add(new ParameterLoaderNode.Resource(getClass().getResourceAsStream("/guiding.yaml"), ""));
-					}};
+					}}; 
 					parameterLoaderNode = new ParameterLoaderNode(resourceList);
 					nodeMainExecutor.execute(parameterLoaderNode, nodeConfiguration);
 					action.setResult(true);

@@ -8,6 +8,7 @@
 //TODO check si les srv, action servers sont connectés
 //TODO si initServices fail, reprendre la suite du plan une fois qu'ils se sont connectes via retry
 +!start : true <-
+	configureNode;
 	startParameterLoaderNode;
 	startROSNode;
 	initServices;
@@ -24,6 +25,8 @@
 	if(.substring(Failure, "srv_not_connected")){
 		!retry_init_services;
 	}.
+
+-!start [code(Code),code_line(_),code_src(_),error(_),error_msg(_),source(self)] : true <- true.
 	
 +!retry_init_services : true <-
 	retryInitServices;

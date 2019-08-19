@@ -5,6 +5,10 @@
 
 /* Initial goals */
 
+//TODO quand suspension de tache, gestion des beliefs entre les differentes taches
+//TODO check logs
+//TODO change ID
+//TODO make the human approach
 
 // TODO handle when place to go already frame name
 //place_asked("burger king").
@@ -267,19 +271,20 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	jia.publish_marker(Hframe, Pointf, blue);
 	-look_at(look);
 	look_at(Hframe,Pointf,true);
-	.wait(isPerceiving(Human),4000);
+	.wait(isPerceiving(_),4000);
+//	.wait(isPerceiving(Human),4000);
 	-~here(Human);
-	.wait(look_at(look),4000);
+	.wait(look_at(look),20000);
 	look_at_events(human_perceived);
 	if(jia.believes(dir_to_point(_))){
 		?dir_to_point(D);
 		.concat("human_", Human, HTF);
-//		can_be_visible(HTF, D);
+		can_be_visible(HTF, D);
 	}
 	if(jia.believes(target_to_point(_))){
 		?target_to_point(T);
 		.concat("human_", Human, HTF);
-//		can_be_visible(HTF, T);
+		can_be_visible(HTF, T);
 	}.
 //	move_to(Rframe,Rposit,Rorient).
 	
@@ -293,7 +298,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		!wait_human(ID);
 	}elif(.substring(max_attempts,Error) ){
 		-look_at(look);
-		.wait(look_at(look),4000);
+		.wait(look_at(look),10000);
 		look_at_events(stop_look_at);
 		!speak(ID,cannot_find); 
 		!drop_current_task(ID, wait_human, max_attempts, "wait too long");

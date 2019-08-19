@@ -87,7 +87,6 @@ public class SupervisorAgArch extends ROSAgArch {
 					goalIDGenerator = new GoalIDGenerator(getConnectedNode());
 					action.setResult(true);
 		        	actionExecuted(action);
-		        	
 				}else if(action_name.equals("initServices")){
 					HashMap<String, Boolean> services_status = m_rosnode.init_service_clients();
 					action.setResult(true);

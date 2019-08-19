@@ -59,10 +59,12 @@
 +left_task(Human) : true <- 
 	!bye(Human).
 
-+!bye(Human) : true <-
++!bye(Human) : not inTaskWith(_) <-
 	terminate_interaction(Human);
 	!clean_facts(Human);
 	text2speech(Human, goodbye).
+	
++!bye(Human) : inTaskWith(_) <- true.
 
 -!bye(Human) : true <- true.
 

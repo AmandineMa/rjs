@@ -821,6 +821,7 @@ public class RobotAgArch extends ROSAgArch {
 					getTS().getAg().addBel(Literal.parseLiteral("robot_move(" + r_frame + ","
 							+ robot_pose.toString() + ")[" + task_id + "]"));
 					Transform human_pose_now = tfTree.lookupMostRecent("map", human);
+//					if(human_pose_now != null) {
 					double h_dist_to_new_pose = Math.hypot(
 							human_pose_now.translation.x - robot_pose.getPosition().getX(),
 							human_pose_now.translation.y - robot_pose.getPosition().getY());
@@ -840,10 +841,10 @@ public class RobotAgArch extends ROSAgArch {
 								Literal.parseLiteral("human_first(" + side + ")[" + task_id + "]"));
 					}
 				}else {
-					getTS().getAg().addBel(Literal.parseLiteral("robot_turn(" + r_frame + ","
-							+ robot_pose_now.translation.x + ","+ robot_pose_now.translation.y + "," + robot_pose_now.translation.z+ ","  
+					getTS().getAg().addBel(Literal.parseLiteral("robot_turn(" + r_frame + ", ["
+							+ robot_pose_now.translation.x + ","+ robot_pose_now.translation.y + "," + robot_pose_now.translation.z+ "], ["  
 							+ robot_pose.getOrientation().getX()+ "," + robot_pose.getOrientation().getY()+ ","
-							+ robot_pose.getOrientation().getZ()+ "," + robot_pose.getOrientation().getW()+ ")[" + task_id + "]"));
+							+ robot_pose.getOrientation().getZ()+ "," + robot_pose.getOrientation().getW()+ "])[" + task_id + "]"));
 				}
 				getTS().getAg().addBel(Literal.parseLiteral("robot_pose(" + r_frame + ","
 						+ robot_pose.toString() + ")[" + task_id + "]"));

@@ -48,9 +48,12 @@
 	if(not jia.member(Human, Agents)){
 		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
 	}
-//	approach(Human);
 	engage(Human);
-	text2speech(Human, hello).
+	text2speech(Human, hello);
+	if(tf.is_dist_human2robot_sup(Human, Dist)){
+		text2speech(Human, closer);
+	}
+	.
 	
 +~isEngagedWith(Human, _) : inSession(Human) & isPerceiving(_, Human) & ((monitoring(Human) & inTaskWith(Human)) | not inTaskWith(Human)) <-
 	disengaging_human(Human);

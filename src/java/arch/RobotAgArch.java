@@ -900,6 +900,9 @@ public class RobotAgArch extends ROSAgArch {
 		case "goodbye":
 			text = new String("Goodbye");
 			break;
+		case "closer":
+			text = new String("Can you come closer, please ?");
+			break;
 		case "thinking":
 			text = new String("Wait, I'm thinking");
 			break;

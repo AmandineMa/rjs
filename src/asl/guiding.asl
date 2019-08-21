@@ -170,10 +170,10 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	?ld_to_point;
 	!be_at_good_pos(ID).
 	
--!go_to_see_target(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
-	if(not .substring(Code, ld_to_point)){
-		!drop_current_task(ID, go_to_see_target, Failure, Code);
-	}.
+-!go_to_see_target(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <- !log_failure(ID, go_to_see_target, Failure, Code).
+//	if(not .substring(Code, ld_to_point)){
+//		!drop_current_task(ID, go_to_see_target, Failure, Code);
+//	}.
 	
 +!get_placements(ID): not no_mesh <-
 	?task(ID, guiding, Human, _);
@@ -199,13 +199,14 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	}.
 	
 
-//TODO to see if we drop the task when svp fail, why not continue the task without moving ?	
--!get_placements(ID)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_), source(self)] : true <-
-	if(not .substring(svp, Failure) | not .substring(svp,Error)){
-  		!drop_current_task(ID, get_placements, Failure, Code);
-  	}else{
-  		+failure(get_placements, Failure, Code)[ID];
-  	}.
+
+-!get_placements(ID)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_), source(self)] : true <- 
+	!log_failure(ID, get_placements, Failure, Code).
+//	if(not .substring(svp, Failure) | not .substring(svp,Error)){
+//  		!drop_current_task(ID, get_placements, Failure, Code);
+//  	}else{
+//  		!log_failure(ID, get_placements, Failure, Code);
+//  	}.
 	
 +!be_at_good_pos(ID) : true <- 
 	?task(ID, guiding, Human, _);
@@ -230,9 +231,10 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	!wait_human(ID).
 
 @cd[max_attempts(15)]+!check_dist(ID, HTF, Rposit, Dist) : true <- 
-	if(not tf.is_dist_human2point_sup(HTF, Rposit, Dist)){
+	tf.is_dist_human2point_sup(HTF, Rposit, Dist, Result);
+	if(.substring(Result, false)){
 		.wait(200);
-	!check_dist(ID, HTF, Rposit, Dist);
+		!check_dist(ID, HTF, Rposit, Dist);
 	}.
 	
 -!check_dist(ID, HTF, Rposit, Dist) : true <- 
@@ -245,13 +247,14 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	!check_dist(ID, HTF, Rposit, Dist).
 	
 -!repeat_move(ID, HTF, Rposit, Dist) : true <- 
-	!speak(ID, cannot_move);
-	!show_landmarks(ID);
-	!clean_task(ID).
+	!speak(ID, cannot_move); 
+	!log_failure(ID, repeat_move, cannot_move, _);
+	.drop_intention(be_at_good_pos(ID)).
 
 -!be_at_good_pos(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
 	if(not .substring(robot_pose, Code)){
-		!drop_current_task(ID, be_at_good_pos, Failure, Code);
+//		!drop_current_task(ID, be_at_good_pos, Failure, Code);
+		!log_failure(ID, be_at_good_pos, Failure, Code);
 	}.
  
 @wh[max_attempts(3)]+!wait_human(ID) : true <- 
@@ -259,23 +262,28 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	?robot_pose(Rframe,Rposit, Rorient);
 	?human_pose(Hframe,Hposit,_);
 	.concat("human_", Human, HTF);
-	tf.get_transform(map, HTF, Point,_);
-	.nth(2, Point, Z);
-	if(Z > 1.8){
-		Zbis=1.8;
+	if(tf.get_transform(map, HTF, Point,_)){
+		.nth(2, Point, Z);
+		if(Z > 1.8){
+			Zbis=1.8;
+		}else{
+			Zbis=Z;
+		}	
+		jia.replace(2, Hposit, Zbis, Pointf);
+		jia.publish_marker(Hframe, Pointf, blue);
+		-look_at(look);
+		look_at(Hframe,Pointf,true);
+		.wait(isPerceiving(_),4000);
+	//	.wait(isPerceiving(Human),4000);
+		-~here(Human);
+		.wait(look_at(look),20000);
+		look_at_events(human_perceived);
+		!check_pos(ID, Human);
 	}else{
-		Zbis=Z;
-	}	
-//	Zbis = Z + 0.1;
-	jia.replace(2, Hposit, Zbis, Pointf);
-	jia.publish_marker(Hframe, Pointf, blue);
-	-look_at(look);
-	look_at(Hframe,Pointf,true);
-	.wait(isPerceiving(_),4000);
-//	.wait(isPerceiving(Human),4000);
-	-~here(Human);
-	.wait(look_at(look),20000);
-	look_at_events(human_perceived);
+		!log_failure(ID, wait_human, no_transform, tf.get_transform(map, HTF, Point,_));
+	}.
+	
+@cp[max_attempts(2)]+!check_pos(Human): true <-
 	if(jia.believes(dir_to_point(_))){
 		?dir_to_point(D);
 		.concat("human_", Human, HTF);
@@ -286,7 +294,16 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		.concat("human_", Human, HTF);
 		can_be_visible(HTF, T);
 	}.
-//	move_to(Rframe,Rposit,Rorient).
+
+-!check_pos(ID, Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <- 
+	if(not .substring(max_attempts,Error)){
+		?human_pose(Hframe,_,_);
+		jia.publish_marker(Hframe, orange);
+		!speak(ID, move_again);
+		!check_pos(ID, Human);
+	}else{
+		!log_failure(ID, check_pos, Failure, Code);
+	}.
 	
 -!wait_human(ID)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
 	?task(ID, guiding, Human, _);
@@ -296,18 +313,18 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		+~here(Human);
 		!speak(ID, come);
 		!wait_human(ID);
-	}elif(.substring(max_attempts,Error) ){
+	}elif(.substring(wait_timeout, Error) & .substring(look_at, Code)){
+		look_at_events(stop_look_at);
+		!log_failure(ID, look_at, not_received, look_at(look));
+		!check_pos(ID, Human);
+	}elif(.substring(max_attempts,Error)){
 		-look_at(look);
-		.wait(look_at(look),10000);
 		look_at_events(stop_look_at);
 		!speak(ID,cannot_find); 
 		!drop_current_task(ID, wait_human, max_attempts, "wait too long");
-	}elif(.substring(not_visible, Failure)){
-		jia.publish_marker(Hframe, orange);
-		!speak(ID, move_again);
-		!be_at_good_pos(ID);
 	}else{
-		!drop_current_task(ID, wait_human, Failure, Code);
+//		!drop_current_task(ID, wait_human, Failure, Code);
+		!log_failure(ID, wait_human, Failure, Code);
 	}.
 	
 /*******  show landmarks **********/
@@ -345,9 +362,10 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 -!show_landmarks(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
 	if(.substring(Error,max_attempts)){
 		!speak(ID,sl_sorry); 
-		!drop_current_task(ID, show_landmarks, max_attempts, "multiple wrong answers");
+		!drop_current_task(ID, show_landmarks, max_attempts, multiple_wrong_answers);
 	}else{
-		!drop_current_task(ID, show_landmarks, Failure, Code);
+		!log_failure(ID, show_landmarks, Failure, Code);
+//		!drop_current_task(ID, show_landmarks, Failure, Code);
 	}.
 
 
@@ -361,7 +379,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 
 -!show_target(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
 	if(not .substring(can_transform, Code)){
-		!drop_current_task(ID, show_target, Failure, Code);
+		!log_failure(ID, show_target, Failure, Code);
 	}else{
 		?target_place(TargetPlace);
 		!verbalization(ID, TargetPlace);
@@ -379,7 +397,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		?direction(D);
 		!verbalization(ID, D);
 	}elif(not .substring(test_goal_failed, Error)){
-		!drop_current_task(ID, show_direction, Failure, Code);
+		!log_failure(ID, show_direction, Failure, Code);
 	}.
 
 landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == Ld).
@@ -389,6 +407,8 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	?task(ID, guiding, Human, _);
 	+should_check_target_seen(Human,Ld);
 	point_at(Ld,false,true);
+	jia.time(T);
+	.print(T);
 	.wait(point_at(point),30000);
 	-point_at(point);
 	!verbalization(ID, Ld);
@@ -416,9 +436,11 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!speak(ID,pl_sorry); 
 		jia.reset_att_counter(point_look_at);
 	}elif(.substring(point_at,Code)){
-		!drop_current_task(ID, point_look_at, pointing, Code);
+		jia.time(T2);
+		.print(T2);
+		!log_failure(ID, point_look_at, point_at(point), not_received);
 	}else{
-		!drop_current_task(ID, point_look_at, Failure, Code);
+		!log_failure(ID, point_look_at, Failure, Code);
 	}.
 	
 +!ask_seen(ID, Ld) : true <-
@@ -440,7 +462,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	}.
 	
 -!ask_seen(ID, Ld)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)]: true <-
-  	!drop_current_task(ID, ask_seen, Failure, Code).	
+  	!log_failure(ID, ask_seen, Failure, Code).
 
 +!verbalization(ID, Place) : target_to_point(T) & T == Place & direction(_) <-
 	?task(ID, guiding, Human, _);

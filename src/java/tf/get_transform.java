@@ -22,16 +22,20 @@ public class get_transform extends DefaultInternalAction {
 		    	try {
 		    		
 		    		transform = tfTree.lookupMostRecent(frame1, frame2);
-		    		String translation = transform.translation.toString();
-		    		translation = translation.replaceAll("\\(", "[").replaceAll("\\)", "]");
-		    		ListTerm listterm_trans = ListTermImpl.parseList(translation);
-		    		String rotation = transform.rotation.toString();
-		    		rotation = rotation.replaceAll("\\(", "[").replaceAll("\\)", "]");
-		    		ListTerm listterm_rot = ListTermImpl.parseList(rotation);
-		    		boolean ok = un.unifies(args[2], listterm_trans);
-		    		if(ok)
-		    			un.unifies(args[3], listterm_rot);
-		    		return ok;
+		    		if(transform != null) {
+			    		String translation = transform.translation.toString();
+			    		translation = translation.replaceAll("\\(", "[").replaceAll("\\)", "]");
+			    		ListTerm listterm_trans = ListTermImpl.parseList(translation);
+			    		String rotation = transform.rotation.toString();
+			    		rotation = rotation.replaceAll("\\(", "[").replaceAll("\\)", "]");
+			    		ListTerm listterm_rot = ListTermImpl.parseList(rotation);
+			    		boolean ok = un.unifies(args[2], listterm_trans);
+			    		if(ok)
+			    			un.unifies(args[3], listterm_rot);
+			    		return ok;
+		    		}else {
+		    			return false;
+		    		}
 		    	}
 		    	catch (Exception e) {
 		    		return false;

@@ -430,25 +430,30 @@ public class RobotAgArch extends ROSAgArch {
 					String frame1 = "base_link";
 					if (tfTree.canTransform(frame1, frame)) {
 						transform = tfTree.lookupMostRecent(frame1, frame);
-						float d = (float) Math.atan2(transform.translation.y, transform.translation.x);
-						
-						Map<String, Object> parameters = new HashMap<String, Object>();
-						parameters.put("statemachinepepperbasemanager", m_rosnode.build_state_machine_pepper_base_manager(id, (float) d));
-						parameters.put("header", m_rosnode.build_meta_header());
-						
-						MetaStateMachineRegisterResponse face_resp = m_rosnode.callSyncService("pepper_synchro", parameters);
-						
-						if(face_resp == null) {
-							action.setFailureReason(new Atom("cannot_face_human"), "Service Failure, face human failed for " + frame);
+						if(transform != null) {
+							float d = (float) Math.atan2(transform.translation.y, transform.translation.x);
+							
+							Map<String, Object> parameters = new HashMap<String, Object>();
+							parameters.put("statemachinepepperbasemanager", m_rosnode.build_state_machine_pepper_base_manager(id, (float) d));
+							parameters.put("header", m_rosnode.build_meta_header());
+							
+							MetaStateMachineRegisterResponse face_resp = m_rosnode.callSyncService("pepper_synchro", parameters);
+							
+							if(face_resp == null) {
+								action.setFailureReason(new Atom("cannot_face_human"), "Service Failure, face human failed for " + frame);
+								action.setResult(false);
+							} else {
+								sleep(5000);
+								Map<String, Object> params = new HashMap<String, Object>();
+								params.put("posturename", "StandInit");
+								params.put("speed", (float) 0.8);
+								GoToPostureResponse go_to_posture_resp = m_rosnode.callSyncService("stand_pose",
+										params);
+								action.setResult(go_to_posture_resp != null);
+							}
+						}else {
 							action.setResult(false);
-						} else {
-							sleep(5000);
-							Map<String, Object> params = new HashMap<String, Object>();
-							params.put("posturename", "StandInit");
-							params.put("speed", (float) 0.8);
-							GoToPostureResponse go_to_posture_resp = m_rosnode.callSyncService("stand_pose",
-									params);
-							action.setResult(go_to_posture_resp != null);
+							action.setFailureReason(new Atom("cannot_face_human"), "Null transform, face human failed for " + frame);
 						}
 
 					} else {
@@ -813,38 +818,50 @@ public class RobotAgArch extends ROSAgArch {
 				TransformTree tfTree = getTfTree();
 				Transform robot_pose_now;
 				robot_pose_now = tfTree.lookupMostRecent("map", "base_footprint");
-				double r_dist_to_new_pose = Math.hypot(
-						robot_pose_now.translation.x - robot_pose.getPosition().getX(),
-						robot_pose_now.translation.y - robot_pose.getPosition().getY());
-				if (r_dist_to_new_pose > m_rosnode.getParameters()
-						.getDouble("guiding/tuning_param/robot_should_move_dist_th")) {
-					getTS().getAg().addBel(Literal.parseLiteral("robot_move(" + r_frame + ","
-							+ robot_pose.toString() + ")[" + task_id + "]"));
-					Transform human_pose_now = tfTree.lookupMostRecent("map", human);
-//					if(human_pose_now != null) {
-					double h_dist_to_new_pose = Math.hypot(
-							human_pose_now.translation.x - robot_pose.getPosition().getX(),
-							human_pose_now.translation.y - robot_pose.getPosition().getY());
-					logger.info("human pose now :"+human_pose_now);
-					logger.info("dist future robot pose and human now :"+h_dist_to_new_pose);
-					if (h_dist_to_new_pose < m_rosnode.getParameters()
-							.getDouble("guiding/tuning_param/human_move_first_dist_th")) {
-						String side;
-						geometry_msgs.Vector3 vector_msg = messageFactory
-								.newFromType(geometry_msgs.Vector3._TYPE);
-						// isLeft from robot view then it is right from human view
-						side = Tools.isLeft(TransformFactory.vector2msg(robot_pose_now.translation),
-								TransformFactory.vector2msg(human_pose_now.translation),
-								Vector3.fromPointMessage(human_pose.getPosition())
-										.toVector3Message(vector_msg)) ? "right" : "left";
-						getTS().getAg().addBel(
-								Literal.parseLiteral("human_first(" + side + ")[" + task_id + "]"));
+				if(robot_pose_now != null) {
+					double r_dist_to_new_pose = Math.hypot(
+							robot_pose_now.translation.x - robot_pose.getPosition().getX(),
+							robot_pose_now.translation.y - robot_pose.getPosition().getY());
+					if (r_dist_to_new_pose > m_rosnode.getParameters()
+							.getDouble("guiding/tuning_param/robot_should_move_dist_th")) {
+						
+						getTS().getAg().addBel(Literal.parseLiteral("robot_move(" + r_frame + ","
+								+ robot_pose.toString() + ")[" + task_id + "]"));
+						
+						Transform human_pose_now = tfTree.lookupMostRecent("map", human);
+						if(human_pose_now != null) {
+							double h_dist_to_new_pose = Math.hypot(
+									human_pose_now.translation.x - robot_pose.getPosition().getX(),
+									human_pose_now.translation.y - robot_pose.getPosition().getY());
+							
+							logger.info("human pose now :"+human_pose_now);
+							logger.info("dist future robot pose and human now :"+h_dist_to_new_pose);
+							
+							if (h_dist_to_new_pose < m_rosnode.getParameters()
+									.getDouble("guiding/tuning_param/human_move_first_dist_th")) {
+								
+								String side;
+								geometry_msgs.Vector3 vector_msg = messageFactory
+										.newFromType(geometry_msgs.Vector3._TYPE);
+								// isLeft from robot view then it is right from human view
+								side = Tools.isLeft(TransformFactory.vector2msg(robot_pose_now.translation),
+										TransformFactory.vector2msg(human_pose_now.translation),
+										Vector3.fromPointMessage(human_pose.getPosition())
+												.toVector3Message(vector_msg)) ? "right" : "left";
+								getTS().getAg().addBel(
+										Literal.parseLiteral("human_first(" + side + ")[" + task_id + "]"));
+								
+							}
+						}
+					}else {
+						getTS().getAg().addBel(Literal.parseLiteral("robot_turn(" + r_frame + ", ["
+								+ robot_pose_now.translation.x + ","+ robot_pose_now.translation.y + "," + robot_pose_now.translation.z+ "], ["  
+								+ robot_pose.getOrientation().getX()+ "," + robot_pose.getOrientation().getY()+ ","
+								+ robot_pose.getOrientation().getZ()+ "," + robot_pose.getOrientation().getW()+ "])[" + task_id + "]"));
 					}
 				}else {
-					getTS().getAg().addBel(Literal.parseLiteral("robot_turn(" + r_frame + ", ["
-							+ robot_pose_now.translation.x + ","+ robot_pose_now.translation.y + "," + robot_pose_now.translation.z+ "], ["  
-							+ robot_pose.getOrientation().getX()+ "," + robot_pose.getOrientation().getY()+ ","
-							+ robot_pose.getOrientation().getZ()+ "," + robot_pose.getOrientation().getW()+ "])[" + task_id + "]"));
+					getTS().getAg().addBel(Literal.parseLiteral("robot_move(" + r_frame + ","
+							+ robot_pose.toString() + ")[" + task_id + "]"));
 				}
 				getTS().getAg().addBel(Literal.parseLiteral("robot_pose(" + r_frame + ","
 						+ robot_pose.toString() + ")[" + task_id + "]"));

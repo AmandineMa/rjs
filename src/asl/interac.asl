@@ -50,7 +50,9 @@
 	}
 	engage(Human);
 	text2speech(Human, hello);
-	if(tf.is_dist_human2robot_sup(Human, Dist)){
+	.concat("human_", Human, H); 
+	tf.is_dist_human2robot_sup(H, 2, Result); 
+	if(.substring(Result, true)){
 		text2speech(Human, closer);
 	}
 	.

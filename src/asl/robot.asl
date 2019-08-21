@@ -20,11 +20,10 @@
 +!start : true <- .verbose(2).
 
 +!guiding(ID, Human, Place) : true <-	
+	jia.publish_marker(0);
 	.send(interac, tell, inTaskWith(Human));
 	+task(ID, guiding, Human, Place)[ID];
-	-finished;
-	-point_at(point);
-	-look_at(look);
+	!clean_facts;
 	+task(ID, guiding, Human, Place)[ID];
 	!guiding_goal_negociation(ID, Human, Place);
 	?guiding_goal_nego(ID, PlaceNego);
@@ -39,6 +38,11 @@
 
 -!guiding(ID, Human, Place) : true <-
 	!clean_task(ID).
+	
++!clean_facts: true <-
+	-finished;
+	-point_at(point);
+	-look_at(look).
 
 +!drop_current_task(ID, Subgoal, Failure, Code) : true <-
 	look_at_events(stop_look_at);
@@ -72,6 +76,8 @@
   	}
   	G =.. [Task, [ID,Human,Param],[]];
   	.fail_goal(G).
+  
++!log_failure(ID, Subgoal, Failure, Code) : true <- +failure(Subgoal, Failure, Code)[ID].
 
 +!clean_task(ID) : true <-
 	?task(ID, Task, Human, Param);

@@ -1,8 +1,6 @@
 MAS supervisor {
 
 	infrastructure: Centralised(threaded,1,1,3)
-
-//	environment: Simu
 	
 //	executionControl: jason.control.ExecutionControlGUI
 

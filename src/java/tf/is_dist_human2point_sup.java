@@ -26,18 +26,19 @@ public class is_dist_human2point_sup extends DefaultInternalAction {
 	    	human = human.replaceAll("^\"|\"$", "");
 	    	Iterator<Term> values_it =  ((ListTermImpl) args[1]).iterator();
 			List<Double> point_values = new ArrayList<>();
-			
+			Atom is_dist_sup = new Atom(Literal.parseLiteral("no_transform"));
 			while(values_it.hasNext()) {
 				point_values.add(((NumberTermImpl)values_it.next()).solve());
 			}
 			TransformTree tfTree = ((ROSAgArch) ts.getUserAgArch()).getTfTree();
 			Transform human_pose_now = tfTree.lookupMostRecent("map", human);
-			double h_dist_to_new_pose = Math.hypot(human_pose_now.translation.x - point_values.get(0), 
-												   human_pose_now.translation.y - point_values.get(1));
 			
-			boolean is_dist_sup = h_dist_to_new_pose > ((NumberTermImpl) args[2]).solve() ? true : false;
-			return is_dist_sup;
-
+			if(human_pose_now != null) {
+				double h_dist_to_new_pose = Math.hypot(human_pose_now.translation.x - point_values.get(0), 
+													   human_pose_now.translation.y - point_values.get(1));
+				is_dist_sup =  h_dist_to_new_pose > ((NumberTermImpl) args[2]).solve() ? new Atom(Literal.parseLiteral("true")) :  new Atom(Literal.parseLiteral("false"));
+			}
+			return un.unifies(args[3], is_dist_sup);
 	    }
 
 }

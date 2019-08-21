@@ -170,7 +170,8 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	?ld_to_point;
 	!be_at_good_pos(ID).
 	
--!go_to_see_target(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <- !log_failure(ID, go_to_see_target, Failure, Code).
+-!go_to_see_target(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <- 
+	!log_failure(ID, go_to_see_target, Failure, Code).
 //	if(not .substring(Code, ld_to_point)){
 //		!drop_current_task(ID, go_to_see_target, Failure, Code);
 //	}.
@@ -224,31 +225,54 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		?human_first(Side);
 		!speak(ID, step, Side);
 		.concat("human_", Human, HTF);
-		!check_dist(ID, HTF, Rposit, 0.5);
+		!check_dist(ID, HTF, Rposit, 0.5, false);
+		jia.reset_att_counter(check_dist);
 	}
 //	tf.quat_face_human(Rposit, Hposit, Q);
 	move_to(Rframe,Rposit, Rorient);
 	!wait_human(ID).
 
-@cd[max_attempts(15)]+!check_dist(ID, HTF, Rposit, Dist) : true <- 
-	tf.is_dist_human2point_sup(HTF, Rposit, Dist, Result);
-	if(.substring(Result, false)){
+@cd[max_attempts(15)]+!check_dist(ID, HTF, Point, Dist, Bool) : true <- 
+	tf.is_dist_human2point_sup(HTF, Point, Dist, Result);
+	if(.substring(Result, Bool)){
 		.wait(200);
-		!check_dist(ID, HTF, Rposit, Dist);
+		!check_dist(ID, HTF, Point, Dist, Bool);
 	}.
 	
--!check_dist(ID, HTF, Rposit, Dist) : true <- 
-	!repeat_move(ID, HTF, Rposit, Dist).
-	
-@rm[max_attempts(2)]+!repeat_move(ID, HTF, Rposit, Dist) : true <-
+-!check_dist(ID, HTF, Point, Dist, Bool) : not adjust(_) <- 
 	?human_first(Side);
+	!repeat_move(ID, HTF, Point, Bool, Side).
+	
+-!check_dist(ID, HTF, Rposit, Dist, Bool) : adjust(Side) <- 
+	!repeat_move(ID, HTF, Rposit, Bool, Side).	
+	
+@rm[max_attempts(2)]+!repeat_move(ID, HTF, Rposit, Dist, Bool, Side) : true <-
 	!speak(ID, step_more, Side);
 	jia.reset_att_counter(check_dist);
-	!check_dist(ID, HTF, Rposit, Dist).
+	!check_dist(ID, HTF, Rposit, Dist, Bool).
 	
 -!repeat_move(ID, HTF, Rposit, Dist) : true <- 
 	!speak(ID, cannot_move); 
 	!log_failure(ID, repeat_move, cannot_move, _);
+	.drop_intention(be_at_good_pos(ID)).
+	
+-!repeat_move(ID, HTF, Rposit, Dist) : adjust(_) <- 
+	!log_failure(ID, repeat_move, adjust, _);
+	if(jia.believes(dir_to_point(_))){
+		?dir_to_point(D);
+		.concat("human_", Human, HTF);
+		if(not jia.can_be_visible(HTF, D)){
+			-dir_to_point(D);
+		}
+	}
+	if(jia.believes(target_to_point(_))){
+		?target_to_point(T);
+		.concat("human_", Human, HTF);
+		if(not jia.can_be_visible(HTF, T)){
+			-target_to_point(T);
+		}
+	}
+	-adjust(_);
 	.drop_intention(be_at_good_pos(ID)).
 
 -!be_at_good_pos(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
@@ -295,15 +319,31 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		can_be_visible(HTF, T);
 	}.
 
--!check_pos(ID, Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <- 
-	if(not .substring(max_attempts,Error)){
-		?human_pose(Hframe,_,_);
-		jia.publish_marker(Hframe, orange);
-		!speak(ID, move_again);
-		!check_pos(ID, Human);
+-!check_pos(ID, Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : not ajust(_) <- 
+	if(.substring(not_visible,Error)){
+		.concat("human_", Human, HTF);
+		?human_pose(Hframe,Hposit,_);
+		tf.is_dist_human2point_sup(HTF, Hposit, 0.5, Result);
+		if(.substring(Result, true)){
+			!adjust_human_pos(ID, Human);
+		}
 	}else{
 		!log_failure(ID, check_pos, Failure, Code);
 	}.
+	
++!adjust_human_pos(ID, Human) : true <-
+	if(tf.h_step_r_or_l(Human, Pose, Side)){
+		+adjust(Side);
+		!speak(ID, step, Side);
+		.concat("human_", Human, HTF);
+		!check_dist(ID, HTF, Pose, 0.5, true);
+		jia.reset_att_counter(check_dist);
+		-adjust(Side);
+	}.
+
+-!adjust_human_pos(ID, Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
+	-adjust(_);
+	!log_failure(ID, check_pos, Failure, Code).
 	
 -!wait_human(ID)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
 	?task(ID, guiding, Human, _);

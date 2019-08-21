@@ -10,12 +10,8 @@ import org.ros.node.topic.Publisher;
 
 import com.google.common.collect.Multimap;
 
-import actionlib_msgs.GoalStatus;
-import deictic_gestures.PointAtStatus;
-import geometry_msgs.PoseStamped;
 import jason.RevisionFailedException;
 import jason.asSemantics.ActionExec;
-import jason.asSemantics.Message;
 import jason.asSyntax.Atom;
 import jason.asSyntax.Literal;
 import pepper_engage_human.TerminateInteractionActionGoal;

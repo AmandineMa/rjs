@@ -3,20 +3,74 @@ package agent;
 import jason.asSemantics.*;
 import jason.asSyntax.*;
 import jason.bb.*;
+import utils.Tools;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.List;
 import java.util.logging.Logger;
+
+import org.ros.internal.loader.CommandLineLoader;
+import org.ros.namespace.GraphName;
+import org.ros.node.AbstractNodeMain;
+import org.ros.node.ConnectedNode;
+import org.ros.node.DefaultNodeMainExecutor;
+import org.ros.node.NodeConfiguration;
+import org.ros.node.NodeMainExecutor;
+
+import com.google.common.collect.Lists;
 
 public class TimeBB extends DefaultBeliefBase {
 
-	private static long start;
+	private static double start;
 	private static boolean start_initialized = false;
+	private static ConnectedNode connected_node;
 	@SuppressWarnings("unused")
 	private static Logger logger = Logger.getLogger(TimeBB.class.getSimpleName());
 
 	@Override
 	public void init(Agent ag, String[] args) {
 		if(!start_initialized) {
-			start = System.currentTimeMillis();
-			start_initialized = true;
+			
+			NodeConfiguration nodeConfiguration;
+			NodeMainExecutor nodeMainExecutor = DefaultNodeMainExecutor.newDefault();
+			if(System.getenv("ROS_MASTER_URI") != null && System.getenv("ROS_IP") != null && !System.getenv("ROS_IP").equals("127.0.0.1")) {
+				List<String> emptyArgv = Lists.newArrayList("EmptyList");
+				CommandLineLoader loader = new CommandLineLoader(emptyArgv);
+				URI masterUri = null;
+				nodeConfiguration = loader.build();	
+				try {
+					masterUri = new URI(System.getenv("ROS_MASTER_URI"));			
+				} catch (URISyntaxException e) {
+					logger.info("Wrong URI syntax :" + e.getMessage());
+				} 
+				nodeConfiguration.setMasterUri(masterUri);
+				AbstractNodeMain node = new AbstractNodeMain() {	
+					
+					@Override
+					public GraphName getDefaultNodeName() {
+						return GraphName.of("supervisor_time");
+					}
+					@Override
+					public void onStart(final ConnectedNode connectedNode) {
+					connected_node = connectedNode;
+					}
+				};
+				nodeMainExecutor.execute(node, nodeConfiguration);
+				while(connected_node == null) {
+					Tools.sleep(100);
+				}
+				start = connected_node.getCurrentTime().toSeconds();
+				logger.info("start time :"+start);
+				start_initialized = true;
+			}else {
+				if(System.getenv("ROS_MASTER_URI") == null)
+					logger.info("ROS_MASTER_URI has not been set");
+				if(System.getenv("ROS_IP") == null)
+					logger.info("ROS_IP has not been set");
+				else if (System.getenv("ROS_IP").equals("127.0.0.1"))
+					logger.info("ROS_IP should not be localhost");
+			}
 		}
 		super.init(ag,args);
 	}
@@ -42,8 +96,9 @@ public class TimeBB extends DefaultBeliefBase {
 	private void annote_time(Literal bel) {
 		if (! hasTimeAnnot(bel)) {
 			Structure time = new Structure("add_time");
-			long pass = System.currentTimeMillis() - start;
-			time.addTerm(new NumberTermImpl(pass));
+//			double pass = connected_node.getCurrentTime().toSeconds() - start;
+//			time.addTerm(new NumberTermImpl(pass));
+			time.addTerm(new NumberTermImpl(connected_node.getCurrentTime().toSeconds()));
 			bel.addAnnot(time);
 		}
 	}
@@ -58,7 +113,7 @@ public class TimeBB extends DefaultBeliefBase {
 		return false;
 	}
 	
-	public long getStartTime() {
+	public double getStartTime() {
 		return start;
 	}
 }

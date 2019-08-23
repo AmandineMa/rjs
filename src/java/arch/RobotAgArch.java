@@ -59,6 +59,7 @@ import rpn_recipe_planner_msgs.SuperQueryResponse;
 import semantic_route_description_msgs.Route;
 import semantic_route_description_msgs.SemanticRouteResponse;
 import std_msgs.Header;
+import tf2_msgs.TFMessage;
 import utils.Code;
 import utils.Quaternion;
 import utils.Tools;
@@ -72,6 +73,7 @@ public class RobotAgArch extends ROSAgArch {
 	private Publisher<std_msgs.String> look_at_events_pub;
 	NodeConfiguration nodeConfiguration;
 	MessageFactory messageFactory;
+	std_msgs.Header her;
 
 	@Override
 	public void init() {
@@ -920,6 +922,9 @@ public class RobotAgArch extends ROSAgArch {
 		case "closer":
 			text = new String("Can you come closer, please ?");
 			break;
+		case "more_closer":
+			text = new String("Can you take another step forward, please ?");
+			break;
 		case "thinking":
 			text = new String("Wait, I'm thinking");
 			break;
@@ -981,7 +986,7 @@ public class RobotAgArch extends ROSAgArch {
 			text = new String("I am sorry, I cannot show you. I hope you will find your way");
 			break;
 		case "cannot_tell_seen":
-			text = new String("Have you seen " + bel_arg + " ?. I'm not sure.");
+			text = new String("Have you seen " + bel_arg + " ?");
 			break;
 		case "ask_show_again":
 			text = new String("Should I show you again ?");

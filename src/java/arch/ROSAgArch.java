@@ -80,6 +80,10 @@ public class ROSAgArch extends MindInspectorAgArch {
 	public static RosNode getM_rosnode() {
 		return m_rosnode;
 	}
+	
+	public double getRosTime() {
+		return m_rosnode.getConnectedNode().getCurrentTime().toSeconds();
+	}
 
 	public TransformTree getTfTree() {
 		return m_rosnode.getTfTree();

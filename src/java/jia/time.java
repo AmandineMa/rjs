@@ -3,6 +3,7 @@
 package jia;
 
 import agent.TimeBB;
+import arch.ROSAgArch;
 import jason.asSemantics.*;
 import jason.asSyntax.*;
 
@@ -22,8 +23,8 @@ public class time extends DefaultInternalAction {
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
     	TimeBB bb = (TimeBB) ts.getAg().getBB();
-    	long start_time = bb.getStartTime();
-    	long time_now = System.currentTimeMillis() - start_time;
+//    	double start_time = bb.getStartTime();
+    	double time_now = ((ROSAgArch) ts.getUserAgArch()).getRosTime();
     	return un.unifies(args[0], new ObjectTermImpl(time_now));
     	
     }

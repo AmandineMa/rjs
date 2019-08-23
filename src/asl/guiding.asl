@@ -217,16 +217,19 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 	jia.publish_marker(Hframe, Hposit, blue);
 	if(jia.believes(robot_move(_,_, _))){
 		?robot_move(Rframe,Rposit, Rorient);
-		!speak(ID, going_to_move);
 	}else{
 		?robot_turn(Rframe,Rposit, Rorient);
 	}
 	if(jia.believes(human_first(_))){
 		?human_first(Side);
-		!speak(ID, step, Side);
+		!speak(ID, step(Side));
 		.concat("human_", Human, HTF);
 		!check_dist(ID, HTF, Rposit, 0.5, false);
 		jia.reset_att_counter(check_dist);
+	}
+	.wait(800);
+	if(jia.believes(robot_move(_,_, _))){
+		!speak(ID, going_to_move);
 	}
 //	tf.quat_face_human(Rposit, Hposit, Q);
 	move_to(Rframe,Rposit, Rorient);
@@ -239,24 +242,29 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		!check_dist(ID, HTF, Point, Dist, Bool);
 	}.
 	
--!check_dist(ID, HTF, Point, Dist, Bool) : not adjust(_) <- 
+-!check_dist(ID, HTF, Point, Dist, Bool) : not adjust <- 
 	?human_first(Side);
-	!repeat_move(ID, HTF, Point, Bool, Side).
+	!repeat_move(ID, HTF, Point, Dist, Bool, Side).
 	
--!check_dist(ID, HTF, Rposit, Dist, Bool) : adjust(Side) <- 
-	!repeat_move(ID, HTF, Rposit, Bool, Side).	
+-!check_dist(ID, HTF, Point, Dist, Bool) : adjust <- 
+	!repeat_move(ID, HTF, Point, Dist, Bool).	
 	
-@rm[max_attempts(2)]+!repeat_move(ID, HTF, Rposit, Dist, Bool, Side) : true <-
-	!speak(ID, step_more, Side);
+@rm[max_attempts(2)]+!repeat_move(ID, HTF, Point, Dist, Bool, Side) : true <-
+	!speak(ID, step_more(Side));
 	jia.reset_att_counter(check_dist);
-	!check_dist(ID, HTF, Rposit, Dist, Bool).
+	!check_dist(ID, HTF, Point, Dist, Bool).
 	
--!repeat_move(ID, HTF, Rposit, Dist) : true <- 
+@rm2[max_attempts(2)]+!repeat_move(ID, HTF, Point, Dist, Bool) : true <-
+	!speak(ID, more_closer);
+	jia.reset_att_counter(check_dist);
+	!check_dist(ID, HTF, Point, Dist, Bool).
+	
+-!repeat_move(ID, HTF, Point, Dist, Bool, Side) : true <- 
 	!speak(ID, cannot_move); 
 	!log_failure(ID, repeat_move, cannot_move, _);
 	.drop_intention(be_at_good_pos(ID)).
 	
--!repeat_move(ID, HTF, Rposit, Dist) : adjust(_) <- 
+-!repeat_move(ID, HTF, Point, Dist, Bool) : true <- 
 	!log_failure(ID, repeat_move, adjust, _);
 	if(jia.believes(dir_to_point(_))){
 		?dir_to_point(D);
@@ -272,7 +280,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 			-target_to_point(T);
 		}
 	}
-	-adjust(_);
+	-adjust;
 	.drop_intention(be_at_good_pos(ID)).
 
 -!be_at_good_pos(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
@@ -307,7 +315,7 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		!log_failure(ID, wait_human, no_transform, tf.get_transform(map, HTF, Point,_));
 	}.
 	
-@cp[max_attempts(2)]+!check_pos(Human): true <-
+@cp[max_attempts(3)]+!check_pos(ID, Human): true <-
 	if(jia.believes(dir_to_point(_))){
 		?dir_to_point(D);
 		.concat("human_", Human, HTF);
@@ -319,27 +327,43 @@ shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","r
 		can_be_visible(HTF, T);
 	}.
 
--!check_pos(ID, Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : not ajust(_) <- 
-	if(.substring(not_visible,Error)){
+-!check_pos(ID, Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <- 
+	if(.substring(not_visible,Failure)){
 		.concat("human_", Human, HTF);
 		?human_pose(Hframe,Hposit,_);
-		tf.is_dist_human2point_sup(HTF, Hposit, 0.5, Result);
-		if(.substring(Result, true)){
-			!adjust_human_pos(ID, Human);
+		
+		tf.is_dist_human2point_sup(HTF, Hposit, 0.3, Result);
+		
+		if(.substring(Result, true) & jia.believes(dir_to_point(_))){
+			?dir_to_point(D);
+			.concat("human_", Human, HTF);
+			if(not jia.can_be_visible(HTF, D)){
+				!adjust_human_pos(ID, Human);
+				!check_pos(ID, Human);
+			}
+		}elif(.substring(Result, true) & jia.believes(target_to_point(_))){
+			?target_to_point(T);
+			.concat("human_", Human, HTF);
+			if(not jia.can_be_visible(HTF, T)){
+				!adjust_human_pos(ID, Human);
+				!check_pos(ID, Human);
+			}
 		}
 	}else{
 		!log_failure(ID, check_pos, Failure, Code);
 	}.
 	
 +!adjust_human_pos(ID, Human) : true <-
-	if(tf.h_step_r_or_l(Human, Pose, Side)){
-		+adjust(Side);
-		!speak(ID, step, Side);
-		.concat("human_", Human, HTF);
-		!check_dist(ID, HTF, Pose, 0.5, true);
-		jia.reset_att_counter(check_dist);
-		-adjust(Side);
-	}.
+	?human_pose(Hframe,Hposit,_);
+	.concat("human_", Human, HTF);
+//	if(tf.h_step_r_or_l(HTF, Hposit, Side)){
+	+adjust;
+	!speak(ID, closer);
+	.concat("human_", Human, HTF);
+	!check_dist(ID, HTF, Hposit, 0.3, true);
+	-adjust;
+	jia.reset_att_counter(check_dist).
+//	}.
 
 -!adjust_human_pos(ID, Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
 	-adjust(_);

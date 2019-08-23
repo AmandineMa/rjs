@@ -34,7 +34,7 @@ public class InteractAgArch extends RobotAgArch {
 					if(perceptions != null) {
 						for(String agent : perceptions.keySet()) {
 							for(SimpleFact percept : perceptions.get(agent)) {
-								if(percept.getPredicate().equals("isEngagingWith")) {
+								if(percept.getPredicate().equals("isEngagedWith")) {
 									l.add(Literal.parseLiteral(percept.getPredicate()+"("+agent+","+percept.getObject()+")"));
 								}else if(percept.getPredicate().equals("isPerceiving")) {
 									l.add(Literal.parseLiteral(percept.getPredicate()+"("+agent+","+percept.getObject()+")"));

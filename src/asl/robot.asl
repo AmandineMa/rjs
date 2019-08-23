@@ -17,10 +17,17 @@
 +!face_human(H) : true <- face_human(H).
 -!face_human(H) : true <- true.
 
-+!start : true <- .verbose(2).
++!start : true <- .verbose(2); jia.log_beliefs.
 
 +!guiding(ID, Human, Place) : true <-	
 	jia.publish_marker(0);
+	.concat("human_", Human, H);
+	human_to_monitor(H);
+	+inSession(Human);
+	.all_names(Agents);
+	if(not jia.member(Human, Agents)){
+		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
+	}
 	.send(interac, tell, inTaskWith(Human));
 	+task(ID, guiding, Human, Place)[ID];
 	!clean_facts;
@@ -34,6 +41,7 @@
 	!go_to_see_target(ID);
 	!show_landmarks(ID);
 	+end_task(succeeded, ID)[ID];
+	human_to_monitor("");
 	!clean_task(ID).
 
 -!guiding(ID, Human, Place) : true <-

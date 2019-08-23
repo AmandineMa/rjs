@@ -12,8 +12,7 @@
 	startParameterLoaderNode;
 	startROSNode;
 	initServices;
-	initGuidingAs;
-	jia.publish_marker(0);
+	initGuidingAs; 
 	.print("started");
 //	.create_agent(test, "src/asl/test.asl", [agentArchClass("arch.InteractAgArch"), beliefBaseClass("agent.TimeBB")]).
 	.create_agent(interac, "src/asl/interac.asl", [agentArchClass("arch.InteractAgArch"), beliefBaseClass("agent.TimeBB")]);

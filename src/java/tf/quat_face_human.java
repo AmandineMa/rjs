@@ -1,11 +1,8 @@
 package tf;
 
-import org.ros.rosjava.tf.Transform;
-import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava_geometry.Quaternion;
 import org.ros.rosjava_geometry.Vector3;
 
-import arch.ROSAgArch;
 import jason.asSemantics.DefaultInternalAction;
 import jason.asSemantics.TransitionSystem;
 import jason.asSemantics.Unifier;
@@ -16,7 +13,12 @@ import jason.asSyntax.Term;
 
 public class quat_face_human extends DefaultInternalAction {
 
-	  @Override
+	  /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	@Override
 	    public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
 	    	ListTerm robot_pose = (ListTerm) args[0];
 	    	ListTerm human_pose = (ListTerm) args[1];

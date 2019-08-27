@@ -61,7 +61,7 @@ public class TimeBB extends DefaultBeliefBase {
 					Tools.sleep(100);
 				}
 				start = connected_node.getCurrentTime().toSeconds();
-				logger.info("start time :"+start);
+//				logger.info("start time :"+start);
 				start_initialized = true;
 			}else {
 				if(System.getenv("ROS_MASTER_URI") == null)

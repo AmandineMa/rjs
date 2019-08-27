@@ -22,6 +22,7 @@ import org.ros.exception.RemoteException;
 import org.ros.exception.RosRuntimeException;
 import org.ros.exception.ServiceNotFoundException;
 import org.ros.internal.message.Message;
+import org.ros.internal.node.response.StatusCode;
 import org.ros.master.client.MasterStateClient;
 import org.ros.message.Duration;
 import org.ros.message.MessageFactory;
@@ -58,6 +59,7 @@ import geometry_msgs.PoseStamped;
 import guiding_as_msgs.taskActionFeedback;
 import guiding_as_msgs.taskActionGoal;
 import guiding_as_msgs.taskActionResult;
+import guiding_as_msgs.taskResult;
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.ListTermImpl;
 import jason.asSyntax.NumberTermImpl;
@@ -148,10 +150,17 @@ public class RosNode extends AbstractNodeMain {
 			}
 			msc = new MasterStateClient(connectedNode, uri);
 			service_clients = new HashMap<String, ServiceClient<Message, Message>>();
-			if(parameters.has("/guiding/services"))
-				services_map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services");
-			else 
-				services_map = new HashMap<String, HashMap<String, String>>();
+			if(parameters.getBoolean("/guiding/immo")) {
+				if(parameters.has("/guiding/services_immo"))
+					services_map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services_immo");
+				else 
+					services_map = new HashMap<String, HashMap<String, String>>();
+			}else {
+				if(parameters.has("/guiding/services_moving"))
+					services_map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services_moving");
+				else 
+					services_map = new HashMap<String, HashMap<String, String>>();
+			}
 			stack_guiding_goals = new Stack<taskActionGoal>();
 			marker_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher("/pp_debug",
 					visualization_msgs.Marker._TYPE);
@@ -271,6 +280,20 @@ public class RosNode extends AbstractNodeMain {
 			call_service(serviceName, type, srl, params);
 		} else {
 			logger.info("Service (" + serviceName + ") not declared in yaml or type not filled");
+			try {
+				Method m = ServiceResponseListener.class.getMethod("onFailure", RemoteException.class);
+				m.invoke(srl, new RemoteException(StatusCode.ERROR, "Service (" + serviceName + ") not declared in yaml or type not filled"));
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			} catch (NoSuchMethodException e) {
+				e.printStackTrace();
+			} catch (SecurityException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -392,10 +415,18 @@ public class RosNode extends AbstractNodeMain {
 
 	public void set_task_result(String success, String id) {
 		if (guiding_as != null) {
-			if (success.equals("succeeded"))
+			taskActionResult result = messageFactory.newFromType(taskActionResult._TYPE);
+			taskResult r = messageFactory.newFromType(taskResult._TYPE);
+			if (success.equals("succeeded")) {
 				guiding_as.setSucceed(id);
-			else
+				r.setSuccess(true);
+			}
+			else {
 				guiding_as.setAbort(id);
+				r.setSuccess(false);
+			}
+			result.setResult(r);
+			guiding_as.sendResult(result);
 		} else {
 			logger.info("guiding as null");
 		}
@@ -564,7 +595,7 @@ public class RosNode extends AbstractNodeMain {
 		DialogueArbiterGoal engage_goal = messageFactory.newFromType(DialogueArbiterGoal._TYPE);
 		
 		engage_goal.setId(UUID.randomUUID().toString());
-		engage_goal.setParams("\'{\"person_frame\": \"human-"+human_id+"\"}\'");
+		engage_goal.setParams("{\"person_frame\": \"human_0\"}");
 		goal_msg.setGoal(engage_goal);
 		
 		engage_pub.publish(goal_msg);

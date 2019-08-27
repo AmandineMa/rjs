@@ -59,6 +59,8 @@ import rpn_recipe_planner_msgs.SuperQueryResponse;
 import semantic_route_description_msgs.Route;
 import semantic_route_description_msgs.SemanticRouteResponse;
 import std_msgs.Header;
+import std_srvs.SetBool;
+import std_srvs.SetBoolResponse;
 import tf2_msgs.TFMessage;
 import utils.Code;
 import utils.Quaternion;
@@ -67,9 +69,9 @@ import utils.Tools;
 public class RobotAgArch extends ROSAgArch {
 
 	@SuppressWarnings("unused")
-	private Logger logger = Logger.getLogger(RobotAgArch.class.getName());
+	protected Logger logger = Logger.getLogger(RobotAgArch.class.getName());
 
-	private Publisher<std_msgs.String> human_to_monitor;
+	protected Publisher<std_msgs.String> human_to_monitor;
 	private Publisher<std_msgs.String> look_at_events_pub;
 	NodeConfiguration nodeConfiguration;
 	MessageFactory messageFactory;
@@ -209,19 +211,25 @@ public class RobotAgArch extends ROSAgArch {
 						actionExecuted(action);
 					} else {
 						RouteImpl route = select_best_route(routes);
-
-						try {
-							String route_list = route.getRoute().stream().map(s -> "\"" + s + "\"")
-									.collect(Collectors.joining(", "));
-							getTS().getAg()
-									.addBel(Literal.parseLiteral("route([" + route_list + "])[" + task_id + "]"));
-							getTS().getAg().addBel(
-									Literal.parseLiteral("target_place(\"" + route.getGoal() + "\")[" + task_id + "]"));
-							action.setResult(true);
+						if(route != null) {
+							try {
+								logger.info(route.getRoute().toString());
+								String route_list = route.getRoute().stream().map(s -> "\"" + s + "\"")
+										.collect(Collectors.joining(", "));
+								getTS().getAg()
+										.addBel(Literal.parseLiteral("route([" + route_list + "])[" + task_id + "]"));
+								getTS().getAg().addBel(
+										Literal.parseLiteral("target_place(\"" + route.getGoal() + "\")[" + task_id + "]"));
+								action.setResult(true);
+								actionExecuted(action);
+	
+							} catch (RevisionFailedException e) {
+								e.printStackTrace();
+							}
+						}else {
+							action.setResult(false);
+							action.setFailureReason(new Atom("route_not_found_wo_stairs"), "No route has been found without stairs");
 							actionExecuted(action);
-
-						} catch (RevisionFailedException e) {
-							e.printStackTrace();
 						}
 					}
 
@@ -401,7 +409,7 @@ public class RobotAgArch extends ROSAgArch {
 					boolean with_head = Boolean.parseBoolean(action.getActionTerm().getTerm(1).toString());
 					boolean with_base = Boolean.parseBoolean(action.getActionTerm().getTerm(2).toString());
 					
-					ServiceResponseListener<PointAtResponse> respListener = new ServiceResponseListener<PointAtResponse>() {
+					ServiceResponseListener<PointAtResponse> respListenerP = new ServiceResponseListener<PointAtResponse>() {
 						public void onFailure(RemoteException e) {
 							handleFailure(action, action_name, e);
 						}
@@ -419,8 +427,27 @@ public class RobotAgArch extends ROSAgArch {
 					parameters.put("withhead", with_head);
 					parameters.put("withbase", with_base);
 
-					m_rosnode.callAsyncService("point_at", respListener, parameters);
+					m_rosnode.callAsyncService("point_at", respListenerP, parameters);
 
+				} else if(action_name.equals("enable_animated_speech")){
+					boolean b = Boolean.parseBoolean(action.getActionTerm().getTerm(0).toString());
+					ServiceResponseListener<SetBoolResponse> respListenerA = new ServiceResponseListener<SetBoolResponse>() {
+						public void onFailure(RemoteException e) {
+//							handleFailure(action, action_name, e);
+						}
+
+						public void onSuccess(SetBoolResponse response) {
+							action.setResult(response.getSuccess());
+							if (!action.getResult())
+								action.setFailureReason(new Atom("ena_animated_speech_failed"), "ena/disable animated say failed: "+response.getMessage());
+							actionExecuted(action);	
+						}
+					};
+					Map<String, Object> parametersA = new HashMap<String, Object>();
+					parametersA.put("data", b);
+
+					m_rosnode.callAsyncService("enable_animated_speech", respListenerA, parametersA);
+					
 				} else if (action_name.equals("face_human")) {
 					String id = action_name;
 					// to remove the extra ""
@@ -441,18 +468,17 @@ public class RobotAgArch extends ROSAgArch {
 							
 							MetaStateMachineRegisterResponse face_resp = m_rosnode.callSyncService("pepper_synchro", parameters);
 							
+							sleep(5000);
+							Map<String, Object> params = new HashMap<String, Object>();
+							params.put("posturename", "StandInit");
+							params.put("speed", (float) 0.8);
+							GoToPostureResponse go_to_posture_resp = m_rosnode.callSyncService("stand_pose",
+									params);
+							action.setResult(go_to_posture_resp != null);
 							if(face_resp == null) {
 								action.setFailureReason(new Atom("cannot_face_human"), "Service Failure, face human failed for " + frame);
 								action.setResult(false);
-							} else {
-								sleep(5000);
-								Map<String, Object> params = new HashMap<String, Object>();
-								params.put("posturename", "StandInit");
-								params.put("speed", (float) 0.8);
-								GoToPostureResponse go_to_posture_resp = m_rosnode.callSyncService("stand_pose",
-										params);
-								action.setResult(go_to_posture_resp != null);
-							}
+							} 
 						}else {
 							action.setResult(false);
 							action.setFailureReason(new Atom("cannot_face_human"), "Null transform, face human failed for " + frame);
@@ -772,8 +798,11 @@ public class RobotAgArch extends ROSAgArch {
 					}
 				}
 			}
+			if(best_route.getRoute() == null) {
+				best_route = null;
+			}
 		}
-
+		
 		return best_route;
 
 	}
@@ -949,6 +978,12 @@ public class RobotAgArch extends ROSAgArch {
 		case "ask_escalator":
 			text = new String("Can you take the escalator ?");
 			break;
+		case "no_stairs":
+			text = new String("I'm sorry, no route exists without stairs to go there");
+			break;
+		case "no_way":
+			text = new String("I'm sorry, I cannot find a way to go there");
+			break;
 		case "able_to_see":
 			text = new String("I think that you're seeing the place right now, good");
 			break;
@@ -1035,7 +1070,10 @@ public class RobotAgArch extends ROSAgArch {
 				break;
 			}
 		case "failed":
-			text = new String("My component for " + bel_arg + " has crashed");
+			if(bel_arg != null)
+				text = new String(bel_arg);
+			else
+				text = "failed";
 			break;
 		case "succeeded":
 			text = new String("succeeded");
@@ -1106,6 +1144,8 @@ public class RobotAgArch extends ROSAgArch {
 //					action.setFailureReason(new Atom("speak_to_failed"), "the speech service failed");
 //				}
 				action.setResult(speak_to_resp != null);
+			}else {
+				action.setResult(true);
 			}
 		}
 		actionExecuted(action);

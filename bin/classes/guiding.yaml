@@ -1,15 +1,63 @@
 guiding:
-  pointing_config:
-    distance_to_robot : 1
-    alpha : 110
-
   dialogue:
-    hwu: False
+    hwu: True
+    
+  immo: True
 
-  services:
-    speak_to: 
-      name: /naoqi_driver/tts/say
-      type: nao_interaction_msgs/Say
+  services_immo:
+#    speak_to: 
+#      name: /naoqi_driver/tts/say
+#      type: nao_interaction_msgs/Say
+    get_route: 
+      name: /semantic_route_description/get_route
+      type: semantic_route_description_msgs/SemanticRoute
+    route_verbalization: 
+      name: /route_verbalization/verbalizePlace
+      type: route_verbalization_msgs/VerbalizeRegionRoute
+    get_individual_info: 
+      name: /ontologenius/individual
+      type: ontologenius_msgs/OntologeniusService
+    get_class_info: 
+      name: /ontologenius/class
+      type: ontologenius_msgs/OntologeniusService
+    look_at: 
+      name: /deictic_gestures/look_at
+      type: deictic_gestures/LookAt
+    point_at: 
+      name: /deictic_gestures/point_at
+      type: deictic_gestures/PointAt
+    enable_animated_speech:
+      name: /mummer_dialogue_say/enable_animated_speech
+      type: std_srvs/SetBool
+    has_mesh: 
+      name: /has_mesh
+      type: perspectives_msgs/HasMesh
+    pepper_synchro: 
+      name: /pepper_resources_synchronizer/state_machines_register
+      type: pepper_resources_synchronizer_msgs/MetaStateMachineRegister
+    get_uwds_name: 
+      name: /get_name
+      type: perspectives_msgs/GetName
+    stand_pose:
+      name: /naoqi_driver/robot_posture/go_to_posture
+      type:  nao_interaction_msgs/GoToPosture
+    localise:
+      name: /mummer_localisation_tf/localise
+      type: pepper_localisation/response
+#    reinit_loca:
+#      name: /mummer_localisation_tf/re_init
+#      type: pepper_localisation/response
+    dialogue_inform: 
+      name: /rpn_supervision_server/inform
+      type: rpn_recipe_planner_msgs/SuperInform
+    dialogue_query: 
+      name: /rpn_supervision_server/query
+      type: rpn_recipe_planner_msgs/SuperQuery
+
+  services_moving:
+#    speak_to: 
+#      name: /naoqi_driver/tts/say
+#      type: nao_interaction_msgs/Say
     get_route: 
       name: /semantic_route_description/get_route
       type: semantic_route_description_msgs/SemanticRoute
@@ -46,19 +94,24 @@ guiding:
     stand_pose:
       name: /naoqi_driver/robot_posture/go_to_posture
       type:  nao_interaction_msgs/GoToPosture
-#    dialogue_inform: 
-#      name: /rpn_supervision_server/inform
-#      type: rpn_recipe_planner_msgs/SuperInform
-#    dialogue_query: /rpn_supervision_server/query
-#      name: /rpn_supervision_server/query
-#      type: rpn_recipe_planner_msgs/SuperQuery
-     
+#    localise:
+#      name: /mummer_localisation_tf/localise
+#      type: pepper_localisation/response
+#    reinit_loca:
+#      name: /mummer_localisation_tf/re_init
+#      type: pepper_localisation/response
+    dialogue_inform: 
+      name: /rpn_supervision_server/inform
+      type: rpn_recipe_planner_msgs/SuperInform
+    dialogue_query: 
+      name: /rpn_supervision_server/query
+      type: rpn_recipe_planner_msgs/SuperQuery     
 
   topics:
     current_facts: /base/current_facts
     point_at_status: /deictic_gestures/point_at/status
     look_at_status: /deictic_gestures/look_at/status
-    human_to_monitor: /human_point_publisher/human_to_look
+    human_to_monitor: /head_following/human_to_look
     person_of_interest: /person_of_interest
     look_at_events: /pepper_head_manager/str_events
     disengaging: /supervisor/disengaging_human
@@ -67,13 +120,14 @@ guiding:
   action_servers:
     move_to: m_move_to
 #    rotate: m_rotate
-    dialogue: dialogue_as
+#    dialogue: dialogue_as
     pointing_planner: /pointing_planner/SVP_Planner
     engage: engage
   
   tuning_param:
     pointing_duration: 1 #seconds
     stop_tracking_dist_th: 0.3 #meters
+    human_move_not_visible: 0.3
     human_move_first_dist_th: 0.5 #meters
     robot_should_move_dist_th: 0.4 #meters
     take_robot_place_dist_th: 0.6 #meters
@@ -83,7 +137,11 @@ guiding:
     signpost: False
     human_follow: True
     try_no_move: False
-
+  
+  robot_base:
+    position: [5.5, 15.5, 0]
+    orientation: [0, 0, -0.707, 0.707]
+  
   perspective:
     world: base
     robot_place: robot_infodesk

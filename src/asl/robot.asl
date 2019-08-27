@@ -6,9 +6,9 @@
 
 !start.
 
-^!guiding(ID, Human, Place)[state(started)] : not started <- +started; +monitoring(ID, Human).
-^!guiding(ID, Human, Place)[state(S)] : (S == finished | S == failed) & not finished <-
-	+finished;
+^!guiding(ID, Human, Place)[state(started)] : not started[ID] <- +started[ID]; +monitoring(ID, Human).
+^!guiding(ID, Human, Place)[state(S)] : (S == finished | S == failed) & not finished[ID] <-
+	+finished[ID];
 	.concat("human_", Human, H);  
 	!face_human(H); 
 	.succeed_goal(person_of_interest(Human));
@@ -19,17 +19,14 @@
 
 +!start : true <- .verbose(2); jia.log_beliefs.
 
+//TODO faire une jia pour changer "Place" dans les params du plan guiding 
 +!guiding(ID, Human, Place) : true <-	
 	jia.publish_marker(0);
-	.concat("human_", Human, H);
-	human_to_monitor(H);
-	+inSession(Human);
-	.all_names(Agents);
-	if(not jia.member(Human, Agents)){
-		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
-	}
+//	.all_names(Agents);
+//	if(not jia.member(Human, Agents)){
+//		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
+//	}
 	.send(interac, tell, inTaskWith(Human));
-	+task(ID, guiding, Human, Place)[ID];
 	!clean_facts;
 	+task(ID, guiding, Human, Place)[ID];
 	!guiding_goal_negociation(ID, Human, Place);
@@ -38,51 +35,55 @@
 	// task belief with onto name
 	+task(ID, guiding, Human, PlaceNego)[ID];	
 	!get_optimal_route(ID);
-	!go_to_see_target(ID);
+//	!go_to_see_target(ID);
 	!show_landmarks(ID);
 	+end_task(succeeded, ID)[ID];
-	human_to_monitor("");
 	!clean_task(ID).
+
++bouh: true <-
+	?task(ID, Task, Human, Param);
+	G =.. [Task, [ID,Human,_],[]];
+	.fail_goal(G).
 
 -!guiding(ID, Human, Place) : true <-
 	!clean_task(ID).
 	
 +!clean_facts: true <-
-	-finished;
+	-finished[ID];
 	-point_at(point);
 	-look_at(look).
 
 +!drop_current_task(ID, Subgoal, Failure, Code) : true <-
 	look_at_events(stop_look_at);
 	?task(ID, Task, Human, Param);
- 	if(.substring(Failure, dialogue_as_failed) | .substring(Failure, dialogue_as_not_found)){
- 		Speech = "listening";
- 	}elif(.substring(Failure, route_verba_failed)){
- 		Speech = "verbalization";
- 	}elif(.substring(move_to, Failure)){
- 		Speech = "moving";
- 	}elif(.substring(svp, Failure)){
- 		Speech = "planning";
- 	}elif(.substring(Failure, individual_not_found)){
- 		Speech = "ontology";
- 	}elif(.substring(verbalization, Failure)){
- 		Speech = "verbalization";
- 	}elif(.substring(self, Failure)){
- 		if(.substring(wait, Code)){
- 			Code=.. [W, [L, T], []];
-			L =.. [P, [_], []];
-			.concat("waiting ", P, Speech);
- 		}else{
- 			Speech = "my self";
- 		}
- 	}
+// 	if(.substring(Failure, dialogue_as_failed) | .substring(Failure, dialogue_as_not_found)){
+// 		Speech = "listening";
+// 	}elif(.substring(Failure, route_verba_failed)){
+// 		Speech = "verbalization";
+// 	}elif(.substring(move_to, Failure)){
+// 		Speech = "moving";
+// 	}elif(.substring(svp, Failure)){
+// 		Speech = "planning";
+// 	}elif(.substring(Failure, individual_not_found)){
+// 		Speech = "ontology";
+// 	}elif(.substring(verbalization, Failure)){
+// 		Speech = "verbalization";
+// 	}elif(.substring(self, Failure)){
+// 		if(.substring(wait, Code)){
+// 			Code=.. [W, [L, T], []];
+//			L =.. [P, [_], []];
+//			.concat("waiting ", P, Speech);
+// 		}else{
+// 			Speech = "my self";
+// 		}
+// 	}
 	.print("error with ",Code);
   	+failure(Subgoal, Failure, Code)[ID];
-  	+end_task(failed, ID)[ID];
-  	if(.string(Speech)){
-  		!speak(ID, failed(Speech));
-  	}
-  	G =.. [Task, [ID,Human,Param],[]];
+  	+end_task(failed(Failure), ID)[ID];
+//  	if(.string(Speech)){
+//  	!speak(ID, failed(Failure));
+//  	}
+  	G =.. [Task, [ID,Human,_],[]];
   	.fail_goal(G).
   
 +!log_failure(ID, Subgoal, Failure, Code) : true <- +failure(Subgoal, Failure, Code)[ID].
@@ -95,7 +96,10 @@
 	.send(interac, untell, inTaskWith(Human));
 	.abolish(_[ID]).	
 
-+end_task(Status, ID)[ID] : true <- .send(supervisor, tell, end_task(Status, ID)). //text2speech(Human, Status).
++end_task(Status, ID)[ID] :  true <- 
+	?task(ID, _, Human, _); 
+	.send(supervisor, tell, end_task(Status, ID)); 
+	text2speech(Human, Status).
 
 +failure(Subgoal, Failure, Code)[ID] : true <- .send(supervisor, tell, failure(ID, Subgoal, Failure, Code)).
 	
@@ -112,15 +116,14 @@
 	+end_task(cancelled, ID)[ID];
 	?task(ID, Task, Human, Place);
 	!clean_task(ID);
-  	human_to_monitor("");
-	G =.. [Task, [ID,Human,Place],[]];
+	G =.. [Task, [ID,Human,_],[]];
 	.drop_desire(G).
 	
 +suspend(ID) : true <-
 	-suspend(ID);
 	+suspended(ID)[ID];
 	?task(ID, Task, Human, Place);
-	G =.. [Task, [ID,Human,Place],[]];
+	G =.. [Task, [ID,Human,_],[]];
 	.suspend(G).
 	
 +resume(ID) : true <-
@@ -128,6 +131,6 @@
 	+resumed(ID)[ID];
 	-suspended(ID)[ID];
 	?task(ID, Task, Human, Place);
-	G =.. [Task, [ID,Human,Place],[]];
+	G =.. [Task, [ID,Human,_],[]];
 	.resume(G).
 

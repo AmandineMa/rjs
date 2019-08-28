@@ -57,9 +57,9 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	
 /*******  go to see target **********/	
 
-^!go_to_see_target(ID)[state(S)] : S == started | S == resumed <- -monitoring(_, _)[add_time(_), source(self)]. 
-
-^!go_to_see_target(ID)[state(S)] : S == finished | S == failed <- ?task(ID, _, Human, _); +monitoring(ID, Human).
+//^!go_to_see_target(ID)[state(S)] : S == started | S == resumed <- -monitoring(_, _)[add_time(_), source(self)]. 
+//
+//^!go_to_see_target(ID)[state(S)] : S == finished | S == failed <- ?task(ID, _, Human, _); +monitoring(ID, Human).
 
 +!go_to_see_target(ID) : true <-
 	?task(ID, guiding, Human, _);
@@ -93,15 +93,8 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		}
 	}.
 	
-
-
 -!get_placements(ID)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_), source(self)] : true <- 
 	!log_failure(ID, get_placements, Failure, Code).
-//	if(not .substring(svp, Failure) | not .substring(svp,Error)){
-//  		!drop_current_task(ID, get_placements, Failure, Code);
-//  	}else{
-//  		!log_failure(ID, get_placements, Failure, Code);
-//  	}.
 	
 +!be_at_good_pos(ID) : true <- 
 	?task(ID, guiding, Human, _);
@@ -124,7 +117,9 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	}
 	.wait(800);
 	!speak(ID, going_to_move);
+	-monitoring(_, _);
 	move_to(Rframe,Rposit, Rorient);
+	+monitoring(ID, Human);
 	!wait_human(ID).
 
 @cd[max_attempts(15)]+!check_dist(ID, HTF, Point, Dist, Bool) : true <- 
@@ -288,11 +283,16 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 
 @sl[max_attempts(3)]+!show_landmarks(ID) : true <- 
 	?task(ID, guiding, Human, _);
-	enable_animated_speech(false);
+	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	if(Dialogue == true){
+		enable_animated_speech(false);
+	}
 	!show_target(ID);
 	!show_direction(ID); 
 	.wait(800);
-	enable_animated_speech(true);
+	if(Dialogue == true){
+		enable_animated_speech(true);
+	}
 	if(jia.believes(explained)){
 		!speak(ID, ask_understand);
 		listen(ask_understand,["yes","no"]);
@@ -304,7 +304,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 			listen(ask_explain_again,["yes","no"]);
 			?listen_result(ask_explain_again,Word2);
 			if(.substring(Word2,yes)){
-				!show_landmarks(Human);
+				!show_landmarks(ID);
 			}else{
 				!speak(ID, hope_find_way);
 			}
@@ -314,7 +314,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	}.
 	
 	
--!show_landmarks(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
+-!show_landmarks(ID)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
 	if(.substring(Error,max_attempts)){
 		!speak(ID,sl_sorry); 
 		!drop_current_task(ID, show_landmarks, max_attempts, multiple_wrong_answers);
@@ -392,8 +392,10 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		jia.time(T2);
 		.print(T2);
 		!log_failure(ID, point_look_at, point_at(point), not_received);
+		!verbalization(ID, Ld);
 	}else{
 		!log_failure(ID, point_look_at, Failure, Code);
+		!verbalization(ID, Ld);
 	}.
 	
 +!ask_seen(ID, Ld) : true <-

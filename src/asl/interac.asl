@@ -1,11 +1,9 @@
-//!start.
 !start.
 +!start : true <- 
 	.verbose(2); 
-	jia.log_beliefs;
-	human_to_monitor("gaze_human_0").
+	jia.log_beliefs.
 
-+isEngagedWith(Human,_) : not inSession(_) <-
++isEngagedWith(Human,_) : not inSession(_) & not localising <-
 	.concat("gaze_human_", Human, HTF);
 	human_to_monitor(HTF);
 	+inSession(Human);
@@ -14,13 +12,10 @@
 		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
 	}
 	engage(Human);
-////	!speak(Human, hello);
-//	.concat("human_", Human, H); 
-//	tf.is_dist_human2robot_sup(H, 2, Result); 
-//	if(.substring(Result, true)){
-////		!speak(Human, closer);
-//	}
-	.
+	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	if(Dialogue == false){
+		!speak(Human, hello);	
+	}.
 	
 //+~isEngagedWith(Human, _) : inSession(Human) & isPerceiving(_, Human) & ((monitoring(Human) & inTaskWith(Human)) | not inTaskWith(Human)) <-
 //	disengaging_human(Human);
@@ -31,30 +26,37 @@
 	!bye(Human).
 
 +!bye(Human) : not inTaskWith(_) & inSession(Human) <-
-	.verbose(2);
+	if(Dialogue == false){
+		!speak(Human, goodbye);
+	}
 	terminate_interaction(Human);
 	!clean_facts(Human);
 	!loca.
-//	human_to_monitor("").
 	
 +!bye(Human) : inTaskWith(_) <- true.
 
--!bye(Human)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-  true.
-//	if(.substring(loca, Failure)){
-//		!loca;
-//	}.
+-!bye(Human)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
+	if(.substring(loca, Failure)){
+		!loca;
+	}.
 
-+!loca: true <- true.
-//	reinit_loca;
-//	jia.get_param("/guiding/robot_base/position", "List", P);
-//	jia.get_param("/guiding/robot_base/orientation", "List", O);
-//	move_to(map, P, O);
-//	localise;
-//	move_to(map, P, O).
++!loca: true <-
+	+localising;
+	human_to_monitor("");
+	jia.get_param("/guiding/robot_base/position", "List", P);
+	jia.get_param("/guiding/robot_base/orientation", "List", O);
+	move_to(map, P, O);
+	localise;
+	move_to(map, P, O);
+	-localising.
 	
 -!loca: true <- true.// !loca.
 
++isPerceiving(_, 0) : true <-
+	human_to_monitor("gaze_human_0").
+
 -isPerceiving(_, Human) : not inTaskWith(_) & inSession(Human) <-
+	human_to_monitor("");
 	!wait_human(Human).
 
 +!wait_human(Human) : true <-
@@ -64,7 +66,7 @@
 	!bye(Human).
 
  //received by dialogue
-+terminate_interaction(Human) : true <- 
++terminate_interaction(Human) : not .intend(bye(_)) <- 
 	!clean_facts(Human);
 	!loca.
 

@@ -31,7 +31,7 @@
 		jia.word_individual(find, Place, PlaceOnto);
 	}
 //	jia.word_individual(getName, PlaceOnto, PlaceName);
-	+guiding_goal_nego(ID, PlaceOnto).
+	+guiding_goal_nego(ID, PlaceOnto)[ID].
 	
 		
 //+not_exp_ans(4) : guiding_goal_negociation <-
@@ -43,7 +43,7 @@
 // in case of the original plan failure	
 -!guiding_goal_negociation(ID, Human, Place)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)]: true <-
 	if(.substring(word_individual, Code)){
-		+individual_not_found(Place);
+		+individual_not_found(Place)[ID];
 		!speak(ID, no_place(Place));
 		+end_task(failed, ID)[ID];
 		!drop_current_task(ID, guiding_goal_negociation, no_place, Code);

@@ -11,7 +11,6 @@ import org.ros.rosjava.tf.TransformTree;
 
 import com.google.common.collect.Multimap;
 
-import jason.architecture.AgArch;
 import jason.architecture.MindInspectorAgArch;
 import jason.asSyntax.Literal;
 import ros.RosNode;

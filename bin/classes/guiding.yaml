@@ -5,9 +5,6 @@ guiding:
   immo: True
 
   services_immo:
-#    speak_to: 
-#      name: /naoqi_driver/tts/say
-#      type: nao_interaction_msgs/Say
     get_route: 
       name: /semantic_route_description/get_route
       type: semantic_route_description_msgs/SemanticRoute
@@ -26,9 +23,6 @@ guiding:
     point_at: 
       name: /deictic_gestures/point_at
       type: deictic_gestures/PointAt
-    enable_animated_speech:
-      name: /mummer_dialogue_say/enable_animated_speech
-      type: std_srvs/SetBool
     has_mesh: 
       name: /has_mesh
       type: perspectives_msgs/HasMesh
@@ -47,65 +41,33 @@ guiding:
 #    reinit_loca:
 #      name: /mummer_localisation_tf/re_init
 #      type: pepper_localisation/response
-    dialogue_inform: 
-      name: /rpn_supervision_server/inform
-      type: rpn_recipe_planner_msgs/SuperInform
-    dialogue_query: 
-      name: /rpn_supervision_server/query
-      type: rpn_recipe_planner_msgs/SuperQuery
 
   services_moving:
-#    speak_to: 
-#      name: /naoqi_driver/tts/say
-#      type: nao_interaction_msgs/Say
-    get_route: 
-      name: /semantic_route_description/get_route
-      type: semantic_route_description_msgs/SemanticRoute
-    route_verbalization: 
-      name: /route_verbalization/verbalizePlace
-      type: route_verbalization_msgs/VerbalizeRegionRoute
-    get_individual_info: 
-      name: /ontologenius/individual
-      type: ontologenius_msgs/OntologeniusService
-    get_class_info: 
-      name: /ontologenius/class
-      type: ontologenius_msgs/OntologeniusService
     is_visible: 
       name: /pointing_planner/visibility_score
       type: pointing_planner/VisibilityScore
-    look_at: 
-      name: /deictic_gestures/look_at
-      type: deictic_gestures/LookAt
-    point_at: 
-      name: /deictic_gestures/point_at
-      type: deictic_gestures/PointAt
     pointing_planner: 
       name: /pointing_planner/plan
       type: pointing_planner/PointingPlanner
     has_mesh: 
       name: /has_mesh
       type: perspectives_msgs/HasMesh
-    pepper_synchro: 
-      name: /pepper_resources_synchronizer/state_machines_register
-      type: pepper_resources_synchronizer_msgs/MetaStateMachineRegister
-    get_uwds_name: 
-      name: /get_name
-      type: perspectives_msgs/GetName
-    stand_pose:
-      name: /naoqi_driver/robot_posture/go_to_posture
-      type:  nao_interaction_msgs/GoToPosture
-#    localise:
-#      name: /mummer_localisation_tf/localise
-#      type: pepper_localisation/response
-#    reinit_loca:
-#      name: /mummer_localisation_tf/re_init
-#      type: pepper_localisation/response
+
+  services_hwu:
     dialogue_inform: 
       name: /rpn_supervision_server/inform
       type: rpn_recipe_planner_msgs/SuperInform
     dialogue_query: 
       name: /rpn_supervision_server/query
-      type: rpn_recipe_planner_msgs/SuperQuery     
+      type: rpn_recipe_planner_msgs/SuperQuery 
+    enable_animated_speech:
+      name: /mummer_dialogue_say/enable_animated_speech
+      type: std_srvs/SetBool
+      
+  services_wo_hwu:
+    speak_to: 
+      name: /naoqi_driver/tts/say
+      type: nao_interaction_msgs/Say
 
   topics:
     current_facts: /base/current_facts
@@ -119,8 +81,7 @@ guiding:
    
   action_servers:
     move_to: m_move_to
-#    rotate: m_rotate
-#    dialogue: dialogue_as
+    dialogue: dialogue_as
     pointing_planner: /pointing_planner/SVP_Planner
     engage: engage
   

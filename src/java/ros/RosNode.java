@@ -150,17 +150,25 @@ public class RosNode extends AbstractNodeMain {
 			}
 			msc = new MasterStateClient(connectedNode, uri);
 			service_clients = new HashMap<String, ServiceClient<Message, Message>>();
-			if(parameters.getBoolean("/guiding/immo")) {
-				if(parameters.has("/guiding/services_immo"))
-					services_map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services_immo");
-				else 
-					services_map = new HashMap<String, HashMap<String, String>>();
-			}else {
-				if(parameters.has("/guiding/services_moving"))
-					services_map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services_moving");
-				else 
-					services_map = new HashMap<String, HashMap<String, String>>();
+			services_map = null;
+			if(parameters.has("/guiding/services_immo"))
+				services_map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services_immo");
+			
+			if(parameters.has("/guiding/services_moving") && !parameters.getBoolean("/guiding/immo")) {
+				HashMap<String, HashMap<String, String>> map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services_moving");
+				services_map.putAll(map);
 			}
+			
+			if(parameters.has("/guiding/services_hwu") && parameters.getBoolean("/guiding/dialogue/hwu")) {
+				HashMap<String, HashMap<String, String>> map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services_hwu");
+				services_map.putAll(map);
+			}
+			
+			if(parameters.has("/guiding/services_wo_hwu") && !parameters.getBoolean("/guiding/dialogue/hwu")) {
+				HashMap<String, HashMap<String, String>> map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services_wo_hwu");
+				services_map.putAll(map);
+			}
+			
 			stack_guiding_goals = new Stack<taskActionGoal>();
 			marker_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher("/pp_debug",
 					visualization_msgs.Marker._TYPE);
@@ -183,7 +191,7 @@ public class RosNode extends AbstractNodeMain {
 				addListenerResult("/guiding/action_servers/move_to", MoveBaseActionResult._TYPE, ml_move);
 			}
 			
-			if(parameters.has("/guiding/action_servers/dialogue")) {
+			if(parameters.has("/guiding/action_servers/dialogue") && !parameters.getBoolean("guiding/dialogue/hwu")) {
 				dialogue_pub = connectedNode.newPublisher(
 						parameters.getString("/guiding/action_servers/dialogue") + "/goal", dialogue_actionActionGoal._TYPE);
 				dialogue_cancel_pub = connectedNode.newPublisher(

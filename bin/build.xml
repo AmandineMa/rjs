@@ -16,7 +16,7 @@
     <property name="debug" value=""/> <!-- use "-debug" to run in debug mode -->
     <property name="build.dir" value="${basedir}/bin/classes" />
 
-    <property name="jasonJar" value="/home/amayima/eclipse-workspace/jason.jar"/>
+    <property name="jasonJar" value="/home/amayima/eclipse-workspace/jason_test/jason/build/libs/jason-2.4-amdia.jar"/>
 
     <path id="project.classpath">
         <pathelement location="${basedir}"/>

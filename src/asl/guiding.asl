@@ -1,7 +1,7 @@
 // Agent robot in project supervisor
 
 /* Initial beliefs and rules */
-//isPerceiving(human).
+landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == Ld).
 
 /* Initial goals */
 
@@ -9,112 +9,6 @@
 //TODO check logs
 //TODO change ID
 //TODO make the human approach
-
-// TODO handle when place to go already frame name
-//place_asked("burger king").
-robot_place("pepper_infodesk").
-//shops(["thai_papaya","starbucks","zizzi","marimekko_outlet","marco_polo","intersport","pancho_villa",
-//	   "daddys_diner","atm_2","atm_1","burger_king","funpark","hairstore","reima","ilopilleri","linkosuo",
-//	   "gina","h_m","hiustalo"]).
-//shop_names(["C M Hiustalo","h& m","gina","cafe linkusuo","kahvila ilopilleri","reima","hairstore","funpark",
-//	        "burger king","atm","daddy s diner","pancho villa","intersport","marco polo","marimekko outlet",
-//	        "zizzi","starbucks","thai papaya"]).	 
-	
-shop_names(["Burger King","instrumentarium","Luckiefun","Pizza Hut","Hanko Sushi","dressman","Kahvila Ilopilleri","Arnolds",
-		"cafe linkosuo","Linda Mode","zizzi","bakery cafe","emotion","Kotipizza","Musti ja Mirri","marimekko outlet","empty 8",
-		"Name It","Minimani","robot info desk","kappahl","ten art","Eurokangas","dressmann xl","Shoe Store","Cubus","empty 9",
-		"Vero Moda","Life","carlings","gina tricot","empty 3","nissen","Vila","Your Face and Rils","Apteekki","cafe de lisa",
-		"Glitter","Information desk","Esprit","Farkkujen Tehtaanmyymala","superdry","change","bjorn borg","empty 6","empty 0",
-		"click shoe","H and M","door a","Power","pukimo","juvesport","Tanssiopisto","Ballot","N P","guess","Digiman pop up",
-		"empty 18","empty kristyle","empty toys r us","door b","Avain- ja suutarityo Helsky","empty 13","Nordea","empty 14",
-		"bik bok","empty 10","Hemtex","empty 17","Clas Ohlson","rax","lindex","empty 5","elviira","Stadium","empty 12",
-		"Kultaporssi","pancho villa","ideapark sport areena","kultajousi","Tommy Hilfiger","swamp","reima","makelan",
-		"Logistiikkakeskus","saunalahti","empty kirjaporssi","empty vallila shop","Tekniskamagasinet","empty 1a north","alko",
-		"Espresso House","sievi shop","door D","SubWay","HoviKebab","Din Sko","mango","c m hiustalo","empty netrauta 1","empty 1",
-		"toilet","empty empty front faunatar","Lumo-puoti","iittala outlet","empty 2","empty 15","Suomalainen Kirjakauppa","empty 11",
-		"Brother Clothing","pelaamo","aleksi 13","sinelli","empty empty food1","empty netrauta 2","banking machine","lahi tapiola",
-		"Halonen","empty 16","oma saastopankki","DNA","Kauneus- ja jalkahoitola Manna","Fonum","Telia","passage","Kicks","timanttiset",
-		"digiman","faunatar","new yorker","door C","empty 7","empty elisa","carts","River Co","stairs","escalator","elevator",
-		"Lagoon Fish Foot Spa","Donna Rosa","Aitoleipa","my bag","PiiPoo","intersection","only","empty 4","kukkakauppa","Gant",
-		"Jesper Junior","Hairlekiini","spice ice","marco polo","hesburger","Daddy's Diner","Coyote Grill","sticky wingers","Prisma",
-		"saaga","Mummola Lahjapuoti","pentik","KOO Kenka","Unikulma","Netrauta","masku","finnlandia","bottle recovery","Budget Sport",
-		"easy fit traingin","atm","Intersport","Kalastus Suomi","flying tiger copenhagen","Partioaitta","Top- Sport","hair store",
-		"finla","Body Shop","easyfit","hiljainen huone","Fortum","Ti-Ti Nallen Koti","Zones"]).	
-		
-shops(["Zones_by_Sarkanniemi","Ti_Ti_Nallen_Koti","Fortum","Hiljainen_huone","Easyfit","Body_Shop","Finla","HairStore","Top_Sport",
-	"Partioaitta","Flying_Tiger_Copenhagen","Kalastus_Suomi","Intersport_Ideapark","gf_atm_west","Easy_Fit_Traingin","Budget_Sport",
-	"pullonpalautus","Finnlandia","Masku","Netrauta","Unikulma","KOO_Kenka","Pentik","Mummola_Lahjapuoti","Saaga","Prisma",
-	"Sticky_Wingers","Coyote_Grill","Bella_Roma_and_Daddys_Diner","Hesburger","Marco_Polo","Spice_Ice","Hairlekiini","Jesper_Junior",
-	"Gant","Kukkakauppa","empty_4","only_2","intersection_corridortoiletseast_pallokatu","PiiPoo","My_Bag","Aitoleipa","Donna_Rosa",
-	"Lagoon_Fish_Foot_Spa","elevator_coyote","escalator_kompassikatu","stairs_keskuspuisto","River_and_Co","carts_A","empty_elisa",
-	"empty_7","door_C","carts_C","escalator_A","New_Yorker","intersection_corridor1northwest_corridor1west","Faunatar","Digiman",
-	"Timanttiset","Kicks","intersection_kompassikatu_veistoskatu","old_interface_east","Telia","gf_atm_east","Fonum",
-	"Kauneus__ja_jalkahoitola_Manna","escalator_sauruskatu","DNA","Oma_Saastopankki","empty_16",
-	"intersection_corridor1Dnorth_corridor1northwest","Halonen","LahiTapiola_Service_desk","Banking_machine","empty_netrauta_2",
-	"empty_empty_food1","Sinelli","Aleksi_13","Pelaamo","Brother_Clothing","empty_11","Suomalainen_Kirjakauppa","empty_15","empty_2",
-	"old_interface_south","Iittala_Outlet","Lumo_puoti","escalator_D","empty_empty_front_faunatar","ff_toilet_east","empty_1",
-	"empty_netrauta_1","ff_toilet_west","CM_Hiustalo","Mango","Din_Sko","HoviKebab","stairs_pancho","SubWay","door_D","elevator_east",
-	"Sievi_Shop","elevator_keskuspuisto","Espresso_House","Alko","empty_1A_north","Tekniskamagasinet","empty_vallila_shop",
-	"empty_Kirjaporssi","Saunalahti","Logistiikkakeskus","Makelan_Kauppapuutarna","Reima","swamp","Tommy_Hilfiger","Kultajousi",
-	"Ideapark_Sport_Areena","Pancho_Villa","Kultaporssi","empty_12","Stadium","Elviira","empty_5","carts_B",
-	"intersection_oldcorridorwest_oldopenspace","Lindex","intersection_palapelikatu_sauruskatu","Rax",
-	"intersection_corridor1Anorth_corridor1Asouth","Clas_Ohlson","empty_17","Hemtex","intersection_corridor1B_corridor1east",
-	"empty_10","Bik_Bok","empty_14","intersection_corridorcoffeeeast_corridorkeskuwest","only","Nordea",
-	"intersection_corridortoiletswest_palapelikatu","empty_13","Avain__ja_suutarityo_Helsky",
-	"intersection_Keskuspuisto_corridorkeskueast","door_B","empty_Toys_R_Us","empty_Kristyle","empty_18","elevator_west",
-	"gf_toilet_telia","Digiman_pop_up","Guess","NP","Ballot","intersection_corridor1centralnorth_corridor1west","Tanssiopisto",
-	"gf_toilet_east","gf_toilet_west","Juvesport","Pukimo","intersection_corridor1C_corridor1Dsouth","Power","door_A",
-	"Hennes_and_Mauritz","intersection_corridor1centralnorth_corridorpancho2","Click_Shoe","empty_0","empty_6","Bjorn_Borg",
-	"Change","Superdry","Farkkujen_Tehtaanmyymala","Esprit_Ideapark","Information_desk","intersection_corridorB_kompassikatu",
-	"Glitter","Cafe_de_Lisa","Apteekki_Ideapark","Your_Face_and_Rils","Vila","Nissen","empty_3","intersection_sauruskatu_sitruunakatu",
-	"intersection_corridorcoffeewest_palapelikatu","intersection_corridor1Dnorth_corridor1extremwest","Gina_Tricot",
-	"intersection_corridor1Dnorth_corridor1Dsouth","Carlings","Life","intersection_corridor1centralnorth_corridor1northeast",
-	"Vero_Moda,_JandJ","intersection_corridoreast_pallokatu","empty_9","Cubus","Shoe_Store","intersection_corridor1Dsouth_corridor1food",
-	"Dressmann_XL","Eurokangas","intersection_Keskuspuisto_kompassikatu","old_interface_west","intersection_corridor1C_corridor1food",
-	"Ten_Art","intersection_corridorkeskuwest_palapelikatu","KappAhl","intersection_pallokatu_veistoskatu",
-	"intersection_corridoreast_kompassikatu","intersection_oldcorridoreast_oldopenspace","pepper_infodesk","Minimani",
-	"intersection_corridorwest_palapelikatu","stairs_coyote","intersection_corridorcoffeeeast_palapelikatu","Name_It",
-	"intersection_palapelikatu_sitruunakatu","empty_8","Marimekko_Outlet","intersection_corridorkeskueast_pallokatu",
-	"intersection_corridor1little_corridor1west","intersection_oldcorridorsouth_oldopenspace","intersection_corridor1food_corridor1little",
-	"intersection_corridorwest_sauruskatu","intersection_corridor1food_foodpark","Musti_ja_Mirri","intersection_corridor1C_foodpark",
-	"Kotipizza_and_Rolls_Expert","intersection_corridor1Dsouth_corridor1west","intersection_corridorC_sauruskatu","emotion","Stahlberg",
-	"intersection_Keskuspuisto_corridorkeskuwest","intersection_Keskuspuisto_sauruskatu","intersection_coyoteopenspace_bridge1",
-	"Zizzi","intersection_corridor1Anorth_corridor1northeast","intersection_corridor1east_corridor1northeast",
-	"intersection_corridor1Asouth_corridor1B","intersection_corridor1centralnorth_corridor1east",
-	"intersection_corridor1Asouth_corridor1east","intersection_corridoreast_corridorelevatoreast",
-	"intersection_corridor1Dsouth_foodpark","intersection_corridorelevatorwest_corridorwest","Linda_Mode",
-	"Cafe_Linkosuo","Arnolds","Kahvila_Ilopilleri","Dressman","Hanko_Sushi","carts_D",
-	"intersection_bridge1_foodpark","Pizza_Hut","Luckiefun","Instrumentarium","Burger_King"]).      
-	    
-//persona_asked(lambda).   
-
-/* Plans */
-//!init.
-//+!init : true <- 
-//	// get shops list from ontology
-////	get_onto_individual_info(getType, place, shops);
-//	?shops(Shops);
-//	for(.member(X, Shops)){
-//		get_onto_individual_info(getName, X, shop_name);
-//	}
-//	.findall(X, shop_name(X), L);
-//	+shop_names(L);
-//	.abolish(shop_name(_));
-//	.send(supervisor, tell, init_over(ok)).
-//
-//-!init : true <- +init_over(failed).
-
-/***** Tasks ******/
-
-//// when receiving a plan from the supervisor, task infos (name of the task and human involved in) are sent to the AgArch
-//+!Plan[source(Source)] : Source == supervisor | (Source == self & restart_plan) <- 
-//	-restart_plan;
-//	Plan =.. [Label, [Human,Param],[]];
-//	//TODO mettre ID dans annot a la place de Label et Human
-//	+task(ID, Label, Human, Param)[Label,Human];
-//	set_task_infos(Label, Human);
-//	!Plan.
-
 
 /******* get route **********/	
 
@@ -164,10 +58,7 @@ shops(["Zones_by_Sarkanniemi","Ti_Ti_Nallen_Koti","Fortum","Hiljainen_huone","Ea
 /*******  go to see target **********/	
 
 ^!go_to_see_target(ID)[state(S)] : S == started | S == resumed <- -monitoring(_, _)[add_time(_), source(self)]. 
-//^!go_to_see_target(Human)[state(suspended)[reason(R)]] <- 
-//	if(.substring(suspended,R)){
-//		jia.suspend_all(monitoring(_));
-//	}.
+
 ^!go_to_see_target(ID)[state(S)] : S == finished | S == failed <- ?task(ID, _, Human, _); +monitoring(ID, Human).
 
 +!go_to_see_target(ID) : true <-
@@ -178,9 +69,6 @@ shops(["Zones_by_Sarkanniemi","Ti_Ti_Nallen_Koti","Fortum","Hiljainen_huone","Ea
 	
 -!go_to_see_target(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <- 
 	!log_failure(ID, go_to_see_target, Failure, Code).
-//	if(not .substring(Code, ld_to_point)){
-//		!drop_current_task(ID, go_to_see_target, Failure, Code);
-//	}.
 	
 +!get_placements(ID): not no_mesh <-
 	?task(ID, guiding, Human, _);
@@ -398,14 +286,6 @@ shops(["Zones_by_Sarkanniemi","Ti_Ti_Nallen_Koti","Fortum","Hiljainen_huone","Ea
 	
 /*******  show landmarks **********/
 
-//^!point_look_at(ID, _)[state(started)] <- jia.suspend_all(monitoring(_)). 
-//^!point_look_at(ID, _)[state(resumed)] <- jia.suspend_all(monitoring(_)).
-//^!point_look_at(ID, _)[state(suspended)[reason(R)]] <- 
-//	if(.substring(suspended,R)){
-//		jia.suspend_all(monitoring(_));
-//	}.
-//^!point_look_at(ID)[state(finished)] <- jia.suspend_all(monitoring(_)).
-
 @sl[max_attempts(3)]+!show_landmarks(ID) : true <- 
 	?task(ID, guiding, Human, _);
 	enable_animated_speech(false);
@@ -474,8 +354,6 @@ shops(["Zones_by_Sarkanniemi","Ti_Ti_Nallen_Koti","Fortum","Hiljainen_huone","Ea
 	}elif(not .substring(test_goal_failed, Error)){
 		!log_failure(ID, show_direction, Failure, Code);
 	}.
-
-landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == Ld).
 
 // TODO handle timeout point_at
 @pl_l[max_attempts(3), atomic_r]+!point_look_at(ID, Ld) : landmark_to_see(Ld) <-

@@ -1,6 +1,6 @@
 // Agent robot in project supervisor
 
-//{ include("monitoring.asl")}
+{ include("monitoring.asl")}
 { include("guiding_goal_negociation.asl")}
 { include("guiding.asl")}
 
@@ -17,7 +17,10 @@
 +!face_human(H) : true <- face_human(H).
 -!face_human(H) : true <- true.
 
-+!start : true <- .verbose(2); jia.log_beliefs.
++!start : true <- 
+	.verbose(2); jia.log_beliefs;
+	jia.get_param("/guiding/perspective/robot_place", String, Rp);
+	+robot_place(Rp).
 
 //TODO faire une jia pour changer "Place" dans les params du plan guiding 
 +!guiding(ID, Human, Place) : true <-	
@@ -35,7 +38,10 @@
 	// task belief with onto name
 	+task(ID, guiding, Human, PlaceNego)[ID];	
 	!get_optimal_route(ID);
-//	!go_to_see_target(ID);
+	jia.get_param("/guiding/immo", "Boolean", Immo);
+	if(not Immo){
+		!go_to_see_target(ID);
+	}
 	!show_landmarks(ID);
 	+end_task(succeeded, ID)[ID];
 	!clean_task(ID).

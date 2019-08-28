@@ -44,13 +44,13 @@
 //		!loca;
 //	}.
 
-+!loca: true <-
++!loca: true <- true.
 //	reinit_loca;
-	jia.get_param("/guiding/robot_base/position", "List", P);
-	jia.get_param("/guiding/robot_base/orientation", "List", O);
-	move_to(map, P, O);
-	localise;
-	move_to(map, P, O).
+//	jia.get_param("/guiding/robot_base/position", "List", P);
+//	jia.get_param("/guiding/robot_base/orientation", "List", O);
+//	move_to(map, P, O);
+//	localise;
+//	move_to(map, P, O).
 	
 -!loca: true <- true.// !loca.
 

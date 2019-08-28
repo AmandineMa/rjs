@@ -3,6 +3,7 @@ lib_not_used
 .project
 .classpath
 
+*.class
 *.log
 .gradle
 .settings
@@ -23,4 +24,3 @@ hs_err_pid*
 
 bookstore.*
 /logging.properties
-supervisor.jar

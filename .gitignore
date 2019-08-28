@@ -22,3 +22,5 @@ lib_not_used
 hs_err_pid*
 
 bookstore.*
+/logging.properties
+supervisor.jar

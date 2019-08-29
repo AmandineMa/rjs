@@ -6,10 +6,10 @@ import java.util.List;
 
 public class Tools {
 
-	public static String getStackTrace(Exception e) {
+	public static String getStackTrace(Throwable t) {
 		StringWriter sw = new StringWriter();
 		PrintWriter pw = new PrintWriter(sw);
-		e.printStackTrace(pw);
+		t.printStackTrace(pw);
 		return sw.toString();
 	}
 	

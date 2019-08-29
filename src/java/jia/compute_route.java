@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import arch.ROSAgArch;
+import arch.RobotAgArch;
 
 //import java.util.logging.Logger;
 
@@ -74,7 +75,7 @@ public class compute_route extends DefaultInternalAction {
 			int n_routes = Integer.parseInt(args[4].toString());
 			
 			if(n_routes == 1) {
-				RouteImpl route = select_best_route(routes);
+				RouteImpl route = ((RobotAgArch) ts.getUserAgArch()).select_best_route(routes);
 				ListTerm route_list = new ListTermImpl();
 				String s_route_list = route.getRoute().stream()
 						  .map(s -> "\"" + s + "\"")

@@ -55,8 +55,8 @@
 	!clean_task(ID).
 	
 +!clean_facts: true <-
-	-explained[ID];
-	-finished[ID];
+	-explained;
+	-finished;
 	-point_at(point);
 	-look_at(look).
 
@@ -82,7 +82,10 @@
 +end_task(Status, ID)[ID] :  true <- 
 	?task(ID, _, Human, _); 
 	.send(supervisor, tell, end_task(Status, ID)); 
-	text2speech(Human, Status).
+	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	if(Dialogue == true){
+		text2speech(Human, Status);
+	}.
 
 +failure(Subgoal, Failure, Code)[ID] : true <- .send(supervisor, tell, failure(ID, Subgoal, Failure, Code)).
 	
@@ -94,9 +97,9 @@
 	
 -!speak(ID, ToSay) : true <-	true.
   	
-+cancel(ID) : true <-
-	-cancel(ID)[add_time(_), source(_)];
-	+end_task(cancelled, ID)[ID];
++preempted(ID) : true <-
+	-preempted(ID)[add_time(_), source(_)];
+	+end_task(preempted, ID)[ID];
 	?task(ID, Task, Human, Place);
 	!clean_task(ID);
 	G =.. [Task, [ID,Human,_],[]];

@@ -26,6 +26,7 @@
 	!bye(Human).
 
 +!bye(Human) : not inTaskWith(_) & inSession(Human) <-
+	human_to_monitor("");
 	if(Dialogue == false){
 		!speak(Human, goodbye);
 	}
@@ -42,6 +43,7 @@
 
 +!loca: true <-
 	+localising;
+	!speak(Human, localising);
 	human_to_monitor("");
 	jia.get_param("/guiding/robot_base/position", "List", P);
 	jia.get_param("/guiding/robot_base/orientation", "List", O);
@@ -50,13 +52,12 @@
 	move_to(map, P, O);
 	-localising.
 	
--!loca: true <- true.// !loca.
+-!loca: true <- -localising.// !loca.
 
 +isPerceiving(_, 0) : true <-
 	human_to_monitor("gaze_human_0").
 
 -isPerceiving(_, Human) : not inTaskWith(_) & inSession(Human) <-
-	human_to_monitor("");
 	!wait_human(Human).
 
 +!wait_human(Human) : true <-

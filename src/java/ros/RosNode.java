@@ -46,6 +46,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
 import actionlib_msgs.GoalID;
+import actionlib_msgs.GoalStatus;
 import arch.ROSAgArch;
 import dialogue_arbiter.DialogueArbiterActionGoal;
 import dialogue_arbiter.DialogueArbiterGoal;
@@ -425,15 +426,25 @@ public class RosNode extends AbstractNodeMain {
 		if (guiding_as != null) {
 			taskActionResult result = messageFactory.newFromType(taskActionResult._TYPE);
 			taskResult r = messageFactory.newFromType(taskResult._TYPE);
+			GoalID g_id = messageFactory.newFromType(GoalID._TYPE);
+			g_id.setId(id);
+			GoalStatus status = messageFactory.newFromType(GoalStatus._TYPE);
+			status.setGoalId(g_id);
 			if (success.equals("succeeded")) {
 				guiding_as.setSucceed(id);
+				status.setStatus(GoalStatus.SUCCEEDED);
 				r.setSuccess(true);
-			}
-			else {
+			}else if(success.equals("preempted")) {
+				guiding_as.setPreempt(id);
+				status.setStatus(GoalStatus.PREEMPTED);
+				r.setSuccess(true);
+			}else {
 				guiding_as.setAbort(id);
+				status.setStatus(GoalStatus.ABORTED);
 				r.setSuccess(false);
 			}
 			result.setResult(r);
+			result.setStatus(status);
 			guiding_as.sendResult(result);
 		} else {
 			logger.info("guiding as null");

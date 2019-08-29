@@ -36,6 +36,7 @@ public class SupervisorAgArch extends ROSAgArch {
 	private NodeConfiguration nodeConfiguration;
 	private ParameterLoaderNode parameterLoaderNode;
 	private GoalIDGenerator goalIDGenerator;
+	private String current_goal = null;
 	
 	@Override
     public void act(final ActionExec action) {
@@ -119,7 +120,7 @@ public class SupervisorAgArch extends ROSAgArch {
 						@Override
 						public void cancelReceived(GoalID id) {
 							try {
-								getTS().getAg().addBel(Literal.parseLiteral("cancel_goal(\""+id.getId()+"\")"));
+								getTS().getAg().addBel(Literal.parseLiteral("preempted(\""+id.getId()+"\")"));
 							} catch (RevisionFailedException e) {
 								e.printStackTrace();
 							}
@@ -127,6 +128,14 @@ public class SupervisorAgArch extends ROSAgArch {
 
 						@Override
 						public boolean acceptGoal(taskActionGoal goal) {
+							if(current_goal != null) {
+								try {
+									getTS().getAg().addBel(Literal.parseLiteral("preempted(\""+current_goal+"\")"));
+								} catch (RevisionFailedException e) {
+									e.printStackTrace();
+								}
+							}
+							current_goal = goal.getGoalId().getId();
 							String person = "\""+goal.getGoal().getPersonFrame()+"\"";
 							if(m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu"))
 								person = person.replaceAll("human-", "");
@@ -174,6 +183,9 @@ public class SupervisorAgArch extends ROSAgArch {
 					id = id.replaceAll("^\"|\"$", "");
 					m_rosnode.set_task_result(success, id);
 					logger.info("goal result : "+success);
+					if(current_goal == id) {
+						current_goal = null;
+					}
 					action.setResult(true);
 					actionExecuted(action);
 				}

@@ -48,7 +48,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	
 -!get_optimal_route(ID)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(Msg)]: true <-	
 	if(.substring(wo_stairs, Failure)){
-		!speak(ID, no_stairs);
+		!speak(ID, stairs);
 	}else{
 		!speak(ID, no_way);
 	}
@@ -119,8 +119,8 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	!speak(ID, going_to_move);
 	-monitoring(_, _);
 	move_to(Rframe,Rposit, Rorient);
-	+monitoring(ID, Human);
-	!wait_human(ID).
+	!wait_human(ID);
+	+monitoring(ID, Human).
 
 @cd[max_attempts(15)]+!check_dist(ID, HTF, Point, Dist, Bool) : true <- 
 	tf.is_dist_human2point_sup(HTF, Point, Dist, Result);
@@ -177,6 +177,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	}.
  
 @wh[max_attempts(3)]+!wait_human(ID) : true <- 
+	human_to_monitor("");
 	?task(ID, guiding, Human, _);
 	?robot_pose(Rframe,Rposit, Rorient);
 	?human_pose(Hframe,Hposit,_);
@@ -203,6 +204,8 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	}.
 	
 @cp[max_attempts(3)]+!check_pos(ID, Human): true <-
+	.concat("gaze_human_", Human, HTF);
+	human_to_monitor(HTF);
 	if(jia.believes(dir_to_point(_))){
 		?dir_to_point(D);
 		.concat("human_", Human, HTF);

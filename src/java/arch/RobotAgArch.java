@@ -946,11 +946,14 @@ public class RobotAgArch extends ROSAgArch {
 		case "goodbye":
 			text = new String("Goodbye");
 			break;
+		case "localising":
+			text = new String("I am going to my charging station now.");
+			break;
 		case "closer":
-			text = new String("Can you come closer, please ?");
+			text = new String("Can you come closer, please");
 			break;
 		case "more_closer":
-			text = new String("Can you take another step forward, please ?");
+			text = new String("Can you take another step forward, please");
 			break;
 		case "thinking":
 			text = new String("Wait, I'm thinking");
@@ -976,7 +979,7 @@ public class RobotAgArch extends ROSAgArch {
 		case "ask_escalator":
 			text = new String("Can you take the escalator ?");
 			break;
-		case "no_stairs":
+		case "stairs":
 			text = new String("I'm sorry, no route exists without stairs to go there");
 			break;
 		case "no_way":
@@ -998,10 +1001,10 @@ public class RobotAgArch extends ROSAgArch {
 			text = new String("I'm going to move so I can show you");
 			break;
 		case "step":
-			text = new String("Can you make a few steps on your " + bel_arg + ", please ?");
+			text = new String("Can you make a few steps on your " + bel_arg + ", please");
 			break;
 		case "step_more":
-			text = new String("Can you move a bit more on your " + bel_arg + ", please ?");
+			text = new String("Can you move a bit more on your " + bel_arg + ", please");
 			break;
 		case "cannot_move":
 			text = new String("I'm sorry I cannot move, I'll try my best to show you from there");

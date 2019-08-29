@@ -2,7 +2,7 @@ guiding:
   dialogue:
     hwu: False
     
-  immo: False
+  immo: True
 
   services_immo:
     get_route: 
@@ -38,9 +38,6 @@ guiding:
     localise:
       name: /mummer_localisation_tf/localise
       type: pepper_localisation/response
-#    reinit_loca:
-#      name: /mummer_localisation_tf/re_init
-#      type: pepper_localisation/response
 
   services_moving:
     is_visible: 

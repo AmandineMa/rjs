@@ -40,31 +40,14 @@
 	
 +init_over(failed) : true <- .print("robot initialisation failed").
 
-+guiding_goal(ID,Human, Target) : not suspended_guiding_goal(ID) <- 
-	!suspend_current_goal;
++guiding_goal(ID,Human, Target) : true <- 
 	.send(robot, achieve, guiding(ID, Human, Target));
 	-guiding_goal(ID, Human, Target);
 	+current_guiding_goal(ID).
-
-+guiding_goal(ID,Human, Target) : suspended_guiding_goal(ID) <- 
-	!suspend_current_goal;
-	.print("RESUME");
-	.send(robot, tell, resume(ID));
-	-suspended_guiding_goal(ID);
-	+current_guiding_goal(ID).
 	
-+!suspend_current_goal : true <-
-	if(jia.believes(current_guiding_goal(_))){
-		?current_guiding_goal(IDprev);
-		.send(robot, tell, suspend(IDprev));
-		+suspended_guiding_goal(IDprev);
-		-current_guiding_goal(IDprev);
-	}.
-	
-+cancel_goal(ID) : true <-
-	.send(robot, tell, cancel(ID));
++preempted(ID) : true <-
+	.send(robot, tell, preempted(ID));
 	-current_guiding_goal(ID);
-	-suspended_guiding_goal(ID);
 	-cancel_goal(ID).
 
 // To automatically restart a suspended goal after that the other one finished

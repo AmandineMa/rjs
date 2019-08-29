@@ -534,10 +534,8 @@ public class RobotAgArch extends ROSAgArch {
 					m_rosnode.callAsyncService("look_at", respListener, parameters);
 
 				} else if (action_name.equals("text2speech")) {
-					String human = action.getActionTerm().getTerm(0).toString();
-					human = human.replaceAll("^\"|\"$", "");
-					Literal bel = (Literal) action.getActionTerm().getTerm(1);
-					text2speech(human, bel, task_id, action);
+					Literal bel = (Literal) action.getActionTerm().getTerm(0);
+					text2speech(bel, task_id, action);
 				} else if (action_name.equals("get_route_verbalization")) {
 					// to remove the extra ""
 					@SuppressWarnings("unchecked")
@@ -925,7 +923,7 @@ public class RobotAgArch extends ROSAgArch {
 		actionExecuted(action);
 	}
 	
-	public void text2speech(String human, Literal bel, String task_id, ActionExec action) {
+	public void text2speech(Literal bel, String task_id, ActionExec action) {
 		// to remove the extra ""
 		String text = "";
 		String bel_functor = bel.getFunctor();
@@ -995,7 +993,7 @@ public class RobotAgArch extends ROSAgArch {
 			text = "in this direction, " + bel_arg;
 			break;
 		case "no_place":
-			text = new String("The place you asked for does not exist. Do you want to go somewhere else ?");
+			text = new String("The place you asked for does not exist");
 			break;
 		case "going_to_move":
 			text = new String("I'm going to move so I can show you");
@@ -1090,9 +1088,13 @@ public class RobotAgArch extends ROSAgArch {
 			if (text.contains("?")) {
 
 				Map<String, Object> parameters = new HashMap<String, Object>();
-				parameters.put("status", "clarification." + bel_functor);
+				if(!bel_functor.equals("list_places"))
+					parameters.put("status", "clarification." + bel_functor);
+				else
+					parameters.put("status", "disambiguation");
 				if (bel_arg != null)
 					parameters.put("returnvalue", bel_arg);
+				logger.info((String) parameters.get("status"));
 				SuperQueryResponse dial_resp = m_rosnode.callSyncService("dialogue_query", parameters);
 				if(dial_resp == null) {
 					result = false;
@@ -1123,6 +1125,7 @@ public class RobotAgArch extends ROSAgArch {
 				String sentence_code = bel_functor;
 				if(!bel_functor.equals("failed") && !bel_functor.equals("succeeded"))
 					sentence_code = "verbalisation." + bel_functor;
+				logger.info(sentence_code);
 				parameters.put("status", sentence_code);
 				if (bel_arg != null)
 					parameters.put("returnvalue", bel_arg);

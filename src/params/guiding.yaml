@@ -1,6 +1,6 @@
 guiding:
   dialogue:
-    hwu: False
+    hwu: True
     
   immo: True
 
@@ -38,11 +38,11 @@ guiding:
     localise:
       name: /mummer_localisation_tf/localise
       type: pepper_localisation/response
-
-  services_moving:
     is_visible: 
       name: /pointing_planner/visibility_score
       type: pointing_planner/VisibilityScore
+
+  services_moving:
     pointing_planner: 
       name: /pointing_planner/plan
       type: pointing_planner/PointingPlanner

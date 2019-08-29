@@ -142,7 +142,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	!check_dist(ID, HTF, Point, Dist, Bool).
 	
 @rm2[max_attempts(2)]+!repeat_move(ID, HTF, Point, Dist, Bool) : true <-
-	!speak(ID, more_closer);
+	!speak(ID, closer);
 	jia.reset_att_counter(check_dist);
 	!check_dist(ID, HTF, Point, Dist, Bool).
 	
@@ -155,14 +155,12 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	!log_failure(ID, repeat_move, adjust, _);
 	if(jia.believes(dir_to_point(_))){
 		?dir_to_point(D);
-		.concat("human_", Human, HTF);
 		if(not jia.can_be_visible(HTF, D)){
 			-dir_to_point(D);
 		}
 	}
 	if(jia.believes(target_to_point(_))){
 		?target_to_point(T);
-		.concat("human_", Human, HTF);
 		if(not jia.can_be_visible(HTF, T)){
 			-target_to_point(T);
 		}
@@ -172,7 +170,6 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 
 -!be_at_good_pos(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
 	if(not .substring(robot_pose, Code)){
-//		!drop_current_task(ID, be_at_good_pos, Failure, Code);
 		!log_failure(ID, be_at_good_pos, Failure, Code);
 	}.
  
@@ -193,7 +190,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		jia.publish_marker(Hframe, Pointf, blue);
 		-look_at(look);
 		look_at(Hframe,Pointf,true);
-		.wait(isPerceiving(_),4000);
+		.wait(isPerceiving(Human),4000);
 	//	.wait(isPerceiving(Human),4000);
 		-~here(Human);
 		.wait(look_at(look),6000);
@@ -204,8 +201,8 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	}.
 	
 @cp[max_attempts(3)]+!check_pos(ID, Human): true <-
-	.concat("gaze_human_", Human, HTF);
-	human_to_monitor(HTF);
+	.concat("gaze_human_", Human, HGTF);
+	human_to_monitor(HGTF);
 	if(jia.believes(dir_to_point(_))){
 		?dir_to_point(D);
 		.concat("human_", Human, HTF);

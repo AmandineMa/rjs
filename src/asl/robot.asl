@@ -11,8 +11,9 @@
 	+finished[ID];
 	.concat("human_", Human, H);  
 	!face_human(H); 
-	.succeed_goal(person_of_interest(Human));
-	-monitoring(ID, Human)[add_time(_), source(self)].
+	-monitoring(ID, Human)[add_time(_), source(self)];
+	.concat("gaze_human_", Human, HTF);
+	human_to_monitor(HTF).
 
 +!face_human(H) : true <- face_human(H).
 -!face_human(H) : true <- true.
@@ -41,6 +42,18 @@
 	jia.get_param("/guiding/immo", "Boolean", Immo);
 	if(Immo == false){
 		!go_to_see_target(ID);
+	}else{
+		?target_place(T);
+		.concat("human_", Human, HTF);
+		if(jia.can_be_visible(HTF, T)){
+			+target_to_point(T)[ID];
+		}
+		if(jia.believes(direction(_))){
+			?direction(D);
+			if(jia.can_be_visible(HTF, D)){
+				+direction_to_point(D)[ID];
+			}
+		}
 	}
 	!show_landmarks(ID);
 	+end_task(succeeded, ID)[ID];
@@ -81,11 +94,7 @@
 
 +end_task(Status, ID)[ID] :  true <- 
 	?task(ID, _, Human, _); 
-	.send(supervisor, tell, end_task(Status, ID)); 
-	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
-	if(Dialogue == true){
-		text2speech(Human, Status);
-	}.
+	.send(supervisor, tell, end_task(Status, ID)).
 
 +failure(Subgoal, Failure, Code)[ID] : true <- .send(supervisor, tell, failure(ID, Subgoal, Failure, Code)).
 	
@@ -93,7 +102,7 @@
 +!speak(ID, ToSay) : true <-
 	?task(ID, _, Human, _);
 	.send(Human, tell, ToSay);
-	text2speech(Human, ToSay).
+	text2speech(ToSay).
 	
 -!speak(ID, ToSay) : true <-	true.
   	

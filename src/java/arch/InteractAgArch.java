@@ -52,6 +52,8 @@ public class InteractAgArch extends RobotAgArch {
 									l.add(Literal.parseLiteral(percept.getPredicate()+"("+agent+","+percept.getObject()+")"));
 								}else if(percept.getPredicate().equals("isPerceiving")) {
 									l.add(Literal.parseLiteral(percept.getPredicate()+"("+agent+","+percept.getObject()+")"));
+								}else if(percept.getPredicate().equals("isInsideArea")) {
+									l.add(Literal.parseLiteral(percept.getPredicate()+"("+agent+","+percept.getObject()+")"));
 								}
 							}
 						}
@@ -103,10 +105,8 @@ public class InteractAgArch extends RobotAgArch {
 					action.setResult(true);
 					actionExecuted(action);
 				}else if(action_name.equals("text2speech")) {
-					String human = action.getActionTerm().getTerm(0).toString();
-					human = human.replaceAll("^\"|\"$", "");
-					Literal bel = (Literal) action.getActionTerm().getTerm(1);
-					text2speech(human, bel, null, action);
+					Literal bel = (Literal) action.getActionTerm().getTerm(0);
+					text2speech(bel, null, action);
 				}else if(action_name.equals("disengaging_human")){
 					String human = action.getActionTerm().getTerm(0).toString();
 					human = human.replaceAll("^\"|\"$", "");

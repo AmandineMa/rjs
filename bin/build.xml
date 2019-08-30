@@ -56,10 +56,12 @@
 
         <jar update="yes" jarfile="${ant.project.name}.jar" >
             <fileset dir="${basedir}">
-                <include name="**/*.yaml" />
                 <include name="**/*.asl" />
                 <include name="**/*.mas2j" />
             </fileset>
+	    <fileset dir="${basedir}/src/params"> 
+		<include name="**/*.yaml" />
+	    </fileset>
             <fileset dir="${build.dir}">
                 <include name="**/*.class" />
             </fileset>

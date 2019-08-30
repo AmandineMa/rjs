@@ -71,7 +71,7 @@ public class SupervisorAgArch extends ROSAgArch {
 				}else if(action_name.equals("startParameterLoaderNode")){
 					@SuppressWarnings("serial")
 					List<ParameterLoaderNode.Resource> resourceList = new ArrayList<ParameterLoaderNode.Resource>() {{
-						add(new ParameterLoaderNode.Resource(SupervisorAgArch.class.getResourceAsStream("/guiding.yaml"), ""));
+						add(new ParameterLoaderNode.Resource(SupervisorAgArch.class.getResourceAsStream("/src/params/guiding.yaml"), ""));
 					}}; 
 					parameterLoaderNode = new ParameterLoaderNode(resourceList);
 					nodeMainExecutor.execute(parameterLoaderNode, nodeConfiguration);

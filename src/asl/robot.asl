@@ -3,7 +3,6 @@
 { include("monitoring.asl")}
 { include("guiding_goal_negociation.asl")}
 { include("guiding.asl")}
-
 !start.
 
 ^!guiding(ID, Human, Place)[state(started)] : not started[ID] <- +started[ID]; +monitoring(ID, Human).
@@ -11,9 +10,7 @@
 	+finished[ID];
 	.concat("human_", Human, H);  
 	!face_human(H); 
-	-monitoring(ID, Human)[add_time(_), source(self)];
-	.concat("gaze_human_", Human, HTF);
-	human_to_monitor(HTF).
+	-monitoring(ID, Human)[add_time(_), source(self)].
 
 +!face_human(H) : true <- face_human(H).
 -!face_human(H) : true <- true.
@@ -68,6 +65,7 @@
 	!clean_task(ID).
 	
 +!clean_facts: true <-
+	-need_attentive_human(_);
 	-explained;
 	-finished;
 	-point_at(point);

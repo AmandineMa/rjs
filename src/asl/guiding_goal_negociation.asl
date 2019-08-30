@@ -3,7 +3,7 @@
 
 //^!guiding_goal_negociation(ID, Human, Place)[state(started)] : not started <- +started; +monitoring(ID, Human).	
 +!guiding_goal_negociation(ID, Human,Place): true <-
-	if(jia.word_class(find, Place, Class)){
+	if(jia.word_class(findSub, Place, Class)){
 		if(jia.word_class(getUp, Class, GU) & .sublist(["product"], GU)){
 			.concat(Class, ":sells", Product);
 			jia.word_individual(getFrom, Product, List);
@@ -28,7 +28,7 @@
 			.succeed_goal(guiding_goal_negociation(ID, Human,Place));
 		}
 	}else{
-		jia.word_individual(find, Place, PlaceOnto);
+		jia.word_individual(findSub, Place, PlaceOnto);
 	}
 //	jia.word_individual(getName, PlaceOnto, PlaceName);
 	+guiding_goal_nego(ID, PlaceOnto)[ID].

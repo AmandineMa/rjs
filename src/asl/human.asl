@@ -29,14 +29,16 @@
 	.remove_plan(comm_beliefr[Belief]);.
 
 	
-//-isEngagedWith(O) : true <-
-//	.my_name(N);
-//	.term2string(N, S);
-//	.send(interac, untell, isEngagedWith(S, O));
-//	.send(interac, tell, ~isEngagedWith(S, O)).	
-//
-//+isEngagedWith(O) : true <-
-//	.my_name(N);
-//	.term2string(N, S);
-//	.send(interac, tell, isEngagedWith(S, O));
-//	.send(interac, untell, ~isEngagedWith(S, O)).		
+-isEngagedWith(O) : true <-
+	.my_name(N);
+	.term2string(N, S);
+	.send(robot, untell, isEngagedWith(S, O));
+	.send(robot, tell, ~isEngagedWith(S, O)).	
+
++isEngagedWith(O) : true <-
+	.my_name(N);
+	.term2string(N, S);
+	.send(robot, tell, isEngagedWith(S, O));
+	.send(robot, untell, ~isEngagedWith(S, O)).
+
+		

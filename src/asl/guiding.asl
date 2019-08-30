@@ -118,6 +118,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	.wait(800);
 	!speak(ID, going_to_move);
 	-monitoring(_, _);
+	human_to_monitor(""); 
 	move_to(Rframe,Rposit, Rorient);
 	!wait_human(ID);
 	+monitoring(ID, Human).
@@ -283,6 +284,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 
 @sl[max_attempts(3)]+!show_landmarks(ID) : true <- 
 	?task(ID, guiding, Human, _);
+	++need_attentive_human(Human);
 	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == true){
 		enable_animated_speech(false);

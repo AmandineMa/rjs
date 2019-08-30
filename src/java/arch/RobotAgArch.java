@@ -995,6 +995,12 @@ public class RobotAgArch extends ROSAgArch {
 		case "no_place":
 			text = new String("The place you asked for does not exist");
 			break;
+		case "get_attention":
+			text = new String("Hey are you listening");
+			break;
+		case "continue_anyway":
+			text = new String("Ok, I'll continue anyway");
+			break;
 		case "going_to_move":
 			text = new String("I'm going to move so I can show you");
 			break;

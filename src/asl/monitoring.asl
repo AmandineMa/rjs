@@ -7,7 +7,6 @@
 
 -monitoring(ID,Human) : true <- 
 //	.send(interac, untell, monitoring(Human));
-	human_to_monitor(""); 
 	.succeed_goal(start_monitoring(ID, Human));
 	.succeed_goal(wait_before_looking(Human));
 	.succeed_goal(look_for_human(Human)).
@@ -83,4 +82,36 @@
 		!look_for_human(Human);
 	}.
 
++~isEngagedWith(Human,_)	: need_attentive_human(Human)  & isPerceiving(Human) <-
+	!handle_not_engaged(Human).
+
++need_attentive_human(Human) : isPerceiving(Human) & not isEngagedWith(Human,_) <-
+	!handle_not_engaged(Human).
 	
++!handle_not_engaged(Human) : not handling <-
+	+handling;
+	?task(ID, Task, Human, Place);
+	-monitoring(ID, Human);
+	G =.. [Task, [ID,Human,_],[]];
+	.suspend(G);
+	.wait(800);
+	!speak(ID, get_attention);
+	.wait(isEngagedWith(Human,_), 3000);
+	.resume(G);
+	+monitoring(ID, Human);
+	-handling.
+
++!handle_not_engaged(Human) : handling <- true.
+
+-!handle_not_engaged(Human) : true <-
+	?task(ID, Task, Human, Place);
+	!speak(ID, continue_anyway);
+	G =.. [Task, [ID,Human,_],[]];
+	.resume(G);
+	+monitoring(ID, Human);
+	-handling.
+	
+	
+
+
+

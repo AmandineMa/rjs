@@ -98,7 +98,7 @@ public class RobotAgArch extends ROSAgArch {
 						break;
 					}
 				} catch (RevisionFailedException e) {
-					e.printStackTrace();
+					Tools.getStackTrace(e);
 				}
 
 			}
@@ -123,7 +123,7 @@ public class RobotAgArch extends ROSAgArch {
 						break;
 					}
 				} catch (RevisionFailedException e) {
-					e.printStackTrace();
+					Tools.getStackTrace(e);
 				}
 
 			}
@@ -153,8 +153,8 @@ public class RobotAgArch extends ROSAgArch {
 				final String task_id = tmp_task_id;
 				try {
 					sendMsg(msg);
-				} catch (Exception e1) {
-					e1.printStackTrace();
+				} catch (Exception e) {
+					Tools.getStackTrace(e);
 				}
 
 				// TODO check number of terms for each action
@@ -222,7 +222,7 @@ public class RobotAgArch extends ROSAgArch {
 								actionExecuted(action);
 	
 							} catch (RevisionFailedException e) {
-								e.printStackTrace();
+								Tools.getStackTrace(e);
 							}
 						}else {
 							action.setResult(false);
@@ -284,7 +284,7 @@ public class RobotAgArch extends ROSAgArch {
 									action.setResult(true);
 									actionExecuted(action);
 								} catch (RevisionFailedException e) {
-									e.printStackTrace();
+									Tools.getStackTrace(e);
 								}
 							} else {
 								action.setResult(false);
@@ -379,7 +379,7 @@ public class RobotAgArch extends ROSAgArch {
 									getTS().getAg().addBel(Literal.parseLiteral(
 											"canBeVisibleFor(\"" + place + "\"," + human + ")[" + task_id + "]"));
 								} catch (RevisionFailedException e) {
-									e.printStackTrace();
+									Tools.getStackTrace(e);
 								}
 							} else {
 								try {
@@ -387,7 +387,7 @@ public class RobotAgArch extends ROSAgArch {
 											"~canBeVisibleFor(\"" + place + "\"," + human + ")[" + task_id + "]"));
 								} catch (RevisionFailedException e) {
 									// TODO Auto-generated catch block
-									e.printStackTrace();
+									Tools.getStackTrace(e);
 								}
 								action.setResult(false);
 								action.setFailureReason(new Atom("not_visible"), place + " is not visible");
@@ -563,7 +563,7 @@ public class RobotAgArch extends ROSAgArch {
 											Literal.parseLiteral("verbalization(\"" + verba + "\")[" + task_id + "]"));
 								} catch (RevisionFailedException e) {
 									// TODO Auto-generated catch block
-									e.printStackTrace();
+									Tools.getStackTrace(e);
 								}
 							} else {
 								action.setResult(false);
@@ -609,7 +609,7 @@ public class RobotAgArch extends ROSAgArch {
 											"not_exp_ans(" + Integer.toString(count) + ")[" + task_id + "]"));
 								} catch (RevisionFailedException e) {
 									// TODO Auto-generated catch block
-									e.printStackTrace();
+									Tools.getStackTrace(e);
 								}
 								count += 1;
 								listening_fb_prev = listening_fb;
@@ -622,7 +622,7 @@ public class RobotAgArch extends ROSAgArch {
 									+ listening_result.getResult().getSubject() + "\")[" + task_id + "]"));
 						} catch (RevisionFailedException e) {
 							// TODO Auto-generated catch block
-							e.printStackTrace();
+							Tools.getStackTrace(e);
 						}
 						action.setResult(true);
 						try {
@@ -674,7 +674,7 @@ public class RobotAgArch extends ROSAgArch {
 //											move_to_fb.getFeedback().getBasePosition().getPose().getPosition().getY()+","+
 //											move_to_fb.getFeedback().getBasePosition().getPose().getPosition().getZ()+")["+task_id+"]"));
 //								} catch (RevisionFailedException e) {
-//									e.printStackTrace();
+//									Tools.getStackTrace(e);
 //								}
 //							}
 						sleep(200);
@@ -684,7 +684,7 @@ public class RobotAgArch extends ROSAgArch {
 							getTS().getAg().addBel(Literal.parseLiteral("move_goal_reached"));
 						} catch (RevisionFailedException e) {
 							// TODO Auto-generated catch block
-							e.printStackTrace();
+							Tools.getStackTrace(e);
 						}
 						action.setResult(true);
 					} else {
@@ -734,7 +734,7 @@ public class RobotAgArch extends ROSAgArch {
 									}
 								} catch (RevisionFailedException e) {
 									// TODO Auto-generated catch block
-									e.printStackTrace();
+									Tools.getStackTrace(e);
 								}
 							} else {
 								action.setResult(false);
@@ -917,7 +917,7 @@ public class RobotAgArch extends ROSAgArch {
 				getTS().getAg().addBel(Literal.parseLiteral("~ld_to_point[" + task_id + "]"));
 			}
 		} catch (RevisionFailedException e) {
-			e.printStackTrace();
+			Tools.getStackTrace(e);
 		}
 		action.setResult(true);
 		actionExecuted(action);
@@ -1122,7 +1122,7 @@ public class RobotAgArch extends ROSAgArch {
 									"listen_result(" + bel_functor + ",\"" + resp + "\")"));
 					} catch (RevisionFailedException e) {
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						Tools.getStackTrace(e);
 					}
 				}
 			} else {

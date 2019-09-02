@@ -1,5 +1,6 @@
 build
 lib_not_used
+log
 .project
 .classpath
 

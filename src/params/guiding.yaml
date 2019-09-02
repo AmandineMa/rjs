@@ -5,9 +5,9 @@ guiding:
   immo: True
 
   services_immo:
-    get_route: 
-      name: /semantic_route_description/get_route
-      type: semantic_route_description_msgs/SemanticRoute
+#     get_route: 
+#       name: /semantic_route_description/get_route
+#       type: semantic_route_description_msgs/SemanticRoute
     route_verbalization: 
       name: /route_verbalization/verbalizePlace
       type: route_verbalization_msgs/VerbalizeRegionRoute
@@ -17,30 +17,30 @@ guiding:
     get_class_info: 
       name: /ontologenius/class
       type: ontologenius_msgs/OntologeniusService
-    look_at: 
-      name: /deictic_gestures/look_at
-      type: deictic_gestures/LookAt
-    point_at: 
-      name: /deictic_gestures/point_at
-      type: deictic_gestures/PointAt
-    has_mesh: 
-      name: /has_mesh
-      type: perspectives_msgs/HasMesh
-    pepper_synchro: 
-      name: /pepper_resources_synchronizer/state_machines_register
-      type: pepper_resources_synchronizer_msgs/MetaStateMachineRegister
-    get_uwds_name: 
-      name: /get_name
-      type: perspectives_msgs/GetName
-    stand_pose:
-      name: /naoqi_driver/robot_posture/go_to_posture
-      type:  nao_interaction_msgs/GoToPosture
-    localise:
-      name: /mummer_localisation_tf/localise
-      type: pepper_localisation/response
-    is_visible: 
-      name: /pointing_planner/visibility_score
-      type: pointing_planner/VisibilityScore
+#     look_at: 
+#       name: /deictic_gestures/look_at
+#       type: deictic_gestures/LookAt
+#     point_at: 
+#       name: /deictic_gestures/point_at
+#       type: deictic_gestures/PointAt
+#     has_mesh: 
+#       name: /has_mesh
+#       type: perspectives_msgs/HasMesh
+#     pepper_synchro: 
+#       name: /pepper_resources_synchronizer/state_machines_register
+#       type: pepper_resources_synchronizer_msgs/MetaStateMachineRegister
+#     get_uwds_name: 
+#       name: /get_name
+#       type: perspectives_msgs/GetName
+#     stand_pose:
+#       name: /naoqi_driver/robot_posture/go_to_posture
+#       type:  nao_interaction_msgs/GoToPosture
+#     localise:
+#       name: /mummer_localisation_tf/localise
+#       type: pepper_localisation/response
+#     is_visible: 
+#       name: /pointing_planner/visibility_score
+#       type: pointing_planner/VisibilityScore
 
   services_moving:
     pointing_planner: 
@@ -61,10 +61,10 @@ guiding:
       name: /mummer_dialogue_say/enable_animated_speech
       type: std_srvs/SetBool
       
-  services_wo_hwu:
-    speak_to: 
-      name: /naoqi_driver/tts/say
-      type: nao_interaction_msgs/Say
+#   services_wo_hwu:
+#     speak_to: 
+#       name: /naoqi_driver/tts/say
+#       type: nao_interaction_msgs/Say
 
   topics:
     current_facts: /base/current_facts

@@ -53,6 +53,7 @@ public class ROSAgArch extends MindInspectorAgArch {
 	@Override
 	public void init() {
 //		setupMindInspector("gui(cycle,html,history)");    
+		setupMindInspector("file(cycle,xml,log)");    
 	} 
 	
 	

@@ -30,6 +30,7 @@ import jason.asSyntax.Literal;
 import jason.asSyntax.LogicalFormula;
 import jason.asSyntax.Term;
 import ros.RosNode;
+import utils.Tools;
 
 public class SupervisorAgArch extends ROSAgArch {
 	private NodeMainExecutor nodeMainExecutor = DefaultNodeMainExecutor.newDefault();
@@ -122,7 +123,7 @@ public class SupervisorAgArch extends ROSAgArch {
 							try {
 								getTS().getAg().addBel(Literal.parseLiteral("preempted(\""+id.getId()+"\")"));
 							} catch (RevisionFailedException e) {
-								e.printStackTrace();
+								logger.info(Tools.getStackTrace(e));
 							}
 						}
 
@@ -132,7 +133,7 @@ public class SupervisorAgArch extends ROSAgArch {
 								try {
 									getTS().getAg().addBel(Literal.parseLiteral("preempted(\""+current_goal+"\")"));
 								} catch (RevisionFailedException e) {
-									e.printStackTrace();
+									logger.info(Tools.getStackTrace(e));
 								}
 							}
 							current_goal = goal.getGoalId().getId();
@@ -142,7 +143,7 @@ public class SupervisorAgArch extends ROSAgArch {
 							try {
 								getTS().getAg().addBel(Literal.parseLiteral("guiding_goal(\""+goal.getGoalId().getId()+"\","+person+",\""+goal.getGoal().getPlaceFrame()+"\")"));
 							} catch (RevisionFailedException e) {
-								e.printStackTrace();
+								logger.info(Tools.getStackTrace(e));
 							}
 							return true;
 						}

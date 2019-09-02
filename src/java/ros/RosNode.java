@@ -289,20 +289,7 @@ public class RosNode extends AbstractNodeMain {
 			call_service(serviceName, type, srl, params);
 		} else {
 			logger.info("Service (" + serviceName + ") not declared in yaml or type not filled");
-			try {
-				Method m = ServiceResponseListener.class.getMethod("onFailure", RemoteException.class);
-				m.invoke(srl, new RemoteException(StatusCode.ERROR, "Service (" + serviceName + ") not declared in yaml or type not filled"));
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
-			} catch (InvocationTargetException e) {
-				e.printStackTrace();
-			} catch (NoSuchMethodException e) {
-				e.printStackTrace();
-			} catch (SecurityException e) {
-				e.printStackTrace();
-			}
+			srl.onFailure(new RemoteException(StatusCode.ERROR, "Service (" + serviceName + ") not declared in yaml or type not filled"));
 		}
 	}
 
@@ -331,7 +318,7 @@ public class RosNode extends AbstractNodeMain {
 		try {
 			response = future.get();
 		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
+			Tools.getStackTrace(e);
 		}
 		return response;
 	}
@@ -354,7 +341,7 @@ public class RosNode extends AbstractNodeMain {
 				}
 			}
 		} catch (ClassNotFoundException | IllegalArgumentException e) {
-			e.printStackTrace();
+			Tools.getStackTrace(e);
 		}
 
 		for (String name : params.keySet()) {
@@ -392,7 +379,7 @@ public class RosNode extends AbstractNodeMain {
 				}
 
 			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-				e.printStackTrace();
+				Tools.getStackTrace(e);
 			}
 		}
 
@@ -487,7 +474,7 @@ public class RosNode extends AbstractNodeMain {
 				logger.severe("Service not found exception : " + e.getMessage());
 				throw new RosRuntimeException(e);
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.info(Tools.getStackTrace(e));
 			}
 		}
 		return status;

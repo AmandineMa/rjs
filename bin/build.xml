@@ -58,6 +58,7 @@
             <fileset dir="${basedir}">
                 <include name="**/*.asl" />
                 <include name="**/*.mas2j" />
+		<include name="**/*.properties" />
             </fileset>
 	    <fileset dir="${basedir}/src/params"> 
 		<include name="**/*.yaml" />

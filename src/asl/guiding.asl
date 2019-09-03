@@ -25,6 +25,12 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!speak(ID, ask_stairs);
 		listen(ask_stairs,["yes","no"]);
 		?listen_result(ask_stairs,Word);
+		if(not jia.believes(got_answer(ask_stairs,Word,_))){
+			+got_answer(ask_stairs,Word,0)[ID];
+		}else{
+			?got_answer(ask_stairs,Word,N);
+			+got_answer(ask_stairs,Word,N+1)[ID];
+		}
 		if(.substring(Word,yes)){
 			+persona_asked(lambda)[ID];
 		}else{
@@ -119,7 +125,9 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	!speak(ID, going_to_move);
 	-monitoring(_, _);
 	human_to_monitor(""); 
+	+move(started)[ID];
 	move_to(Rframe,Rposit, Rorient);
+	+move(over)[ID];
 	!wait_human(ID);
 	+monitoring(ID, Human).
 
@@ -192,8 +200,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		-look_at(look);
 		look_at(Hframe,Pointf,true);
 		.wait(isPerceiving(Human),4000);
-	//	.wait(isPerceiving(Human),4000);
-		-~here(Human);
+		+after_move_status(human_found)[ID];
 		.wait(look_at(look),6000);
 		look_at_events(human_perceived);
 		!check_pos(ID, Human);
@@ -208,11 +215,13 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		?dir_to_point(D);
 		.concat("human_", Human, HTF);
 		can_be_visible(HTF, D);
+		+visible(direction, D, true)[ID];
 	}
 	if(jia.believes(target_to_point(_))){
 		?target_to_point(T);
 		.concat("human_", Human, HTF);
 		can_be_visible(HTF, T);
+		+visible(target, T, true)[ID];
 	}.
 
 -!check_pos(ID, Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <- 
@@ -226,6 +235,12 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 			?dir_to_point(D);
 			.concat("human_", Human, HTF);
 			if(not jia.can_be_visible(HTF, D)){
+				if(not jia.believes(visible(direction, D, false, _))){
+					+visible(direction, D, false, 0)[ID];
+				}else{
+					?visible(direction, D, false, N);
+					+visible(direction, D, false, N+1)[ID];
+				}
 				!adjust_human_pos(ID, Human);
 				!check_pos(ID, Human);
 			}
@@ -233,6 +248,12 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 			?target_to_point(T);
 			.concat("human_", Human, HTF);
 			if(not jia.can_be_visible(HTF, T)){
+				if(not jia.believes(visible(target, T, false, _))){
+					+visible(target, T, false, 0)[ID];
+				}else{
+					?visible(target, T, false, N);
+					+visible(target, T, false, N+1)[ID];
+				}
 				!adjust_human_pos(ID, Human);
 				!check_pos(ID, Human);
 			}
@@ -263,16 +284,23 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	// TODO meme erreur que pour isPerceiving, ne permet pas de differencier les deux
 	if(.substring(wait_timeout, Error) & .substring(isPerceiving, Code)){
 		look_at_events(stop_look_at);
-		+~here(Human);
+		if(not jia.believes(after_move_status(call_human,_))){
+			+after_move_status(call_human,0)[ID];
+		}else{
+			?after_move_status(call_human,N);
+			+after_move_status(call_human,N+1)[ID];
+		}
 		!speak(ID, come);
 		!wait_human(ID);
 	}elif(.substring(wait_timeout, Error) & .substring(look_at, Code)){
 		look_at_events(stop_look_at);
+		+after_move_status(look_at_not_received)[ID];
 		!log_failure(ID, look_at, not_received, look_at(look));
 		!check_pos(ID, Human);
 	}elif(.substring(max_attempts,Error)){
 		-look_at(look);
 		look_at_events(stop_look_at);
+		+after_move_status(human_not_found)[ID];
 		!speak(ID,cannot_find); 
 		!drop_current_task(ID, wait_human, max_attempts, "wait too long");
 	}else{
@@ -299,12 +327,24 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!speak(ID, ask_understand);
 		listen(ask_understand,["yes","no"]);
 		?listen_result(ask_understand,Word1);
+		if(not jia.believes(got_answer(ask_understand,Word1,_))){
+			+got_answer(ask_understand,Word1,0)[ID];
+		}else{
+			?got_answer(ask_understand,Word1,N);
+			+got_answer(ask_understand,Word1,N+1)[ID];
+		}
 		if(.substring(Word1,yes)){
 			!speak(ID, happy_end);
 		}else{
 			!speak(ID, ask_explain_again);
 			listen(ask_explain_again,["yes","no"]);
 			?listen_result(ask_explain_again,Word2);
+			if(not jia.believes(got_answer(ask_explain_again,Word2,_))){
+				+got_answer(ask_explain_again,Word2,0)[ID];
+			}else{
+				?got_answer(ask_explain_again,Word2,N);
+				+got_answer(ask_explain_again,Word2,N+1)[ID];
+			}
 			if(.substring(Word2,yes)){
 				!show_landmarks(ID);
 			}else{
@@ -321,8 +361,8 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!speak(ID,sl_sorry); 
 		!drop_current_task(ID, show_landmarks, max_attempts, multiple_wrong_answers);
 	}else{
-		!log_failure(ID, show_landmarks, Failure, Code);
-//		!drop_current_task(ID, show_landmarks, Failure, Code);
+//		!log_failure(ID, show_landmarks, Failure, Code);
+		!drop_current_task(ID, show_landmarks, Failure, Code);
 	}.
 
 
@@ -360,7 +400,6 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 // TODO handle timeout point_at
 @pl_l[max_attempts(3), atomic_r]+!point_look_at(ID, Ld) : landmark_to_see(Ld) <-
 	?task(ID, guiding, Human, _);
-	+should_check_target_seen(Human,Ld);
 	point_at(Ld,false,true);
 	jia.time(T);
 	.print(T);
@@ -369,8 +408,6 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	!verbalization(ID, Ld);
 	.wait(point_at(finished),6000);
 	-point_at(finished);
-	-should_check_target_seen(Human,Ld);
-	?(canSee(Ld)[source(Human)] | hasSeen(Ld)[source(Human)]);
 	?verba_name(Ld,Verba);
 	!speak(ID, tell_seen(Verba)).
 
@@ -406,10 +443,22 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	!speak(ID, cannot_tell_seen(Verba));
 	listen(cannot_tell_seen,["yes","no"]);
 	?listen_result(cannot_tell_seen, Word1);
+	if(not jia.believes(got_answer(cannot_tell_seen,Word1,_))){
+		+got_answer(cannot_tell_seen,Word1,0)[ID];
+	}else{
+		?got_answer(cannot_tell_seen,Word1,N);
+		+got_answer(cannot_tell_seen,Word1,N+1)[ID];
+	}
 	if(.substring(Word1,no)){
 		!speak(ID, ask_show_again(Ld));
 		listen(ask_show_again,["yes","no"]);
 		?listen_result(ask_show_again, Word2);
+		if(not jia.believes(got_answer(ask_show_again,Word2,_))){
+			+got_answer(ask_show_again,Word2,0)[ID];
+		}else{
+			?got_answer(ask_show_again,Word2,N);
+			+got_answer(ask_show_again,Word2,N+1)[ID];
+		}
 		if(.substring(Word2,yes)){
 			// TODO add max_attempts
 			!point_look_at(ID,Ld);
@@ -456,15 +505,6 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 -!verbalization(ID, Place)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
 	!drop_current_task(ID, verbalization, Failure, Code).
 
-+should_check_target_seen(Human,Ld) : true <-
-	.send(Human,tell,state(waiting_for_robot_to_point(Ld)));
-	.send(Human,achieve,communicate_belief(canSee(Ld))).
-	
--should_check_target_seen(Human,Ld) : true <-
-	.send(Human,achieve,stop_communicate_belief(canSee(Ld))).
-	
-+canSee(Ld)[source(Human)] : (Ld == D & direction(D)) | (Ld == T & target_place(T)) <- 
-	.send(Human,untell,state(waiting_for_robot_to_point(Ld))).
 		
 /********* **********/		
 

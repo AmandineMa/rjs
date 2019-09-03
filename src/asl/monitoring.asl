@@ -3,29 +3,14 @@
 +monitoring(ID, Human) : true <-
 //	.send(interac, tell, monitoring(Human));
 	.concat("gaze_human_", Human, HTF);
-	human_to_monitor(HTF).
+	human_to_monitor(HTF);
+	!wait_before_looking(Human).
 
 -monitoring(ID,Human) : true <- 
 //	.send(interac, untell, monitoring(Human));
 	.succeed_goal(start_monitoring(ID, Human));
 	.succeed_goal(wait_before_looking(Human));
 	.succeed_goal(look_for_human(Human)).
-//
-//+!start_monitoring(ID, Human) : isPerceiving(Human) <-
-//	!!person_of_interest(Human).
-////	.concat("human-", Human, H);
-////	human_to_monitor(H).
-//
-//+!start_monitoring(ID, Human) : not isPerceiving(Human) <-
-//	!!person_of_interest(Human);
-////	.concat("human-", Human, H);
-////	human_to_monitor(H);
-//	.wait(isPerceiving(Human),6000).
-//	
-//@poi[no_log]+!person_of_interest(H) : true <- jia.person_of_interest(H); .wait(500); !person_of_interest(H).
-//
-//-!start_monitoring(ID, Human) : not isPerceiving(Human) <-
-//	!look_for_human(Human).
 
 -isPerceiving(Human) : monitoring(_, Human) <-
 	!wait_before_looking(Human).

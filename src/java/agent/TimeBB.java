@@ -21,6 +21,8 @@ import org.ros.node.NodeMainExecutor;
 import com.google.common.collect.Lists;
 
 public class TimeBB extends DefaultBeliefBase {
+	
+	// time in milliseconds
 
 	private static double start;
 	private static boolean start_initialized = false;
@@ -60,8 +62,7 @@ public class TimeBB extends DefaultBeliefBase {
 				while(connected_node == null) {
 					Tools.sleep(100);
 				}
-				start = connected_node.getCurrentTime().toSeconds();
-//				logger.info("start time :"+start);
+//				start =  connected_node.getCurrentTime().toSeconds() * 1000;
 				start_initialized = true;
 			}else {
 				if(System.getenv("ROS_MASTER_URI") == null)
@@ -98,7 +99,8 @@ public class TimeBB extends DefaultBeliefBase {
 			Structure time = new Structure("add_time");
 //			double pass = connected_node.getCurrentTime().toSeconds() - start;
 //			time.addTerm(new NumberTermImpl(pass));
-			time.addTerm(new NumberTermImpl(connected_node.getCurrentTime().toSeconds()));
+			Double t = connected_node.getCurrentTime().toSeconds() * 1000;
+			time.addTerm(new NumberTermImpl(t.longValue()));
 			bel.addAnnot(time);
 		}
 	}

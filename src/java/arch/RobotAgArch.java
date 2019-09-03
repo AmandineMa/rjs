@@ -466,13 +466,14 @@ public class RobotAgArch extends ROSAgArch {
 							
 							MetaStateMachineRegisterResponse face_resp = m_rosnode.callSyncService("pepper_synchro", parameters);
 							
-							sleep(5000);
-							Map<String, Object> params = new HashMap<String, Object>();
-							params.put("posturename", "StandInit");
-							params.put("speed", (float) 0.8);
-							GoToPostureResponse go_to_posture_resp = m_rosnode.callSyncService("stand_pose",
-									params);
-							action.setResult(go_to_posture_resp != null);
+//							sleep(5000);
+//							Map<String, Object> params = new HashMap<String, Object>();
+//							params.put("posturename", "StandInit");
+//							params.put("speed", (float) 0.8);
+//							GoToPostureResponse go_to_posture_resp = m_rosnode.callSyncService("stand_pose",
+//									params);
+//							action.setResult(go_to_posture_resp != null);
+							action.setResult(true);
 							if(face_resp == null) {
 								action.setFailureReason(new Atom("cannot_face_human"), "Service Failure, face human failed for " + frame);
 								action.setResult(false);
@@ -591,9 +592,9 @@ public class RobotAgArch extends ROSAgArch {
 						m_rosnode.call_dialogue_as(words);
 						try {
 							getTS().getAg().addBel(Literal.parseLiteral("listening[" + task_id + "]"));
-						} catch (RevisionFailedException e1) {
+						} catch (RevisionFailedException e) {
 							// TODO Auto-generated catch block
-							e1.printStackTrace();
+							Tools.getStackTrace(e);
 						}
 						dialogue_actionActionResult listening_result;
 						dialogue_actionActionFeedback listening_fb;
@@ -627,9 +628,9 @@ public class RobotAgArch extends ROSAgArch {
 						action.setResult(true);
 						try {
 							getTS().getAg().abolish(Literal.parseLiteral("listening"), new Unifier());
-						} catch (RevisionFailedException e1) {
+						} catch (RevisionFailedException e) {
 							// TODO Auto-generated catch block
-							e1.printStackTrace();
+							Tools.getStackTrace(e);
 						}
 					} else {
 						action.setResult(true);
@@ -950,7 +951,7 @@ public class RobotAgArch extends ROSAgArch {
 		case "closer":
 			text = new String("Can you come closer, please");
 			break;
-		case "more_closer":
+		case "move_closer":
 			text = new String("Can you take another step forward, please");
 			break;
 		case "thinking":
@@ -958,9 +959,6 @@ public class RobotAgArch extends ROSAgArch {
 			break;
 		case "list_places":
 			text = new String("There are " + bel_arg + ". Which one do you want to go to ?");
-			break;
-		case "closest":
-			text = new String("The closest ones are " + bel_arg + ". Which one do you want to go to ?");
 			break;
 		case "where_are_u":
 			text = new String("Where are you, I cannot see you");
@@ -1006,9 +1004,21 @@ public class RobotAgArch extends ROSAgArch {
 			break;
 		case "step":
 			text = new String("Can you make a few steps on your " + bel_arg + ", please");
+			if(bel_arg.equals("left")) {
+				bel_functor = "step_left";
+			}else {
+				bel_functor = "step_right";
+			}
+			bel_arg = null;
 			break;
 		case "step_more":
 			text = new String("Can you move a bit more on your " + bel_arg + ", please");
+			if(bel_arg.equals("left")) {
+				bel_functor = "step_more_left";
+			}else {
+				bel_functor = "step__more_right";
+			}
+			bel_arg = null;
 			break;
 		case "cannot_move":
 			text = new String("I'm sorry I cannot move, I'll try my best to show you from there");
@@ -1103,6 +1113,7 @@ public class RobotAgArch extends ROSAgArch {
 				logger.info((String) parameters.get("status"));
 				SuperQueryResponse dial_resp = m_rosnode.callSyncService("dialogue_query", parameters);
 				if(dial_resp == null) {
+					logger.info("empty answer from dialogue");
 					result = false;
 				} else {
 					String resp;
@@ -1113,6 +1124,7 @@ public class RobotAgArch extends ROSAgArch {
 					} else {
 						resp = dial_resp.getResult();
 					}
+					logger.info("dialogue answer :"+resp);
 					try {
 						if(task_id != null)
 							getTS().getAg().addBel(Literal.parseLiteral(
@@ -1179,8 +1191,8 @@ public class RobotAgArch extends ROSAgArch {
 		}
 		try {
 			sendMsg(msg);
-		} catch (Exception e1) {
-			e1.printStackTrace();
+		} catch (Exception e) {
+			Tools.getStackTrace(e);
 		}
 		super.actionExecuted(act);
 	}

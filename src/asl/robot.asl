@@ -16,7 +16,8 @@
 -!face_human(H) : true <- true.
 
 +!start : true <- 
-	.verbose(2); jia.log_beliefs;
+	.verbose(2); 
+	jia.log_beliefs;
 	jia.get_param("/guiding/perspective/robot_place", String, Rp);
 	+robot_place(Rp).
 
@@ -24,10 +25,7 @@
 +!guiding(ID, Human, Place) : true <-	
 	jia.publish_marker(0);
 	.all_names(Agents);
-	if(not jia.member(Human, Agents)){
-		.create_agent(Human, "src/asl/human.asl", [agentArchClass("arch.HumanAgArch"), beliefBaseClass("agent.TimeBB")]);
-	}
-	.send(interac, tell, inTaskWith(Human));
+	.send(interac, tell, inTaskWith(Human,ID));
 	!clean_facts;
 	+task(ID, guiding, Human, Place)[ID];
 	!guiding_goal_negociation(ID, Human, Place);
@@ -85,9 +83,9 @@
 +!clean_task(ID) : true <-
 	?task(ID, Task, Human, Param);
 	.findall(B[ID,source(X),add_time(Y)],B[ID,source(X),add_time(Y)], L);
-	.send(history, tell, L);
+	jia.beliefs_to_file(L);
 	jia.reset_att_counter;
-	.send(interac, untell, inTaskWith(Human));
+	.send(interac, untell, inTaskWith(Human,ID));
 	.abolish(_[ID]).	
 
 +end_task(Status, ID)[ID] :  true <- 
@@ -99,7 +97,12 @@
 // Utils
 +!speak(ID, ToSay) : true <-
 	?task(ID, _, Human, _);
-	.send(Human, tell, ToSay);
+	if(not jia.believes(said(ToSay,_))){
+		+said(ToSay,0)[ID];
+	}else{
+		?said(ToSay,N);
+		+said(ToSay,N+1)[ID];
+	}
 	text2speech(ToSay).
 	
 -!speak(ID, ToSay) : true <-	true.

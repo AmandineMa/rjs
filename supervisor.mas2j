@@ -6,7 +6,6 @@ MAS supervisor {
 
 	agents:
 		supervisor [verbose=1] agentArchClass arch.SupervisorAgArch beliefBaseClass agent.TimeBB;
-		history [verbose=1] agentArchClass arch.ROSAgArch beliefBaseClass agent.TimeBB;
 
 	aslSourcePath:
 		"src/asl";

@@ -24,6 +24,12 @@
 			!speak(ID, list_places(PlacesVerba));
 			listen(list_places,PlacesVerba);
 			?listen_result(list_places,Goal);
+			if(not jia.believes(got_answer(list_places,Goal,_))){
+				+got_answer(list_places,Goal,0)[ID];
+			}else{
+				?got_answer(list_places,Goal,N);
+				+got_answer(list_places,Goal,N+1)[ID];
+			}
 			!guiding_goal_negociation(ID, Human,Goal);
 			.succeed_goal(guiding_goal_negociation(ID, Human,Place));
 		}

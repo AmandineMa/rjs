@@ -25,8 +25,8 @@
 			if(not .list(PlacesVerba1)){
 				PlacesVerba=[PlacesVerba1];
 			}
-			!speak(ID, list_places(PlacesVerba));
-			listen(list_places,PlacesVerba);
+			!speak(ID, list_places(PlacesVerba1));
+			listen(list_places,PlacesVerba1);
 			?listen_result(list_places,Goal);
 			if(not jia.believes(got_answer(list_places,Goal,_))){
 				+got_answer(list_places,Goal,0)[ID];

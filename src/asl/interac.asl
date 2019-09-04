@@ -40,6 +40,7 @@ n(-1).
 +!bye(Human) : not inTaskWith(_,_) & inSession(Human,N) <-
 	+bye;
 	+overBy(not_perceived)[N];
+	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == false){
 		text2speech(goodbye);
 	}
@@ -57,6 +58,10 @@ n(-1).
 
 +!loca: true <-
 	+localising;
+	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	if(Dialogue == false){
+		text2speech(localising);
+	}
 	human_to_monitor("");
 	jia.get_param("/guiding/robot_base/position", "List", P);
 	jia.get_param("/guiding/robot_base/orientation", "List", O);

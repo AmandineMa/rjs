@@ -3,7 +3,8 @@
 
 //^!guiding_goal_negociation(ID, Human, Place)[state(started)] : not started <- +started; +monitoring(ID, Human).	
 +!guiding_goal_negociation(ID, Human,Place): true <-
-	if(jia.word_class(findSub, Place, Class)){
+	if(not jia.word_individual(findSub, Place, PlaceOnto)){
+		jia.word_class(find, Place, Class);
 		if(jia.word_class(getUp, Class, GU) & .sublist(["product"], GU)){
 			.concat(Class, ":sells", Product);
 			jia.word_individual(getFrom, Product, List);
@@ -33,8 +34,6 @@
 			!guiding_goal_negociation(ID, Human,Goal);
 			.succeed_goal(guiding_goal_negociation(ID, Human,Place));
 		}
-	}else{
-		jia.word_individual(findSub, Place, PlaceOnto);
 	}
 //	jia.word_individual(getName, PlaceOnto, PlaceName);
 	+guiding_goal_nego(ID, PlaceOnto)[ID].
@@ -48,9 +47,9 @@
 
 // in case of the original plan failure	
 -!guiding_goal_negociation(ID, Human, Place)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)]: true <-
-	if(.substring(word_individual, Code)){
-		+individual_not_found(Place)[ID];
-//		!speak(ID, no_place(Place));
+	if(.substring(word_individual, Code) | .substring(word_class, Code)){
+		+place_not_found(Place)[ID];
+		!speak(ID, no_place(Place));
 		+end_task(failed, ID)[ID];
 		!drop_current_task(ID, guiding_goal_negociation, no_place, Code);
   	}else{

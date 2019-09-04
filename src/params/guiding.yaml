@@ -1,10 +1,10 @@
 guiding:
   dialogue:
-    hwu: True
+    hwu: False
     
-  immo: True
+  immo: False
 
-  services_immo:
+  services_wo_hwu:
     get_route: 
       name: /semantic_route_description/get_route
       type: semantic_route_description_msgs/SemanticRoute
@@ -32,23 +32,20 @@ guiding:
     get_uwds_name: 
       name: /get_name
       type: perspectives_msgs/GetName
-#     stand_pose:
-#       name: /naoqi_driver/robot_posture/go_to_posture
-#       type:  nao_interaction_msgs/GoToPosture
     localise:
       name: /mummer_localisation_tf/localise
       type: pepper_localisation/response
-#     is_visible: 
-#       name: /pointing_planner/visibility_score
-#       type: pointing_planner/VisibilityScore
-
-  services_moving:
+    is_visible: 
+      name: /pointing_planner/visibility_score
+      type: pointing_planner/VisibilityScore
     pointing_planner: 
       name: /pointing_planner/plan
       type: pointing_planner/PointingPlanner
-    has_mesh: 
-      name: /has_mesh
-      type: perspectives_msgs/HasMesh
+
+#   services_moving:
+#     pointing_planner: 
+#       name: /pointing_planner/plan
+#       type: pointing_planner/PointingPlanner
 
   services_hwu:
     dialogue_inform: 
@@ -98,7 +95,7 @@ guiding:
   
   robot_base:
     position: [27.5, 9.7, 0]
-    orientation: [0, 0, -0.917,  0.399]
+    orientation: [0, 0, -0.707,  0.707]
   
   perspective:
     world: base

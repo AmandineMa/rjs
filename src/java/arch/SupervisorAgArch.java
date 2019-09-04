@@ -184,7 +184,7 @@ public class SupervisorAgArch extends ROSAgArch {
 					id = id.replaceAll("^\"|\"$", "");
 					m_rosnode.set_task_result(success, id);
 					logger.info("goal result : "+success);
-					if(current_goal == id) {
+					if(current_goal != null && current_goal.equals(id)) {
 						current_goal = null;
 					}
 					action.setResult(true);

@@ -158,7 +158,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 -!repeat_move(ID, HTF, Point, Dist, Bool, Side) : true <- 
 	!speak(ID, cannot_move); 
 	!log_failure(ID, repeat_move, cannot_move, _);
-	.drop_intention(be_at_good_pos(ID)).
+	.succeed_goal(be_at_good_pos(ID)).
 	
 -!repeat_move(ID, HTF, Point, Dist, Bool) : true <- 
 	!log_failure(ID, repeat_move, adjust, _);
@@ -175,7 +175,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		}
 	}
 	-adjust;
-	.drop_intention(be_at_good_pos(ID)).
+	.succeed_goal(be_at_good_pos(ID)).
 
 -!be_at_good_pos(ID)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)] : true <-
 	if(not .substring(robot_pose, Code)){
@@ -283,6 +283,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	?task(ID, guiding, Human, _);
 	// TODO meme erreur que pour isPerceiving, ne permet pas de differencier les deux
 	if(.substring(wait_timeout, Error) & .substring(isPerceiving, Code)){
+		.wait(look_at(look),6000);
 		look_at_events(stop_look_at);
 		if(not jia.believes(after_move_status(call_human,_))){
 			+after_move_status(call_human,0)[ID];
@@ -312,7 +313,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 
 @sl[max_attempts(3)]+!show_landmarks(ID) : true <- 
 	?task(ID, guiding, Human, _);
-	++need_attentive_human(Human);
+//	++need_attentive_human(Human);
 	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == true){
 		enable_animated_speech(false);
@@ -408,6 +409,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	!verbalization(ID, Ld);
 	.wait(point_at(finished),6000);
 	-point_at(finished);
+	?(canSee(Ld)[source(Human)] | hasSeen(Ld)[source(Human)]);
 	?verba_name(Ld,Verba);
 	!speak(ID, tell_seen(Verba)).
 

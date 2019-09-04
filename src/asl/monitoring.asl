@@ -38,7 +38,10 @@
 	G =.. [Task, [ID,Human,_],[]];
 	.suspend(G);
 	.wait(800);
-	!speak(ID,where_are_u);
+	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	if(Dialogue == false){
+		!speak(ID,where_are_u);
+	}
 	.wait(isPerceiving(Human),6000);
 	?task(ID, _, Human, _);
 	!speak(ID,found_again);
@@ -50,7 +53,10 @@
 
 -!look_for_human(Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : isPerceiving(Human) <- 
 	?task(ID, Task, Human, _);
-	!speak(ID,found_again);
+	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	if(Dialogue == false){
+		!speak(ID,found_again);
+	}
 	G =.. [Task, [ID,Human,_],[]];
 	.wait(800);
 	.resume(G);
@@ -59,7 +65,10 @@
 -!look_for_human(Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : not isPerceiving(Human) <- 
 	?task(ID, _, Human, _);
 	if(.substring(Error,max_attempts)){
-		!speak(ID,cannot_find); 
+		jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+		if(Dialogue == false){
+			!speak(ID,cannot_find); 
+		}
 		.wait(1000);
 		.send(interac, tell, left_task(Human));
 		!drop_current_task(ID, cannot_find, cannot_find, Code);
@@ -67,35 +76,35 @@
 		!look_for_human(Human);
 	}.
 
-+~isEngagedWith(Human,_)	: need_attentive_human(Human)  & isPerceiving(Human) <-
-	!handle_not_engaged(Human).
-
-+need_attentive_human(Human) : isPerceiving(Human) & not isEngagedWith(Human,_) <-
-	!handle_not_engaged(Human).
-	
-+!handle_not_engaged(Human) : not handling <-
-	+handling;
-	?task(ID, Task, Human, Place);
-	-monitoring(ID, Human);
-	G =.. [Task, [ID,Human,_],[]];
-	.suspend(G);
-	.wait(800);
-	!speak(ID, get_attention);
-	.wait(isEngagedWith(Human,_), 3000);
-	.resume(G);
-	+monitoring(ID, Human);
-	-handling.
-
-+!handle_not_engaged(Human) : handling <- true.
-
--!handle_not_engaged(Human) : true <-
-	?task(ID, Task, Human, Place);
-	!speak(ID, continue_anyway);
-	G =.. [Task, [ID,Human,_],[]];
-	.resume(G);
-	+monitoring(ID, Human);
-	-handling.
-	
+//+~isEngagedWith(Human,_)	: need_attentive_human(Human)  & isPerceiving(Human) <-
+//	!handle_not_engaged(Human).
+//
+//+need_attentive_human(Human) : isPerceiving(Human) & not isEngagedWith(Human,_) <-
+//	!handle_not_engaged(Human).
+//	
+//+!handle_not_engaged(Human) : not handling <-
+//	+handling;
+//	?task(ID, Task, Human, Place);
+//	-monitoring(ID, Human);
+//	G =.. [Task, [ID,Human,_],[]];
+//	.suspend(G);
+//	.wait(800);
+//	!speak(ID, get_attention);
+//	.wait(isEngagedWith(Human,_), 3000);
+//	.resume(G);
+//	+monitoring(ID, Human);
+//	-handling.
+//
+//+!handle_not_engaged(Human) : handling <- true.
+//
+//-!handle_not_engaged(Human) : true <-
+//	?task(ID, Task, Human, Place);
+//	!speak(ID, continue_anyway);
+//	G =.. [Task, [ID,Human,_],[]];
+//	.resume(G);
+//	+monitoring(ID, Human);
+//	-handling.
+//	
 	
 
 

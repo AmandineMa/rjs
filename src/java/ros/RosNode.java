@@ -152,8 +152,8 @@ public class RosNode extends AbstractNodeMain {
 			msc = new MasterStateClient(connectedNode, uri);
 			service_clients = new HashMap<String, ServiceClient<Message, Message>>();
 			services_map = null;
-			if(parameters.has("/guiding/services_wo_hwu"))
-				services_map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services_wo_hwu");
+			if(parameters.has("/guiding/base_services"))
+				services_map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/base_services");
 			
 			if(parameters.has("/guiding/services_moving") && !parameters.getBoolean("/guiding/immo")) {
 				HashMap<String, HashMap<String, String>> map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services_moving");

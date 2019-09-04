@@ -1,10 +1,10 @@
 guiding:
   dialogue:
-    hwu: False
+    hwu: True
     
   immo: False
 
-  services_wo_hwu:
+  base_services:
     get_route: 
       name: /semantic_route_description/get_route
       type: semantic_route_description_msgs/SemanticRoute

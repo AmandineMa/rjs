@@ -56,7 +56,11 @@ public class verba_name extends DefaultInternalAction {
     		return un.unifies(args[1], name_list);	
     	}else if(args[0].isString() || args[0].isAtom()) {
     		args_i[1] = args[0];
-    		super.execute(ts, u_i, args_i);
+    		if((boolean) ia_wi.execute(ts, u_i, args_i)) {
+				ia_wi.execute(ts, u_i, args_i);
+			}else if((boolean) ia_wc.execute(ts, u_i, args_i)) {
+				ia_wc.execute(ts, u_i, args_i);
+			}
     		return un.unifies(args[1], u_i.get("Name"));	
     	}else {
     		return false;

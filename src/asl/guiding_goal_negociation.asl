@@ -4,7 +4,7 @@
 //^!guiding_goal_negociation(ID, Human, Place)[state(started)] : not started <- +started; +monitoring(ID, Human).	
 +!guiding_goal_negociation(ID, Human,Place): true <-
 	if(not jia.word_individual(findSub, Place, PlaceOnto)){
-		jia.word_class(find, Place, Class);
+		jia.word_class(findSub, Place, Class);
 		if(jia.word_class(getUp, Class, GU) & .sublist(["product"], GU)){
 			.concat(Class, ":sells", Product);
 			jia.word_individual(getFrom, Product, List);
@@ -21,7 +21,10 @@
 			jia.compute_route(From, List, lambda, false, 1, Route);
 			Route =.. [route, [PlaceOnto, R], []];
 		}else{
-			jia.verba_name(List, PlacesVerba);
+			jia.verba_name(List, PlacesVerba1);
+			if(not .list(PlacesVerba1)){
+				PlacesVerba=[PlacesVerba1];
+			}
 			!speak(ID, list_places(PlacesVerba));
 			listen(list_places,PlacesVerba);
 			?listen_result(list_places,Goal);

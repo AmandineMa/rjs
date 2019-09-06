@@ -1,8 +1,8 @@
 guiding:
   dialogue:
-    hwu: False
+    hwu: True
     
-  immo: False
+  immo: True
 
   base_services:
     get_route: 
@@ -41,11 +41,11 @@ guiding:
     pointing_planner: 
       name: /pointing_planner/plan
       type: pointing_planner/PointingPlanner
-
-#   services_moving:
-#     pointing_planner: 
-#       name: /pointing_planner/plan
-#       type: pointing_planner/PointingPlanner
+# 
+  services_moving:
+    pointing_planner: 
+      name: /pointing_planner/plan
+      type: pointing_planner/PointingPlanner
 
   services_hwu:
     dialogue_inform: 
@@ -72,6 +72,7 @@ guiding:
     look_at_events: /pepper_head_manager/str_events
     disengaging: /supervisor/disengaging_human
     terminate_interaction: /terminate_interaction/goal
+    finished_talking: /mummer_dialogue_say/finished
    
   action_servers:
     move_to: m_move_to

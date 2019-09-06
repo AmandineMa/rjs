@@ -30,6 +30,7 @@ import org.ros.message.MessageListener;
 import org.ros.namespace.GraphName;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
+import org.ros.node.Node;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.parameter.ParameterTree;
 import org.ros.node.service.ServiceClient;
@@ -69,6 +70,8 @@ import move_base_msgs.MoveBaseActionGoal;
 import move_base_msgs.MoveBaseActionResult;
 import move_base_msgs.MoveBaseGoal;
 import pepper_base_manager_msgs.StateMachineStatePrioritizedAngle;
+import pepper_engage_human.TerminateInteractionActionGoal;
+import pepper_engage_human.TerminateInteractionGoal;
 import pepper_resources_synchronizer_msgs.SubStateMachine_pepper_base_manager_msgs;
 import perspectives_msgs.Fact;
 import perspectives_msgs.FactArrayStamped;
@@ -134,6 +137,22 @@ public class RosNode extends AbstractNodeMain {
 	@Override
 	public void onStart(final ConnectedNode connectedNode) {
 		this.connectedNode = connectedNode;
+	}
+	
+
+	@Override
+	public void onShutdown(Node node) {
+		// code degueu, ne devrait pas être là
+		Publisher<TerminateInteractionActionGoal> terminate_interaction = connectedNode.newPublisher(
+				getParameters().getString("guiding/topics/terminate_interaction"), TerminateInteractionActionGoal._TYPE);
+		TerminateInteractionActionGoal goal = terminate_interaction.newMessage();
+		nodeConfiguration = NodeConfiguration.newPrivate();
+		messageFactory = nodeConfiguration.getTopicMessageFactory();
+		TerminateInteractionGoal term = messageFactory.newFromType(TerminateInteractionGoal._TYPE);
+		term.setPersonFrame("human-0");
+		goal.setGoal(term);
+		terminate_interaction.publish(goal);
+		super.onShutdown(node);
 	}
 
 	@SuppressWarnings("unchecked")

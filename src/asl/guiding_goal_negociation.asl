@@ -4,7 +4,15 @@
 //^!guiding_goal_negociation(ID, Human, Place)[state(started)] : not started <- +started; +monitoring(ID, Human).	
 +!guiding_goal_negociation(ID, Human,Place): true <-
 	if(not jia.word_individual(findSub, Place, PlaceOnto)){
-		jia.word_class(findSub, Place, Class);
+		jia.word_class(findSub, Place, Class1);
+		if(.list(Class1) & .member("restaurant", Class1)){
+			.sort(Class1, Class2);
+			.length(Class2, X);
+			jia.delete_from_list("restaurant", Class2, ClassL);
+			.nth(0, ClassL, Class);
+		}else{
+			Class=Class1;
+		}
 		if(jia.word_class(getUp, Class, GU) & .sublist(["product"], GU)){
 			.concat(Class, ":sells", Product);
 			jia.word_individual(getFrom, Product, List);
@@ -20,13 +28,12 @@
 		if(.substring(Class, atm) | .substring(Class, toilets)){
 			jia.compute_route(From, List, lambda, false, 1, Route);
 			Route =.. [route, [PlaceOnto, R], []];
+		}elif(.string(List)){
+			jia.word_individual(findSub, List, PlaceOnto);
 		}else{
-			jia.verba_name(List, PlacesVerba1);
-			if(not .list(PlacesVerba1)){
-				PlacesVerba=[PlacesVerba1];
-			}
-			!speak(ID, list_places(PlacesVerba1));
-			listen(list_places,PlacesVerba1);
+			jia.verba_name(List, PlacesVerba);
+			!speak(ID, list_places(PlacesVerba));
+			listen(list_places,PlacesVerba);
 			?listen_result(list_places,Goal);
 			if(not jia.believes(got_answer(list_places,Goal,_))){
 				+got_answer(list_places,Goal,0)[ID];
@@ -52,7 +59,10 @@
 -!guiding_goal_negociation(ID, Human, Place)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)]: true <-
 	if(.substring(word_individual, Code) | .substring(word_class, Code)){
 		+place_not_found(Place)[ID];
-		!speak(ID, no_place(Place));
+		jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+		if(Dialogue == false){
+			!speak(ID, no_place(Place));
+		}
 		+end_task(failed, ID)[ID];
 		!drop_current_task(ID, guiding_goal_negociation, no_place, Code);
   	}else{

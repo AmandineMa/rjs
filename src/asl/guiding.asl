@@ -122,7 +122,9 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		jia.reset_att_counter(check_dist);
 	}
 	.wait(800);
-	!speak(ID, going_to_move);
+	if(jia.believes(robot_move(_,_, _))){
+		!speak(ID, going_to_move);
+	}
 	-monitoring(_, _);
 	human_to_monitor(""); 
 	+move(started)[ID];
@@ -209,7 +211,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	}.
 	
 @cp[max_attempts(3)]+!check_pos(ID, Human): true <-
-	.concat("gaze_human_", Human, HGTF);
+	.concat("human_", Human, HGTF);
 	human_to_monitor(HGTF);
 	if(jia.believes(dir_to_point(_))){
 		?dir_to_point(D);
@@ -283,7 +285,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	?task(ID, guiding, Human, _);
 	// TODO meme erreur que pour isPerceiving, ne permet pas de differencier les deux
 	if(.substring(wait_timeout, Error) & .substring(isPerceiving, Code)){
-		.wait(look_at(look),6000);
+		!wait_look_at;
 		look_at_events(stop_look_at);
 		if(not jia.believes(after_move_status(call_human,_))){
 			+after_move_status(call_human,0)[ID];
@@ -308,6 +310,9 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 //		!drop_current_task(ID, wait_human, Failure, Code);
 		!log_failure(ID, wait_human, Failure, Code);
 	}.
+
++!wait_look_at : true <- .wait(look_at(look),6000).
+-!wait_look_at : true <- true.
 	
 /*******  show landmarks **********/
 
@@ -318,7 +323,9 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	if(Dialogue == true){
 		enable_animated_speech(false);
 	}
+	.abolish(point_at(_));
 	!show_target(ID);
+	.abolish(point_at(_));
 	!show_direction(ID); 
 	.wait(800);
 	if(Dialogue == true){
@@ -403,8 +410,8 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	?task(ID, guiding, Human, _);
 	point_at(Ld,false,true);
 	jia.time(T);
-	.print(T);
-	.wait(point_at(point),6000);
+	.print("time before point ",T);
+	.wait(point_at(point),10000);
 	-point_at(point);
 	!verbalization(ID, Ld);
 	.wait(point_at(finished),6000);
@@ -416,23 +423,27 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 
 @pl_nl[max_attempts(3), atomic_r]+!point_look_at(ID, Ld) : not landmark_to_see(Ld) <-
 	?task(ID, guiding, Human, _);
+	jia.time(T);
+	.print("time before point ",T);
 	point_at(Ld,false,true);
-	.wait(point_at(point),6000);
+	.wait(point_at(point),10000);
 	-point_at(point);
-	!verbalization(ID, Ld).
+	!verbalization(ID, Ld);
+	.wait(point_at(finished),6000);
+	-point_at(finished).
 
 
 -!point_look_at(ID, Ld)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
 	?task(ID, guiding, Human, _);
-	if(.substring(test_goal_failed, Error)){
+	if(.substring(test_goal_failed, Error) |  .substring(point_at(finished),Code)){
 		!ask_seen(ID,Ld);
 	}elif(.substring(Error,max_attempts)){
 		!speak(ID,pl_sorry); 
 		jia.reset_att_counter(point_look_at);
-	}elif(.substring(point_at,Code)){
+	}elif(.substring(point_at(point),Code)){
 		jia.time(T2);
-		.print(T2);
-		!log_failure(ID, point_look_at, point_at(point), not_received);
+		.print("time out time ",T2);
+		!log_failure(ID, point_look_at, Code, not_received);
 		!verbalization(ID, Ld);
 	}else{
 		!log_failure(ID, point_look_at, Failure, Code);

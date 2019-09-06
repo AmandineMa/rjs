@@ -17,12 +17,12 @@
 
 +!start : true <- 
 	.verbose(2); 
-	jia.log_beliefs;
 	jia.get_param("/guiding/perspective/robot_place", String, Rp);
 	+robot_place(Rp).
 
 //TODO faire une jia pour changer "Place" dans les params du plan guiding 
-+!guiding(ID, Human, Place) : true <-	
++!guiding(ID, Human, Place) : true <-
+	jia.log_beliefs;	
 	jia.publish_marker(0);
 	.all_names(Agents);
 	.send(interac, tell, inTaskWith(Human,ID));
@@ -64,9 +64,13 @@
 	
 +!clean_facts: true <-
 	-need_attentive_human(_);
+	-look_for_human(_);
+	-move_goal_reached;
+	-adjust;
 	-explained;
 	-finished;
-	-point_at(point);
+	.abolish(point_at(_));
+	.abolish(look_at(_));
 	-look_at(look).
 
 +!drop_current_task(ID, Subgoal, Failure, Code) : true <-
@@ -78,7 +82,14 @@
   	G =.. [Task, [ID,Human,_],[]];
   	.fail_goal(G).
   
-+!log_failure(ID, Subgoal, Failure, Code) : true <- +failure(Subgoal, Failure, Code)[ID].
++!log_failure(ID, Subgoal, Failure, Code) : true <- 
+	if(not jia.believes(failure(Subgoal, Failure, Code,_))){
+		+failure(Subgoal, Failure, Code,0)[ID];
+	}else{
+		?failure(Subgoal, Failure, Code,N);
+		+failure(Subgoal, Failure, Code,N+1)[ID];
+	}.
+	
 
 +!clean_task(ID) : true <-
 	?task(ID, Task, Human, Param);

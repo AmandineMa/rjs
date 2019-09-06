@@ -5,8 +5,8 @@ n(-1).
 	.verbose(2); 
 	jia.log_beliefs.
 
-+isEngagedWith(Human,_) : not inSession(_,_) & not localising /*& isInsideArea(Human, _) */<-
-	.concat("gaze_human_", Human, HTF);
++isEngagedWith(Human,_) : not inSession(_,_) & not localising & isInsideArea(Human, _) <-
+	.concat("human_", Human, HTF);
 	human_to_monitor(HTF);
 	?n(N);
 	-+n(N+1);
@@ -44,6 +44,7 @@ n(-1).
 	if(Dialogue == false){
 		text2speech(goodbye);
 	}
+	!wait_end_talking;
 	terminate_interaction(Human);
 	!clean_facts(Human);
 	!loca;
@@ -55,6 +56,14 @@ n(-1).
 	if(.substring(loca, Failure)){
 		!loca;
 	}.
+	
++!wait_end_talking: finished_talking(_) <-
+	if(not jia.believes(finished_talking(true))){
+		.wait(300);
+		!wait_end_talking;
+	}.
+	
++!wait_end_talking: true <- true.
 
 +!loca: true <-
 	+localising;
@@ -70,10 +79,14 @@ n(-1).
 	move_to(map, P, O);
 	-localising.
 	
--!loca: true <- -localising.// !loca.
+-!loca: true <-
+	 jia.get_param("/guiding/robot_base/position", "List", P);
+	jia.get_param("/guiding/robot_base/orientation", "List", O);
+	move_to(map, P, O);
+	-localising.// !loca.
 
 +isPerceiving(_, 0) : true <-
-	human_to_monitor("gaze_human_0").
+	human_to_monitor("human_0").
 
 -isPerceiving(_, Human) : not inTaskWith(_,_) & inSession(Human,_) <-
 	!wait_human(Human).
@@ -86,7 +99,12 @@ n(-1).
 
 //received by dialogue
 +terminate_interaction(Human) : not bye <- 
+	?n(N);
 	+overBy(dialogue)[N];
+	if(jia.believes(inTaskWith(Human,ID))){
+		?inTaskWith(Human,ID);
+		.send(robot, tell, preempted(ID));
+	}
 	!clean_facts(Human);
 	!loca.
 

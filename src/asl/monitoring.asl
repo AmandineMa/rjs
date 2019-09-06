@@ -2,7 +2,7 @@
 
 +monitoring(ID, Human) : true <-
 //	.send(interac, tell, monitoring(Human));
-	.concat("gaze_human_", Human, HTF);
+	.concat("human_", Human, HTF);
 	human_to_monitor(HTF);
 	!wait_before_looking(Human).
 
@@ -36,17 +36,20 @@
 @lfh[max_attempts(2)] +!look_for_human(Human) : not isPerceiving(Human) & monitoring(_, Human) <- 
 	?task(ID, Task, Human, Place);
 	G =.. [Task, [ID,Human,_],[]];
-	.suspend(G);
-	.wait(800);
 	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == false){
+		.suspend(G);
+		.wait(800);
 		!speak(ID,where_are_u);
 	}
 	.wait(isPerceiving(Human),6000);
 	?task(ID, _, Human, _);
-	!speak(ID,found_again);
-	.wait(800);
-	.resume(G);
+	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	if(Dialogue == false){
+		!speak(ID,found_again);	
+		.wait(800);
+		.resume(G);
+	}
 	-look_for_human(Human).
 	
 +!look_for_human(Human) : isPerceiving(Human) & not monitoring(_, Human) <- -look_for_human(Human).
@@ -56,14 +59,15 @@
 	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == false){
 		!speak(ID,found_again);
+		G =.. [Task, [ID,Human,_],[]];
+		.wait(800);
+		.resume(G);
 	}
-	G =.. [Task, [ID,Human,_],[]];
-	.wait(800);
-	.resume(G);
 	-look_for_human(Human).
 	
 -!look_for_human(Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : not isPerceiving(Human) <- 
 	?task(ID, _, Human, _);
+	-look_for_human(Human);
 	if(.substring(Error,max_attempts)){
 		jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 		if(Dialogue == false){

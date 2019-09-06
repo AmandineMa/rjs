@@ -88,6 +88,17 @@ public class InteractAgArch extends RobotAgArch {
 			}
 		};
 		m_rosnode.addListener("guiding/topics/terminate_interaction", TerminateInteractionActionGoal._TYPE, terminate_interac);
+		
+		MessageListener<std_msgs.Bool> is_talking = new MessageListener<std_msgs.Bool>() {
+			public void onNewMessage(std_msgs.Bool msg) {
+				try {
+					getTS().getAg().addBel(Literal.parseLiteral("finished_talking("+String.valueOf(msg.getData())+")"));
+				} catch (RevisionFailedException e) {
+					e.printStackTrace();
+				}
+			}
+		};
+		m_rosnode.addListener("guiding/topics/finished_talking", std_msgs.Bool._TYPE, is_talking);
 	}
 	
 	

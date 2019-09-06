@@ -586,8 +586,12 @@ public class RobotAgArch extends ROSAgArch {
 					if (!hwu_dial) {
 						String question = action.getActionTerm().getTerm(0).toString();
 						ArrayList<String> words = new ArrayList<String>();
-						for (Term term : (ListTermImpl) action.getActionTerm().getTerms().get(1)) {
-							words.add(term.toString().replaceAll("^\"|\"$", ""));
+						if(action.getActionTerm().getTerms().get(1).isList()) {
+							for (Term term : (ListTermImpl) action.getActionTerm().getTerms().get(1)) {
+								words.add(term.toString().replaceAll("^\"|\"$", ""));
+							}
+						}else {
+							words.add(action.getActionTerm().getTerms().get(1).toString().replaceAll("^\"|\"$", ""));
 						}
 						m_rosnode.call_dialogue_as(words);
 						try {
@@ -850,6 +854,7 @@ public class RobotAgArch extends ROSAgArch {
 					double r_dist_to_new_pose = Math.hypot(
 							robot_pose_now.translation.x - robot_pose.getPosition().getX(),
 							robot_pose_now.translation.y - robot_pose.getPosition().getY());
+					logger.info("robot dist to new pose :"+r_dist_to_new_pose);
 					if (r_dist_to_new_pose > m_rosnode.getParameters()
 							.getDouble("guiding/tuning_param/robot_should_move_dist_th")) {
 						
@@ -882,12 +887,14 @@ public class RobotAgArch extends ROSAgArch {
 							}
 						}
 					}else {
+						
 						getTS().getAg().addBel(Literal.parseLiteral("robot_turn(" + r_frame + ", ["
 								+ robot_pose_now.translation.x + ","+ robot_pose_now.translation.y + "," + robot_pose_now.translation.z+ "], ["  
 								+ robot_pose.getOrientation().getX()+ "," + robot_pose.getOrientation().getY()+ ","
 								+ robot_pose.getOrientation().getZ()+ "," + robot_pose.getOrientation().getW()+ "])[" + task_id + "]"));
 					}
 				}else {
+					logger.info("robot pose now = null");
 					getTS().getAg().addBel(Literal.parseLiteral("robot_move(" + r_frame + ","
 							+ robot_pose.toString() + ")[" + task_id + "]"));
 				}

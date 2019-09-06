@@ -620,7 +620,7 @@ public class RosNode extends AbstractNodeMain {
 		DialogueArbiterGoal engage_goal = messageFactory.newFromType(DialogueArbiterGoal._TYPE);
 		
 		engage_goal.setId(UUID.randomUUID().toString());
-		engage_goal.setParams("{\"person_frame\": \"human_0\"}");
+		engage_goal.setParams("{\"person_frame\": \"human_"+human_id+"\"}");
 		goal_msg.setGoal(engage_goal);
 		
 		engage_pub.publish(goal_msg);

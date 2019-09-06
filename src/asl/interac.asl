@@ -11,7 +11,7 @@ n(-1).
 	?n(N);
 	-+n(N+1);
 	+inSession(Human,N+1)[N+1];
-	engage(Human);
+	engage(N+1);
 	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == false){
 		text2speech(hello);
@@ -45,7 +45,7 @@ n(-1).
 		text2speech(goodbye);
 	}
 	!wait_end_talking;
-	terminate_interaction(Human);
+	terminate_interaction(N);
 	!clean_facts(Human);
 	!loca;
 	-bye.

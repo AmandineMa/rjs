@@ -126,6 +126,14 @@
 	G =.. [Task, [ID,Human,_],[]];
 	.drop_desire(G).
 	
++cancelled(ID) : true <-
+	-preempted(ID)[add_time(_), source(_)];
+	+end_task(preempted, ID)[ID];
+	?task(ID, Task, Human, Place);
+	!clean_task(ID);
+	G =.. [Task, [ID,Human,_],[]];
+	.drop_desire(G).
+	
 +suspend(ID) : true <-
 	-suspend(ID);
 	+suspended(ID)[ID];

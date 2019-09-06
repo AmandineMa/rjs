@@ -121,7 +121,7 @@ public class SupervisorAgArch extends ROSAgArch {
 						@Override
 						public void cancelReceived(GoalID id) {
 							try {
-								getTS().getAg().addBel(Literal.parseLiteral("preempted(\""+id.getId()+"\")"));
+								getTS().getAg().addBel(Literal.parseLiteral("cancelled(\""+id.getId()+"\")"));
 							} catch (RevisionFailedException e) {
 								logger.info(Tools.getStackTrace(e));
 							}
@@ -141,7 +141,7 @@ public class SupervisorAgArch extends ROSAgArch {
 							if(m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu"))
 								person = person.replaceAll("human-", "");
 							try {
-								getTS().getAg().addBel(Literal.parseLiteral("guiding_goal(\""+goal.getGoalId().getId()+"\","+person+",\""+goal.getGoal().getPlaceFrame()+"\")"));
+								getTS().getAg().addBel(Literal.parseLiteral("guiding_goal(\""+goal.getGoalId().getId()+"\",\"0\",\""+goal.getGoal().getPlaceFrame()+"\")"));
 							} catch (RevisionFailedException e) {
 								logger.info(Tools.getStackTrace(e));
 							}
@@ -182,7 +182,8 @@ public class SupervisorAgArch extends ROSAgArch {
 					success = success.replaceAll("^\"|\"$", "");
 					String id = action.getActionTerm().getTerm(1).toString();
 					id = id.replaceAll("^\"|\"$", "");
-					m_rosnode.set_task_result(success, id);
+					if(!success.equals("preempted"))
+						m_rosnode.set_task_result(success, id);
 					logger.info("goal result : "+success);
 					if(current_goal != null && current_goal.equals(id)) {
 						current_goal = null;

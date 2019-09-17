@@ -5,7 +5,7 @@ n(-1).
 	.verbose(2); 
 	jia.log_beliefs.
 
-+isEngagedWith(Human,_) : not inSession(_,_) & not localising & isInsideArea(Human, _) <-
++isEngagedWith(Human,_) : not inSession(_,_) & not localising<-
 	.concat("human_", Human, HTF);
 	human_to_monitor(HTF);
 	?n(N);
@@ -41,11 +41,12 @@ n(-1).
 	+bye;
 	+overBy(not_perceived)[N];
 	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	!wait_end_talking;
 	if(Dialogue == false){
 		text2speech(goodbye);
+	}else{
+		terminate_interaction(N);
 	}
-	!wait_end_talking;
-	terminate_interaction(N);
 	!clean_facts(Human);
 	!loca;
 	-bye.

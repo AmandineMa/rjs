@@ -41,7 +41,7 @@ guiding:
     pointing_planner: 
       name: /pointing_planner/plan
       type: pointing_planner/PointingPlanner
-# 
+
   services_moving:
     pointing_planner: 
       name: /pointing_planner/plan
@@ -57,6 +57,9 @@ guiding:
     enable_animated_speech:
       name: /mummer_dialogue_say/enable_animated_speech
       type: std_srvs/SetBool
+    terminate_interaction:
+      name: /dialogue_arbiter/end_conv
+      type: std_srvs/Empty
       
   services_wo_hwu:
     speak_to: 

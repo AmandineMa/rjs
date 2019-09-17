@@ -85,6 +85,7 @@ import resource_management_msgs.StateMachineTransition;
 import resource_synchronizer_msgs.MetaStateMachineHeader;
 import resource_synchronizer_msgs.SubStateMachineHeader;
 import std_msgs.Header;
+import std_srvs.EmptyResponse;
 import utils.SimpleFact;
 import utils.Tools;
 
@@ -143,15 +144,15 @@ public class RosNode extends AbstractNodeMain {
 	@Override
 	public void onShutdown(Node node) {
 		// code degueu, ne devrait pas être là
-		Publisher<TerminateInteractionActionGoal> terminate_interaction = connectedNode.newPublisher(
-				getParameters().getString("guiding/topics/terminate_interaction"), TerminateInteractionActionGoal._TYPE);
-		TerminateInteractionActionGoal goal = terminate_interaction.newMessage();
-		nodeConfiguration = NodeConfiguration.newPrivate();
-		messageFactory = nodeConfiguration.getTopicMessageFactory();
-		TerminateInteractionGoal term = messageFactory.newFromType(TerminateInteractionGoal._TYPE);
-		term.setPersonFrame("human-0");
-		goal.setGoal(term);
-		terminate_interaction.publish(goal);
+		ServiceResponseListener<std_srvs.EmptyResponse> respListener = new ServiceResponseListener<std_srvs.EmptyResponse>() {
+
+			@Override
+			public void onFailure(RemoteException e) {}
+
+			@Override
+			public void onSuccess(EmptyResponse arg0) {}
+		};
+		callAsyncService("terminate_interaction", respListener, null);
 		super.onShutdown(node);
 	}
 
@@ -363,42 +364,44 @@ public class RosNode extends AbstractNodeMain {
 			Tools.getStackTrace(e);
 		}
 
-		for (String name : params.keySet()) {
-			boolean noMethod = true;
-			for (Method curMethod : setMethods) {
-				if (curMethod.getName().substring(3).toLowerCase().equalsIgnoreCase(name))
-					noMethod = false;
-			}
-
-			if (noMethod) {
-				logger.info("Warning: Parameter " + name + " doesn't have a corresponding setter in " + className);
-				logger.info("List of setters for this class: ");
+		if(params != null) {
+			for (String name : params.keySet()) {
+				boolean noMethod = true;
 				for (Method curMethod : setMethods) {
-					logger.info("  -  " + curMethod.getName());
+					if (curMethod.getName().substring(3).toLowerCase().equalsIgnoreCase(name))
+						noMethod = false;
+				}
+	
+				if (noMethod) {
+					logger.info("Warning: Parameter " + name + " doesn't have a corresponding setter in " + className);
+					logger.info("List of setters for this class: ");
+					for (Method curMethod : setMethods) {
+						logger.info("  -  " + curMethod.getName());
+					}
 				}
 			}
-		}
 
-		for (int i = 0; i < setMethods.size(); i++) {
-			try {
-				Method setM = setMethods.get(i);
-				if (setM.getParameterTypes().length == 1) {
-					setM.getParameterTypes();
-
-					String paramName = setM.getName().substring(3).toLowerCase();
-					if (params.containsKey(paramName)) {
-//						logger.info("Setting " + paramName + " with value: " + params.get(paramName));
-						setM.invoke(msg, params.get(paramName));
+			for (int i = 0; i < setMethods.size(); i++) {
+				try {
+					Method setM = setMethods.get(i);
+					if (setM.getParameterTypes().length == 1) {
+						setM.getParameterTypes();
+	
+						String paramName = setM.getName().substring(3).toLowerCase();
+						if (params.containsKey(paramName)) {
+	//						logger.info("Setting " + paramName + " with value: " + params.get(paramName));
+							setM.invoke(msg, params.get(paramName));
+						} else {
+							logger.info("No value defined for parameter: " + paramName);
+						}
+	
 					} else {
-						logger.info("No value defined for parameter: " + paramName);
+						logger.info("Error: incorrect number of parameters: " + setM.getParameterTypes().length);
 					}
-
-				} else {
-					logger.info("Error: incorrect number of parameters: " + setM.getParameterTypes().length);
+	
+				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+					Tools.getStackTrace(e);
 				}
-
-			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-				Tools.getStackTrace(e);
 			}
 		}
 

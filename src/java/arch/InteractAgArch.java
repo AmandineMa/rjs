@@ -30,6 +30,7 @@ import msg_srv_impl.PoseCustom;
 import pepper_engage_human.TerminateInteractionActionGoal;
 import pepper_engage_human.TerminateInteractionGoal;
 import std_msgs.Header;
+import std_srvs.EmptyResponse;
 import utils.SimpleFact;
 
 public class InteractAgArch extends RobotAgArch {
@@ -127,17 +128,21 @@ public class InteractAgArch extends RobotAgArch {
 					action.setResult(true);
 					actionExecuted(action);
 				}else if(action_name.equals("terminate_interaction")) {
-					String human = action.getActionTerm().getTerm(0).toString();
-					human = human.replaceAll("^\"|\"$", "");
-					TerminateInteractionActionGoal goal = terminate_interaction.newMessage();
-					nodeConfiguration = NodeConfiguration.newPrivate();
-					messageFactory = nodeConfiguration.getTopicMessageFactory();
-					TerminateInteractionGoal term = messageFactory.newFromType(TerminateInteractionGoal._TYPE);
-					term.setPersonFrame("human-"+human);
-					goal.setGoal(term);
-					terminate_interaction.publish(goal);
-					action.setResult(true);
-					actionExecuted(action);
+					ServiceResponseListener<std_srvs.EmptyResponse> respListener = new ServiceResponseListener<std_srvs.EmptyResponse>() {
+
+						@Override
+						public void onFailure(RemoteException e) {
+							handleFailure(action, action_name, e);
+						}
+
+						@Override
+						public void onSuccess(EmptyResponse arg0) {
+							action.setResult(true);
+							actionExecuted(action);
+						}
+					};
+					m_rosnode.callAsyncService("terminate_interaction", respListener, null);
+					
 				} else if (action_name.equals("localise")) {
 					ServiceResponseListener<pepper_localisation.responseResponse> respListener = new ServiceResponseListener<pepper_localisation.responseResponse>() {
 						public void onFailure(RemoteException e) {

@@ -6,9 +6,7 @@
 	if(not jia.word_individual(findSub, Place, PlaceOnto)){
 		jia.word_class(findSub, Place, Class1);
 		if(.list(Class1) & .member("restaurant", Class1)){
-			.sort(Class1, Class2);
-			.length(Class2, X);
-			jia.delete_from_list("restaurant", Class2, ClassL);
+			jia.delete_from_list("restaurant", Class1, ClassL);
 			.nth(0, ClassL, Class);
 		}else{
 			Class=Class1;
@@ -25,13 +23,20 @@
 			}
 		}
 		?robot_place(From);
+		if(.list(List) & .length(List, X) & X=1){
+			.nth(0, List, L);
+			jia.word_individual(getType, L, T);
+			jia.verba_name(T, ListF);
+		}else{			
+			ListF=List;
+		}
 		if(.substring(Class, atm) | .substring(Class, toilets)){
-			jia.compute_route(From, List, lambda, false, 1, Route);
+			jia.compute_route(From, ListF, lambda, false, 1, Route);
 			Route =.. [route, [PlaceOnto, R], []];
-		}elif(.string(List)){
-			jia.word_individual(findSub, List, PlaceOnto);
+		}elif(.string(ListF)){
+			jia.word_individual(findSub, ListF, PlaceOnto);
 		}else{
-			jia.verba_name(List, PlacesVerba);
+			jia.verba_name(ListF, PlacesVerba);
 			!speak(ID, list_places(PlacesVerba));
 			listen(list_places,PlacesVerba);
 			?listen_result(list_places,Goal);

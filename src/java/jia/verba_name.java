@@ -5,6 +5,7 @@ import jason.asSemantics.DefaultInternalAction;
 import jason.asSemantics.InternalAction;
 import jason.asSemantics.TransitionSystem;
 import jason.asSemantics.Unifier;
+import jason.asSyntax.DefaultTerm;
 import jason.asSyntax.ListTerm;
 import jason.asSyntax.ListTermImpl;
 import jason.asSyntax.StringTermImpl;
@@ -30,6 +31,16 @@ public class verba_name extends DefaultInternalAction {
 		args_e[1] = null;
 		args_e[2] = new VarTerm("Bool");
 		
+		Term[] args_d = new Term[3];
+		args_d[0] = new StringTermImpl("getDown");
+		args_d[1] = null;
+		args_d[2] = new VarTerm("Down");
+		
+		Term[] args_t = new Term[3];
+		args_t[0] = new StringTermImpl("getType");
+		args_t[1] = null;
+		args_t[2] = new VarTerm("Type");
+		
 		Unifier u_i = new Unifier();
 		
 		Class iaclass_wi = Class.forName("jia.word_individual");
@@ -44,8 +55,15 @@ public class verba_name extends DefaultInternalAction {
     		while(i.hasNext()) {
     			args_i[1] = i.next();
     			args_e[1] = args_i[1];
+    			args_d[1] = args_i[1];
+    			args_t[1] = args_i[1];
     			u_i = new Unifier();
     			if((boolean) ia_wi.execute(ts, u_i, args_e)) {
+    				ia_wi.execute(ts, u_i, args_i);
+    				name_list.add(u_i.get("Name"));
+    			}else if((boolean) ia_wc.execute(ts, u_i, args_d) && !u_i.get("Down").isList()) {
+    				ia_wi.execute(ts, u_i, args_t);
+    				args_i[1] = u_i.get("Type");
     				ia_wi.execute(ts, u_i, args_i);
     				name_list.add(u_i.get("Name"));
     			}else if((boolean) ia_wc.execute(ts, u_i, args_e)) {

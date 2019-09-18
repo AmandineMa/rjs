@@ -248,7 +248,9 @@ public class RobotAgArch extends ROSAgArch {
 
 						@Override
 						public void onFailure(RemoteException e) {
-							handleFailure(action, action_name, e);
+//							handleFailure(action, action_name, e);
+							action.setResult(true);
+							actionExecuted(action);
 						}
 
 						@Override

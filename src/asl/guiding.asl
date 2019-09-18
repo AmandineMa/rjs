@@ -372,8 +372,8 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!speak(ID,sl_sorry); 
 		!drop_current_task(ID, show_landmarks, max_attempts, multiple_wrong_answers);
 	}else{
-//		!log_failure(ID, show_landmarks, Failure, Code);
-		!drop_current_task(ID, show_landmarks, Failure, Code);
+		!log_failure(ID, show_landmarks, Failure, Code);
+//		!drop_current_task(ID, show_landmarks, Failure, Code);
 	}.
 
 

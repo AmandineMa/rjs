@@ -22,6 +22,7 @@
 
 //TODO faire une jia pour changer "Place" dans les params du plan guiding 
 +!guiding(ID, Human, Place) : true <-
+	web_view_start_processing;
 	jia.log_beliefs;	
 	jia.publish_marker(0);
 	.all_names(Agents);

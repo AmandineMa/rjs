@@ -62,6 +62,7 @@ import rpn_recipe_planner_msgs.SupervisionServerQueryActionResult;
 import semantic_route_description_msgs.Route;
 import semantic_route_description_msgs.SemanticRouteResponse;
 import std_msgs.Header;
+import std_srvs.EmptyResponse;
 import std_srvs.SetBoolResponse;
 import utils.Code;
 import utils.Quaternion;
@@ -242,6 +243,22 @@ public class RobotAgArch extends ROSAgArch {
 					human_to_monitor.publish(str);
 					action.setResult(true);
 					actionExecuted(action);
+				}  else if (action_name.equals("web_view_start_processing")) {
+					ServiceResponseListener<std_srvs.EmptyResponse> respListener = new ServiceResponseListener<std_srvs.EmptyResponse>() {
+
+						@Override
+						public void onFailure(RemoteException e) {
+							handleFailure(action, action_name, e);
+						}
+
+						@Override
+						public void onSuccess(EmptyResponse arg0) {
+							action.setResult(true);
+							actionExecuted(action);
+						}
+					};
+					m_rosnode.callAsyncService("web_view_start_processing", respListener, null);
+					
 				} else if (action_name.equals("get_onto_individual_info")) {
 					String param = action.getActionTerm().getTerm(0).toString();
 					String individual_o = action.getActionTerm().getTerm(1).toString();

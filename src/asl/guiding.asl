@@ -25,6 +25,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!speak(ID, ask_stairs);
 		listen(ask_stairs,["yes","no"]);
 		?listen_result(ask_stairs,Word);
+		web_view_start_processing;
 		if(not jia.believes(got_answer(ask_stairs,Word,_))){
 			+got_answer(ask_stairs,Word,0)[ID];
 		}else{
@@ -335,6 +336,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!speak(ID, ask_understand);
 		listen(ask_understand,["yes","no"]);
 		?listen_result(ask_understand,Word1);
+		web_view_start_processing;
 		if(not jia.believes(got_answer(ask_understand,Word1,_))){
 			+got_answer(ask_understand,Word1,0)[ID];
 		}else{
@@ -347,6 +349,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 			!speak(ID, ask_explain_again);
 			listen(ask_explain_again,["yes","no"]);
 			?listen_result(ask_explain_again,Word2);
+			web_view_start_processing;
 			if(not jia.believes(got_answer(ask_explain_again,Word2,_))){
 				+got_answer(ask_explain_again,Word2,0)[ID];
 			}else{
@@ -388,6 +391,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	}else{
 		?target_place(TargetPlace);
 		!verbalization(ID, TargetPlace);
+		web_view_start_processing;
 	}.
 	
 +!show_direction(ID) : true <-
@@ -401,6 +405,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	if(.substring(can_transform, Code)){
 		?direction(D);
 		!verbalization(ID, D);
+		web_view_start_processing;
 	}elif(not .substring(test_goal_failed, Error)){
 		!log_failure(ID, show_direction, Failure, Code);
 	}.
@@ -414,6 +419,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	.wait(point_at(point),10000);
 	-point_at(point);
 	!verbalization(ID, Ld);
+	web_view_start_processing;
 	.wait(point_at(finished),6000);
 	-point_at(finished);
 	?(canSee(Ld)[source(Human)] | hasSeen(Ld)[source(Human)]);
@@ -429,6 +435,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	.wait(point_at(point),10000);
 	-point_at(point);
 	!verbalization(ID, Ld);
+	web_view_start_processing;
 	.wait(point_at(finished),6000);
 	-point_at(finished).
 
@@ -445,9 +452,11 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		.print("time out time ",T2);
 		!log_failure(ID, point_look_at, Code, not_received);
 		!verbalization(ID, Ld);
+		web_view_start_processing;
 	}else{
 		!log_failure(ID, point_look_at, Failure, Code);
 		!verbalization(ID, Ld);
+		web_view_start_processing;
 	}.
 	
 +!ask_seen(ID, Ld) : true <-
@@ -456,6 +465,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	!speak(ID, cannot_tell_seen(Verba));
 	listen(cannot_tell_seen,["yes","no"]);
 	?listen_result(cannot_tell_seen, Word1);
+	web_view_start_processing;
 	if(not jia.believes(got_answer(cannot_tell_seen,Word1,_))){
 		+got_answer(cannot_tell_seen,Word1,0)[ID];
 	}else{
@@ -466,6 +476,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!speak(ID, ask_show_again(Ld));
 		listen(ask_show_again,["yes","no"]);
 		?listen_result(ask_show_again, Word2);
+		web_view_start_processing;
 		if(not jia.believes(got_answer(ask_show_again,Word2,_))){
 			+got_answer(ask_show_again,Word2,0)[ID];
 		}else{

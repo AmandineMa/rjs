@@ -60,6 +60,9 @@ guiding:
     terminate_interaction:
       name: /dialogue_arbiter/end_conv
       type: std_srvs/Empty
+    web_view_start_processing:
+      name: /web_view_node/start_processing
+      type: std_srvs/Empty
       
   services_wo_hwu:
     speak_to: 

@@ -115,6 +115,7 @@ public class SupervisorAgArch extends ROSAgArch {
 							GoalID goalID = goal.getGoalId();
 							if(goal.getGoalId().getId().isEmpty()) {
 								goalIDGenerator.generateID(goalID);
+								goal.setGoalId(goalID);
 							}
 						}
 
@@ -122,6 +123,7 @@ public class SupervisorAgArch extends ROSAgArch {
 						public void cancelReceived(GoalID id) {
 							try {
 								getTS().getAg().addBel(Literal.parseLiteral("cancelled(\""+id.getId()+"\")"));
+								logger.info("cancel dialogue goal when goal cancelled");
 							} catch (RevisionFailedException e) {
 								logger.info(Tools.getStackTrace(e));
 							}
@@ -129,12 +131,17 @@ public class SupervisorAgArch extends ROSAgArch {
 
 						@Override
 						public boolean acceptGoal(taskActionGoal goal) {
+							logger.info("accept new goal :"+goal.getGoal().getPlaceFrame());
 							if(current_goal != null) {
+								logger.info("cancel dialogue goal when new goal received");
 								try {
 									getTS().getAg().addBel(Literal.parseLiteral("preempted(\""+current_goal+"\")"));
 								} catch (RevisionFailedException e) {
 									logger.info(Tools.getStackTrace(e));
 								}
+							}
+							while(current_goal != null) {
+								sleep(100);
 							}
 							current_goal = goal.getGoalId().getId();
 							String person = "\""+goal.getGoal().getPersonFrame()+"\"";
@@ -178,6 +185,9 @@ public class SupervisorAgArch extends ROSAgArch {
 					}
 					actionExecuted(action);
 				}else if(action_name.equals("set_guiding_result")){
+					logger.info("cancel dialogue goal when goal over");
+					m_rosnode.cancel_dialogue_inform_goal();
+					m_rosnode.cancel_dialogue_query_goal();
 					String success = action.getActionTerm().getTerm(0).toString();
 					success = success.replaceAll("^\"|\"$", "");
 					String id = action.getActionTerm().getTerm(1).toString();

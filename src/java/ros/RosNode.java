@@ -42,6 +42,7 @@ import org.ros.rosjava.tf.pubsub.TransformListener;
 
 import com.github.rosjava_actionlib.ActionServer;
 import com.github.rosjava_actionlib.ActionServerListener;
+import com.github.rosjava_actionlib.GoalIDGenerator;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -84,6 +85,12 @@ import resource_management_msgs.StateMachineStateHeader;
 import resource_management_msgs.StateMachineTransition;
 import resource_synchronizer_msgs.MetaStateMachineHeader;
 import resource_synchronizer_msgs.SubStateMachineHeader;
+import rpn_recipe_planner_msgs.SupervisionServerInformActionGoal;
+import rpn_recipe_planner_msgs.SupervisionServerInformActionResult;
+import rpn_recipe_planner_msgs.SupervisionServerInformGoal;
+import rpn_recipe_planner_msgs.SupervisionServerQueryActionGoal;
+import rpn_recipe_planner_msgs.SupervisionServerQueryActionResult;
+import rpn_recipe_planner_msgs.SupervisionServerQueryGoal;
 import std_msgs.Header;
 import std_srvs.EmptyResponse;
 import utils.SimpleFact;
@@ -103,6 +110,7 @@ public class RosNode extends AbstractNodeMain {
 	private ConnectedNode connectedNode;
 	private NodeConfiguration nodeConfiguration;
 	private MessageFactory messageFactory;
+	private GoalIDGenerator goalIDGenerator;
 	private TransformListener tfl;
 	private ParameterTree parameters;
 	private MasterStateClient msc;
@@ -116,10 +124,18 @@ public class RosNode extends AbstractNodeMain {
 	private PointingActionFeedback placements_fb;
 	private dialogue_actionActionResult listening_result;
 	private dialogue_actionActionFeedback listening_fb;
+	private SupervisionServerInformActionResult listening_result_inform;
+	private SupervisionServerQueryActionResult listening_result_query;
 	private MoveBaseActionResult move_to_result;
 	private MoveBaseActionFeedback move_to_fb;
 	private Publisher<MoveBaseActionGoal> move_to_goal_pub;
 	private Publisher<dialogue_actionActionGoal> dialogue_pub;
+	private Publisher<SupervisionServerInformActionGoal> dialogue_pub_inform;
+	private GoalID inform_goal_id;
+	private Publisher<GoalID> dialogue_cancel_pub_inform;
+	private Publisher<SupervisionServerQueryActionGoal> dialogue_pub_query;
+	private GoalID query_goal_id;
+	private Publisher<GoalID> dialogue_cancel_pub_query;
 	private Publisher<GoalID> dialogue_cancel_pub;
 	private Publisher<DialogueArbiterActionGoal> engage_pub;
 	private Publisher<visualization_msgs.Marker> marker_pub;
@@ -143,6 +159,9 @@ public class RosNode extends AbstractNodeMain {
 
 	@Override
 	public void onShutdown(Node node) {
+		cancel_dialogue_inform_goal();
+		cancel_dialogue_query_goal();
+		
 		// code degueu, ne devrait pas être là
 		ServiceResponseListener<std_srvs.EmptyResponse> respListener = new ServiceResponseListener<std_srvs.EmptyResponse>() {
 
@@ -161,6 +180,7 @@ public class RosNode extends AbstractNodeMain {
 		try {
 			nodeConfiguration = NodeConfiguration.newPrivate();
 			messageFactory = nodeConfiguration.getTopicMessageFactory();
+			goalIDGenerator = new GoalIDGenerator(getConnectedNode());
 			tfl = new TransformListener(connectedNode);
 			parameters = connectedNode.getParameterTree();
 			URI uri = null;
@@ -210,6 +230,38 @@ public class RosNode extends AbstractNodeMain {
 					}
 				};
 				addListenerResult("/guiding/action_servers/move_to", MoveBaseActionResult._TYPE, ml_move);
+			}
+			
+			if(parameters.has("/guiding/action_servers/dialogue_inform") && parameters.has("/guiding/action_servers/dialogue_query") 
+					&& parameters.getBoolean("guiding/dialogue/hwu")) {
+				dialogue_pub_inform = connectedNode.newPublisher(
+						parameters.getString("/guiding/action_servers/dialogue_inform") + "/goal", SupervisionServerInformActionGoal._TYPE);
+				
+				dialogue_pub_query = connectedNode.newPublisher(
+						parameters.getString("/guiding/action_servers/dialogue_query") + "/goal", SupervisionServerQueryActionGoal._TYPE);
+				
+				MessageListener<SupervisionServerInformActionResult> ml_inform = new MessageListener<SupervisionServerInformActionResult>() {
+					
+					@Override
+					public void onNewMessage(SupervisionServerInformActionResult result) {
+						listening_result_inform = result;
+					}
+				};
+				addListenerResult("/guiding/action_servers/dialogue_inform", SupervisionServerInformActionResult._TYPE, ml_inform);
+				dialogue_cancel_pub_inform = connectedNode.newPublisher(
+						parameters.getString("/guiding/action_servers/dialogue_inform") + "/cancel", GoalID._TYPE);
+				
+				MessageListener<SupervisionServerQueryActionResult> ml_query = new MessageListener<SupervisionServerQueryActionResult>() {
+					
+					@Override
+					public void onNewMessage(SupervisionServerQueryActionResult result) {
+						listening_result_query = result;
+					}
+				};
+				addListenerResult("/guiding/action_servers/dialogue_query", SupervisionServerQueryActionResult._TYPE, ml_query);
+				dialogue_cancel_pub_query = connectedNode.newPublisher(
+						parameters.getString("/guiding/action_servers/dialogue_query") + "/cancel", GoalID._TYPE);
+				
 			}
 			
 			if(parameters.has("/guiding/action_servers/dialogue") && !parameters.getBoolean("guiding/dialogue/hwu")) {
@@ -454,6 +506,7 @@ public class RosNode extends AbstractNodeMain {
 			}
 			result.setResult(r);
 			result.setStatus(status);
+			logger.info("set action server result :"+success);
 			guiding_as.sendResult(result);
 		} else {
 			logger.info("guiding as null");
@@ -618,8 +671,6 @@ public class RosNode extends AbstractNodeMain {
 		DialogueArbiterActionGoal goal_msg;
 		goal_msg = engage_pub.newMessage();
 		
-		nodeConfiguration = NodeConfiguration.newPrivate();
-		messageFactory = nodeConfiguration.getTopicMessageFactory();
 		DialogueArbiterGoal engage_goal = messageFactory.newFromType(DialogueArbiterGoal._TYPE);
 		
 		engage_goal.setId(UUID.randomUUID().toString());
@@ -627,6 +678,48 @@ public class RosNode extends AbstractNodeMain {
 		goal_msg.setGoal(engage_goal);
 		
 		engage_pub.publish(goal_msg);
+	}
+	
+	public void call_dialogue_as_inform(String status, String return_value) {
+		listening_result_inform = null;
+		SupervisionServerInformActionGoal listen_goal_msg = messageFactory.newFromType(SupervisionServerInformActionGoal._TYPE);
+		SupervisionServerInformGoal listen_goal = listen_goal_msg.getGoal();
+		listen_goal.setStatus(status);
+		if(return_value != null && !return_value.isEmpty())
+			listen_goal.setReturnValue(return_value);
+		listen_goal_msg.setGoal(listen_goal);
+		GoalID goalID = messageFactory.newFromType(GoalID._TYPE);
+		goalIDGenerator.generateID(goalID);
+		inform_goal_id = goalID;
+		logger.info("inform goal ID: "+inform_goal_id);
+		listen_goal_msg.setGoalId(goalID);
+		dialogue_pub_inform.publish(listen_goal_msg);
+	}
+	
+	public void cancel_dialogue_inform_goal() {
+		if(inform_goal_id != null)
+			dialogue_cancel_pub_inform.publish(inform_goal_id);
+	}
+	
+	public void cancel_dialogue_query_goal() {
+		if(query_goal_id != null)
+			dialogue_cancel_pub_query.publish(query_goal_id);
+	}
+	
+	public void call_dialogue_as_query(String status, String return_value) {
+		listening_result_query = null;
+		SupervisionServerQueryActionGoal listen_goal_msg = messageFactory.newFromType(SupervisionServerQueryActionGoal._TYPE);
+		SupervisionServerQueryGoal listen_goal = listen_goal_msg.getGoal();
+		listen_goal.setStatus(status);
+		if(return_value != null && !return_value.isEmpty())
+			listen_goal.setReturnValue(return_value);
+		listen_goal_msg.setGoal(listen_goal);
+		GoalID goalID = messageFactory.newFromType(GoalID._TYPE);
+		goalIDGenerator.generateID(goalID);
+		query_goal_id = goalID;
+		logger.info("query goal ID: "+query_goal_id);
+		listen_goal_msg.setGoalId(goalID);
+		dialogue_pub_query.publish(listen_goal_msg);
 	}
 
 	public void call_dialogue_as(List<String> subjects) {
@@ -636,8 +729,6 @@ public class RosNode extends AbstractNodeMain {
 	public void call_dialogue_as(List<String> subjects, List<String> verbs) {
 		listening_fb = null;
 		listening_result = null;
-		nodeConfiguration = NodeConfiguration.newPrivate();
-		messageFactory = nodeConfiguration.getTopicMessageFactory();
 		dialogue_actionActionGoal listen_goal_msg = messageFactory.newFromType(dialogue_actionActionGoal._TYPE);
 		dialogue_actionGoal listen_goal = listen_goal_msg.getGoal();
 		if (!subjects.isEmpty()) {
@@ -681,6 +772,14 @@ public class RosNode extends AbstractNodeMain {
 
 	public PointingActionFeedback getPlacements_fb() {
 		return placements_fb;
+	}
+
+	public SupervisionServerInformActionResult getListening_result_inform() {
+		return listening_result_inform;
+	}
+
+	public SupervisionServerQueryActionResult getListening_result_query() {
+		return listening_result_query;
 	}
 
 	public dialogue_actionActionResult getListening_result() {

@@ -82,6 +82,8 @@ guiding:
     dialogue: dialogue_as
     pointing_planner: /pointing_planner/SVP_Planner
     engage: engage
+    dialogue_inform: /rpn_supervision_server/inform_srv
+    dialogue_query: /rpn_supervision_server/query_srv
   
   tuning_param:
     pointing_duration: 1 #seconds

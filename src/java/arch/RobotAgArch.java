@@ -56,6 +56,9 @@ import pointing_planner.VisibilityScoreResponse;
 import route_verbalization_msgs.VerbalizeRegionRouteResponse;
 import rpn_recipe_planner_msgs.SuperInformResponse;
 import rpn_recipe_planner_msgs.SuperQueryResponse;
+import rpn_recipe_planner_msgs.SupervisionServerInformActionResult;
+import rpn_recipe_planner_msgs.SupervisionServerQueryActionGoal;
+import rpn_recipe_planner_msgs.SupervisionServerQueryActionResult;
 import semantic_route_description_msgs.Route;
 import semantic_route_description_msgs.SemanticRouteResponse;
 import std_msgs.Header;
@@ -1110,68 +1113,53 @@ public class RobotAgArch extends ROSAgArch {
 			boolean result = true;
 			if (text.contains("?")) {
 
-				Map<String, Object> parameters = new HashMap<String, Object>();
 				if(!bel_functor.equals("list_places"))
-					parameters.put("status", "clarification." + bel_functor);
+					m_rosnode.call_dialogue_as_query("clarification." + bel_functor, bel_arg);
 				else
-					parameters.put("status", "disambiguation");
-				if (bel_arg != null)
-					parameters.put("returnvalue", bel_arg);
-				logger.info((String) parameters.get("status"));
-				SuperQueryResponse dial_resp = m_rosnode.callSyncService("dialogue_query", parameters);
-				if(dial_resp == null) {
-					logger.info("empty answer from dialogue");
+					m_rosnode.call_dialogue_as_query("disambiguation", bel_arg);
+				SupervisionServerQueryActionResult listening_result = wait_dialogue_as_answer(bel_functor, task_id);
+				if(listening_result.getStatus().getStatus() == GoalStatus.PREEMPTED) {
 					result = false;
-				} else {
-					String resp;
-					if (dial_resp.getResult().equals("true")) {
-						resp = "yes";
-					} else if (dial_resp.getResult().equals("false")) {
-						resp = "no";
-					} else {
-						resp = dial_resp.getResult();
-					}
-					logger.info("dialogue answer :"+resp);
-					try {
-						if(task_id != null)
-							getTS().getAg().addBel(Literal.parseLiteral(
-									"listen_result(" + bel_functor + ",\"" + resp + "\")[" + task_id + "]"));
-						else
-							getTS().getAg().addBel(Literal.parseLiteral(
-									"listen_result(" + bel_functor + ",\"" + resp + "\")"));
-					} catch (RevisionFailedException e) {
-						// TODO Auto-generated catch block
-						Tools.getStackTrace(e);
-					}
+					action.setFailureReason(new Atom("dialogue_preempted"), "dialogue preempted");
+				}else if(listening_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
+					result = true;
+				}else {
+					result = false;
+					action.setFailureReason(new Atom("dialogue_failure"), "dialogue failure");
+				}
+				try {
+					getTS().getAg().abolish(Literal.parseLiteral("listening"), new Unifier());
+				} catch (RevisionFailedException e) {
+					Tools.getStackTrace(e);
 				}
 			} else {
-				Map<String, Object> parameters = new HashMap<String, Object>();
 
 				String sentence_code = bel_functor;
 				if(!bel_functor.equals("failed") && !bel_functor.equals("succeeded"))
 					sentence_code = "verbalisation." + bel_functor;
 				logger.info(sentence_code);
-				parameters.put("status", sentence_code);
-				if (bel_arg != null)
-					parameters.put("returnvalue", bel_arg);
-				SuperInformResponse super_inform_resp = m_rosnode.callSyncService("dialogue_inform",
-						parameters);
-				if(super_inform_resp == null) result = false; 
+				m_rosnode.call_dialogue_as_inform(sentence_code, bel_arg);
+				SupervisionServerInformActionResult listening_result;
+				do {
+					listening_result = m_rosnode.getListening_result_inform();
+					sleep(200);
+				} while (listening_result == null || listening_result.getStatus().getStatus() != GoalStatus.SUCCEEDED);
+				if(listening_result.getStatus().getStatus() == GoalStatus.PREEMPTED) {
+					result = false;
+					action.setFailureReason(new Atom("dialogue_preempted"), "dialogue preempted");
+				}else if(listening_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
+					result = true;
+				}else {
+					result = false;
+					action.setFailureReason(new Atom("dialogue_failure"), "dialogue failure");
+				}	
 			}
 			action.setResult(result);
 		} else {
 			if (!text.equals("succeeded")) {
-
 				Map<String, Object> parameters = new HashMap<String, Object>();
-//				parameters.put("lookat", m_rosnode.build_point_stamped(human));
 				parameters.put("text", text);
 				SayResponse speak_to_resp = m_rosnode.callSyncService("speak_to", parameters);
-//				if(speak_to_resp.getSuccess()) {
-//					action.setResult(true);
-//				}else {
-//					action.setResult(false);
-//					action.setFailureReason(new Atom("speak_to_failed"), "the speech service failed");
-//				}
 				action.setResult(speak_to_resp != null);
 			}else {
 				action.setResult(true);
@@ -1179,6 +1167,39 @@ public class RobotAgArch extends ROSAgArch {
 		}
 		actionExecuted(action);
 	}
+	
+	public SupervisionServerQueryActionResult wait_dialogue_as_answer(String s, String task_id) {
+		try {
+			getTS().getAg().addBel(Literal.parseLiteral("listening[" + task_id + "]"));
+		} catch (RevisionFailedException e) {
+			Tools.getStackTrace(e);
+		}
+		SupervisionServerQueryActionResult listening_result;
+		do {
+			listening_result = m_rosnode.getListening_result_query();
+			sleep(200);
+		} while (listening_result == null);
+		logger.info("status :"+listening_result.getStatus().getStatus());
+		try {
+			String resp;
+			if (listening_result.getResult().getResult().equals("true")) {
+				resp = "yes";
+			} else if (listening_result.getResult().getResult().equals("false")) {
+				resp = "no";
+			} else {
+				resp = listening_result.getResult().getResult();
+			}
+			if(listening_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
+				getTS().getAg().addBel(Literal.parseLiteral("listen_result(" + s + ",\""
+						+ resp + "\")[" + task_id + "]"));
+			}
+		} catch (RevisionFailedException e) {
+			Tools.getStackTrace(e);
+		}
+		return listening_result;
+		
+	}
+	
 
 	@Override
 	public void actionExecuted(ActionExec act) {

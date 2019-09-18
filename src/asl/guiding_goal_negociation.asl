@@ -63,7 +63,6 @@
 		if(Dialogue == false){
 			!speak(ID, no_place(Place));
 		}
-		+end_task(failed, ID)[ID];
 		!drop_current_task(ID, guiding_goal_negociation, no_place, Code);
   	}else{
   		!drop_current_task(ID, guiding_goal_negociation, Failure, Code); 

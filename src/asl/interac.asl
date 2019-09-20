@@ -66,7 +66,7 @@ n(-1).
 	
 +!wait_end_talking: true <- true.
 
-+!loca: true <-
++!loca: not localising <-
 	+localising;
 	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == false){
@@ -80,12 +80,20 @@ n(-1).
 	move_to(map, P, O);
 	-localising.
 	
--!loca: true <-
-	 jia.get_param("/guiding/robot_base/position", "List", P);
+@loc[max_attempts(2)]+!loca: localising <-
+	jia.get_param("/guiding/robot_base/position", "List", P);
 	jia.get_param("/guiding/robot_base/orientation", "List", O);
 	move_to(map, P, O);
 	-localising.// !loca.
-
+	
+	
+-!loca[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)]: true <-
+	if(.substring(Error,max_attempts)){
+		-localising;
+	}else{
+		!loca;
+	}.
+	
 +isPerceiving(_, 0) : true <-
 	human_to_monitor("human_0").
 

@@ -82,7 +82,7 @@ public class InteractAgArch extends RobotAgArch {
 		MessageListener<TerminateInteractionActionGoal> terminate_interac = new MessageListener<TerminateInteractionActionGoal>() {
 			public void onNewMessage(TerminateInteractionActionGoal msg) {
 				try {
-					getTS().getAg().addBel(Literal.parseLiteral("terminate_interaction(\""+msg.getGoal().getPersonFrame().toString().replace("human-", "")+"\")"));
+					getTS().getAg().addBel(Literal.parseLiteral("terminate_interaction("+msg.getGoal().getPersonFrame().toString().replace("human-", "")+")"));
 				} catch (RevisionFailedException e) {
 					e.printStackTrace();
 				}

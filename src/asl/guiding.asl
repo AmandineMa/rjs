@@ -327,6 +327,9 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	.abolish(point_at(_));
 	!show_target(ID);
 	.abolish(point_at(_));
+	if(jia.believes(direction(_))){
+		!speak(ID, explain_route);
+	}
 	!show_direction(ID); 
 	.wait(800);
 	if(Dialogue == true){

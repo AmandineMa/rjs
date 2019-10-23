@@ -28,6 +28,7 @@
 	.all_names(Agents);
 	.send(interac, tell, inTaskWith(Human,ID));
 	!clean_facts;
+	+goal_from_dialogue(Place)[ID];
 	+task(ID, guiding, Human, Place)[ID];
 	!guiding_goal_negociation(ID, Human, Place);
 	?guiding_goal_nego(ID, PlaceNego);

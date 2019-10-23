@@ -1013,6 +1013,9 @@ public class RobotAgArch extends ROSAgArch {
 		case "able_to_see":
 			text = new String("I think that you're seeing the place right now, good");
 			break;
+		case "explain_route":
+			text = new String("Now, I'm going to explain to you the route");
+			break;
 		case "route_verbalization":
 			text = bel_arg;
 			break;
@@ -1094,6 +1097,9 @@ public class RobotAgArch extends ROSAgArch {
 			break;
 		case "ask_understand":
 			text = new String("Did you understand ?");
+			break;
+		case "generic":
+			text = new String("Do you mean " + bel_arg + "?");
 			break;
 		case "happy_end":
 			text = new String("I am happy that I was able to help you.");

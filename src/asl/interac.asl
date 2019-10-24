@@ -5,7 +5,7 @@ n(-1).
 	.verbose(2); 
 	jia.log_beliefs.
 
-+isEngagedWith(Human,_) : not inSession(_,_) & not localising<-
+@iE[atomic] +isEngagedWith(Human,_) : not inSession(_,_) & not localising<-
 	.concat("human_", Human, HTF);
 	human_to_monitor(HTF);
 	?n(N);
@@ -37,7 +37,7 @@ n(-1).
 	?n(N);
 	+startTask(Human,ID)[N].
 
-+!bye(Human) : not inTaskWith(_,_) & inSession(Human,N) <-
+@b[atomic] +!bye(Human) : not inTaskWith(_,_) & inSession(Human,N) <-
 	+bye;
 	+overBy(not_perceived)[N];
 	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
@@ -105,7 +105,7 @@ n(-1).
 +isPerceiving(_, 0) : true <-
 	human_to_monitor("human_0").
 
--isPerceiving(_, Human) : not inTaskWith(_,_) & inSession(Human,_) <-
+@iP[atomic] -isPerceiving(_, Human) : not inTaskWith(_,_) & inSession(Human,_) <-
 	!wait_human(Human).
 
 +!wait_human(Human) : true <-
@@ -115,7 +115,7 @@ n(-1).
 	!bye(Human).
 
 //received by dialogue
-+terminate_interaction(N) : not bye & inSession(_,N) <- 
+@ti[atomic] +terminate_interaction(N) : not bye & inSession(_,N) <- 
 	?n(N);
 	+overBy(dialogue)[N];
 	if(jia.believes(inTaskWith(Human,ID))){

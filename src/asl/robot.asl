@@ -48,7 +48,7 @@
 		if(jia.believes(direction(_))){
 			?direction(D);
 			if(jia.can_be_visible(HTF, D)){
-				+direction_to_point(D)[ID];
+				+dir_to_point(D)[ID];
 			}
 		}
 	}
@@ -123,6 +123,7 @@
 +preempted(ID) : true <-
 	-preempted(ID)[add_time(_), source(_)];
 	+end_task(preempted, ID)[ID];
+	+finished[ID];
 	?task(ID, Task, Human, Place);
 	!clean_task(ID);
 	G =.. [Task, [ID,Human,_],[]];

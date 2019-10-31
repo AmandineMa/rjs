@@ -126,12 +126,22 @@ n(-1).
 	!loca.
 
 +!clean_facts(Human): true <-
+	!wait_for_rating(Human);
 	?n(N);
 	.findall(B[N,source(X),add_time(Y)],B[N,source(X),add_time(Y)], L);
 	jia.beliefs_to_file(L);
 	.abolish(_[N]);
+	-rating(Human,R)[source(_)];
 	-isEngagedWith(Human, _)[source(_)];
 	-terminate_interaction(N)[source(_)].
+	
++!wait_for_rating(Human): true <-
+	?n(N);
+	.wait(rating(Human,R), 5000);
+	+rating(Human,R)[N].
+
+-!wait_for_rating(Human): true <- true.
+	
 	
 -isEngagedWith(Human, O) : inSession(Human,_) <-
 	.send(robot, untell, isEngagedWith(Human, O));

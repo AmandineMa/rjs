@@ -37,7 +37,7 @@ n(-1).
 	?n(N);
 	+startTask(Human,ID)[N].
 
-@b[atomic] +!bye(Human) : not inTaskWith(_,_) & inSession(Human,N) <-
++!bye(Human) : not inTaskWith(_,_) & inSession(Human,N) & not bye <-
 	+bye;
 	+overBy(not_perceived)[N];
 	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
@@ -47,7 +47,7 @@ n(-1).
 	}else{
 		terminate_interaction(N);
 	}
-	!clean_facts(Human);
+	!!clean_facts(Human);
 	!loca;
 	-bye.
 	
@@ -105,40 +105,44 @@ n(-1).
 +isPerceiving(_, 0) : true <-
 	human_to_monitor("human_0").
 
-@iP[atomic] -isPerceiving(_, Human) : not inTaskWith(_,_) & inSession(Human,_) <-
-	!wait_human(Human).
+-isPerceiving(_, Human) : not inTaskWith(_,_) & inSession(Human,_) & not wait_human <-
+	+wait_human;
+	!wait_human(Human);
+	-wait_human.
 
 +!wait_human(Human) : true <-
 	.wait(isPerceiving(_,Human), 6000).
 	
 -!wait_human(Human) : true <-
+	-wait_human;
 	!bye(Human).
 
 //received by dialogue
-@ti[atomic] +terminate_interaction(N) : not bye & inSession(_,N) <- 
++terminate_interaction(N) : not bye & inSession(Human,N) <- 
+	+bye;
 	?n(N);
 	+overBy(dialogue)[N];
 	if(jia.believes(inTaskWith(Human,ID))){
 		?inTaskWith(Human,ID);
 		.send(robot, tell, preempted(ID));
 	}
-	!clean_facts(Human);
-	!loca.
+	!!clean_facts(Human);
+	!loca;
+	-bye.
 
 +!clean_facts(Human): true <-
-	!wait_for_rating(Human);
 	?n(N);
+	!wait_for_rating(N);
 	.findall(B[N,source(X),add_time(Y)],B[N,source(X),add_time(Y)], L);
 	jia.beliefs_to_file(L);
 	.abolish(_[N]);
-	-rating(Human,R)[source(_)];
+	-rating(N,R)[source(_)];
 	-isEngagedWith(Human, _)[source(_)];
 	-terminate_interaction(N)[source(_)].
 	
-+!wait_for_rating(Human): true <-
-	?n(N);
-	.wait(rating(Human,R), 5000);
-	+rating(Human,R)[N].
++!wait_for_rating(N): true <-
+	.wait(rating(N,R), 6000);
+	+rating(N,R)[N].
 
 -!wait_for_rating(Human): true <- true.
 	

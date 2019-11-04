@@ -141,7 +141,7 @@ n(-1).
 	-terminate_interaction(N)[source(_)].
 	
 +!wait_for_rating(N): true <-
-	.wait(rating(N,R), 6000);
+	.wait(rating(N,R), 10000);
 	+rating(N,R)[N].
 
 -!wait_for_rating(Human): true <- true.

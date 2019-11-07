@@ -16,6 +16,7 @@ import org.ros.node.topic.Publisher;
 import com.google.common.collect.Multimap;
 
 import actionlib_msgs.GoalStatus;
+import diagnostic_msgs.KeyValue;
 import geometry_msgs.PoseStamped;
 import jason.RevisionFailedException;
 import jason.asSemantics.ActionExec;
@@ -89,6 +90,21 @@ public class InteractAgArch extends RobotAgArch {
 			}
 		};
 		m_rosnode.addListener("guiding/topics/terminate_interaction", TerminateInteractionActionGoal._TYPE, terminate_interac);
+		
+		
+		terminate_interaction = m_rosnode.getConnectedNode().newPublisher(
+				m_rosnode.getParameters().getString("guiding/topics/terminate_interaction"), TerminateInteractionActionGoal._TYPE);
+		
+		MessageListener<KeyValue> rating = new MessageListener<KeyValue>() {
+			public void onNewMessage(KeyValue msg) {
+				try {
+					getTS().getAg().addBel(Literal.parseLiteral("rating("+msg.getKey().replace("human-", "")+","+msg.getValue()+")"));
+				} catch (RevisionFailedException e) {
+					e.printStackTrace();
+				}
+			}
+		};
+		m_rosnode.addListener("guiding/topics/rating", KeyValue._TYPE, rating);
 		
 		MessageListener<std_msgs.Bool> is_talking = new MessageListener<std_msgs.Bool>() {
 			public void onNewMessage(std_msgs.Bool msg) {

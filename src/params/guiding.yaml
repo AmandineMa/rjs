@@ -79,6 +79,7 @@ guiding:
     disengaging: /supervisor/disengaging_human
     terminate_interaction: /terminate_interaction/goal
     finished_talking: /mummer_dialogue_say/finished
+    rating: /terminate_interaction/rating
    
   action_servers:
     move_to: m_move_to

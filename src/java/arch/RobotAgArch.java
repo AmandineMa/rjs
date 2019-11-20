@@ -5,12 +5,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import org.ros.exception.RemoteException;
-import org.ros.exception.RosRuntimeException;
-import org.ros.message.MessageFactory;
 import org.ros.message.MessageListener;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.service.ServiceResponseListener;
@@ -21,6 +21,7 @@ import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava_geometry.Vector3;
 
 import actionlib_msgs.GoalStatus;
+import agent.TimeBB;
 import deictic_gestures.LookAtResponse;
 import deictic_gestures.LookAtStatus;
 import deictic_gestures.PointAtResponse;
@@ -30,6 +31,7 @@ import dialogue_as.dialogue_actionActionResult;
 import geometry_msgs.PoseStamped;
 import hatp_msgs.PlanningRequestResponse;
 import jason.RevisionFailedException;
+import jason.architecture.AgArch;
 import jason.asSemantics.ActionExec;
 import jason.asSemantics.Message;
 import jason.asSemantics.Unifier;
@@ -40,12 +42,12 @@ import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
 import jason.asSyntax.StringTermImpl;
 import jason.asSyntax.Term;
+import jason.bb.BeliefBase;
 import move_base_msgs.MoveBaseActionFeedback;
 import move_base_msgs.MoveBaseActionResult;
 import msg_srv_impl.PoseCustom;
 import msg_srv_impl.RouteImpl;
 import msg_srv_impl.SemanticRouteResponseImpl;
-import nao_interaction_msgs.GoToPostureResponse;
 import nao_interaction_msgs.SayResponse;
 import ontologenius_msgs.OntologeniusService;
 import ontologenius_msgs.OntologeniusServiceResponse;
@@ -54,10 +56,7 @@ import perspectives_msgs.HasMeshResponse;
 import pointing_planner.PointingPlannerResponse;
 import pointing_planner.VisibilityScoreResponse;
 import route_verbalization_msgs.VerbalizeRegionRouteResponse;
-import rpn_recipe_planner_msgs.SuperInformResponse;
-import rpn_recipe_planner_msgs.SuperQueryResponse;
 import rpn_recipe_planner_msgs.SupervisionServerInformActionResult;
-import rpn_recipe_planner_msgs.SupervisionServerQueryActionGoal;
 import rpn_recipe_planner_msgs.SupervisionServerQueryActionResult;
 import semantic_route_description_msgs.Route;
 import semantic_route_description_msgs.SemanticRouteResponse;
@@ -65,6 +64,7 @@ import std_msgs.Header;
 import std_srvs.EmptyResponse;
 import std_srvs.SetBoolResponse;
 import utils.Code;
+import utils.QoI;
 import utils.Quaternion;
 import utils.Tools;
 
@@ -75,14 +75,56 @@ public class RobotAgArch extends ROSAgArch {
 
 	protected Publisher<std_msgs.String> human_to_monitor;
 	private Publisher<std_msgs.String> look_at_events_pub;
-	NodeConfiguration nodeConfiguration;
-	MessageFactory messageFactory;
+
 	std_msgs.Header her;
+	AgArch interact_arch = new InteractAgArch();
+	double startTimeOngoingAction = -1;
+	double startTimeOngoingStep = -1;
+	HashMap<String,Double> actionsThreshold = new HashMap<String,Double>() {{
+        put("speak", 10000.0);
+        put("question", 15000.0);
+        put("robot_move", 20000.0);
+        put("come_closer", 30000.0);
+        put("step", 20000.0);
+    }};
+	HashMap<String,Double> stepsThreshold = new HashMap<String,Double>() {{
+        put("goal_nego", 30000.0);
+        put("person_abilities", 15000.0);
+        put("agents_at_right_place", 30000.0);
+        put("target_explanation", 20000.0);
+        put("direction_explanation", 35000.0);
+        put("landmark_seen", 20000.0);
+    }};
+	
+	String onGoingAction = "";
+	String onGoingStep = "";
+	String speak;
+	HashMap<String, UpdateTimeBB> actionsQoI = new HashMap<String, UpdateTimeBB>();
+	HashMap<String, UpdateTimeBB> tasksQoI = new HashMap<String, UpdateTimeBB>();
+	String taskId = "";
+	boolean inQuestion = false;
+	int humanAnswer = 0;
+	double onTimeTaskExecution = 1;
+	double onTimeTaskExecutionPrev = 1;
+	double distToGoal = 0;
+	double decreasingSpeed = 2;
+	float step = 0;
+	ArrayList<Double> currentTaskActQoI = new ArrayList<Double>();
+	private final ReadWriteLock startActionLock = new ReentrantReadWriteLock();
+	
+	double steps = 2;
+	double taskQoIAverage = 0;
+	double nbTaskQoI = 0;
+	boolean firstTimeInTask = true;
+	double monitorTimeAnswering = 0;
+	boolean wasComingCloser = false;
+	boolean wasStepping = false;
+	boolean wasMoving = false;
+	boolean newStep = false;
+	boolean startAction = false;
 
 	@Override
 	public void init() {
-		nodeConfiguration = NodeConfiguration.newPrivate();
-		messageFactory = nodeConfiguration.getTopicMessageFactory();
 
 		MessageListener<PointAtStatus> ml_point_at = new MessageListener<PointAtStatus>() {
 			public void onNewMessage(PointAtStatus status) {
@@ -144,12 +186,296 @@ public class RobotAgArch extends ROSAgArch {
 	}
 
 	@Override
+	public void reasoningCycleStarting() {
+		Literal onGoingTask = findBel("started");
+		if(!onGoingStep.isEmpty() && onGoingTask != null) {
+			if(firstTimeInTask) {
+				display.insert_discontinuity("task", getRosTimeMilliSeconds());
+				firstTimeInTask = false;
+				startTimeOngoingStep = ((NumberTermImpl)((Literal) onGoingTask.getAnnots("add_time").get(0)).getTerm(0)).solve();
+			}
+			
+			Literal attentive_ratio = null;
+			Literal action_expectation = null;
+			Literal action_efficiency = null;
+			ArrayList<Literal> list = new ArrayList<Literal>();
+
+			String id = onGoingTask.getAnnots().get(0).toString();
+
+			if(actionsQoI.get(id) == null)
+				actionsQoI.put(id, new UpdateTimeBB());
+			if(tasksQoI.get(id) == null)
+				tasksQoI.put(id, new UpdateTimeBB());
+
+			// attentive ratio
+			// inform & questions
+			startActionLock.readLock().lock();
+			if(startTimeOngoingAction != -1.0) {
+				double ar = ((InteractAgArch) interact_arch).attentive_ratio(startTimeOngoingAction, getRosTimeMilliSeconds());
+				startActionLock.readLock().unlock();
+				attentive_ratio = literal("attentive_ratio",onGoingAction,QoI.normaFormulaMinus1To1(ar, 0, 1));
+//				logger.info(attentive_ratio.toString());
+				actionsQoI.get(id).add(attentive_ratio);
+				list.add(attentive_ratio);
+			} else {
+				startActionLock.readLock().unlock();
+			}
+			
+			// action expectations
+			// questions
+			if((inQuestion || humanAnswer != 0) && !onGoingAction.equals("")) {
+				if(humanAnswer == 0)
+					monitorTimeAnswering = Math.max(-Math.max(getRosTimeMilliSeconds() - startTimeOngoingAction - actionsThreshold.get(onGoingAction), 0)
+																/ (actionsThreshold.get(onGoingAction) * decreasingSpeed) + 1 , -1);	
+				else if(attentive_ratio == null)  {
+					attentive_ratio = findBel(Literal.parseLiteral("attentive_ratio("+onGoingAction+",_)"), this.actionsQoI.get(id));
+					actionsQoI.get(id).add(attentive_ratio);
+					list.add(attentive_ratio);
+				}
+					
+				action_expectation = literal("action_expectation", onGoingAction,monitorTimeAnswering);
+//				logger.info(action_expectation.toString());
+				actionsQoI.get(id).add(action_expectation);
+				list.add(action_expectation);
+			} else {
+
+				// attentive ratio & action expectations & action efficiency
+				// come closer
+				Literal closer = findBel("adjust");
+				if(humanAnswer == 0){
+					if(closer != null) {
+						onGoingAction = "come_closer";
+						// attentive ratio
+						double startTime = ((NumberTermImpl) closer.getAnnot("add_time").getTerm(0)).solve();
+						double ar = ((InteractAgArch) interact_arch).attentive_ratio(startTime, getRosTimeMilliSeconds());
+						attentive_ratio = literal("attentive_ratio","come_closer",QoI.normaFormulaMinus1To1(ar, 0, 1));
+						list.add(attentive_ratio);
+						actionsQoI.get(id).add(attentive_ratio);
+//						logger.info(attentive_ratio.toString());
+						// action expectations
+						Literal distToGoal = findBel("dist_to_goal(_,_,_)");
+						if(distToGoal != null) {
+//							logger.info(distToGoal.toString());
+							Transform human_pose_now = getTfTree().lookupMostRecent("map", distToGoal.getTerm(0).toString().replaceAll("^\"|\"$", ""));
+							ArrayList<Double> init_pose = Tools.listTermNumbers_to_list((ListTermImpl) distToGoal.getTerm(1));
+//							logger.info("init pose :"+init_pose);
+							if(human_pose_now != null) {
+								double h_dist_to_init_pose = Math.hypot(human_pose_now.translation.x - init_pose.get(0), 
+										human_pose_now.translation.y - init_pose.get(1));
+//								logger.info("dist from initial pose :"+h_dist_to_init_pose);
+								ArrayList<Double> goal = Tools.listTermNumbers_to_list((ListTermImpl) distToGoal.getTerm(2));
+								double init_dist_to_goal = Math.hypot(init_pose.get(0) - goal.get(0), 
+										init_pose.get(1) - goal.get(1));
+//								logger.info("initial dist to goal "+init_dist_to_goal);
+								double h_dist_to_goal = Math.hypot(human_pose_now.translation.x - goal.get(0), 
+										human_pose_now.translation.y - goal.get(1));
+//								logger.info("dist to goal "+h_dist_to_goal);
+								double ratio = h_dist_to_init_pose/init_dist_to_goal;
+								if(h_dist_to_goal > init_dist_to_goal)
+									ratio = -1 * ratio;
+								action_expectation = literal("action_expectation","come_closer",ratio);
+								actionsQoI.get(id).add(action_expectation);
+								list.add(action_expectation);
+//								logger.info(action_expectation.toString());
+							}
+						}
+
+						// action efficiency
+						Literal said = findBel("said(closer,_)");
+						double c = 0;
+						if(said != null) {
+							c = ((NumberTermImpl) said.getTerm(1)).solve();
+						}
+						action_efficiency = literal("action_efficiency","come_closer",QoI.logaFormula(c, 2, 2) * (-1));
+						actionsQoI.get(id).add(action_efficiency);
+						list.add(action_efficiency);
+//						logger.info(action_efficiency.toString());
+						if(!wasComingCloser)
+							startAction = true;
+						wasComingCloser = true;
+					} else if(wasComingCloser) {
+						display.insert_discontinuity("action", getRosTimeMilliSeconds());
+						wasComingCloser = false;
+					}
+
+					// step on side
+					Literal step = findBel("step");
+					if(step != null) {
+						
+						onGoingAction = "step";
+						// attentive ratio
+						double startTime = ((NumberTermImpl) step.getAnnot("add_time").getTerm(0)).solve();
+						double ar = ((InteractAgArch) interact_arch).attentive_ratio(startTime, getRosTimeMilliSeconds());
+						attentive_ratio = literal("attentive_ratio","step",QoI.normaFormulaMinus1To1(ar, 0, 1));
+						actionsQoI.get(id).add(attentive_ratio);
+						list.add(attentive_ratio);
+
+						// action expectations
+						Literal distToGoal = findBel("dist_to_goal(_,_,_)");
+						if(distToGoal != null) {
+							Transform human_pose_now = getTfTree().lookupMostRecent("map", distToGoal.getTerm(0).toString().replaceAll("^\"|\"$", ""));
+							ArrayList<Double> init_pose = Tools.listTermNumbers_to_list((ListTermImpl) distToGoal.getTerm(1));
+							ArrayList<Double> robot_place = Tools.listTermNumbers_to_list((ListTermImpl) distToGoal.getTerm(2));
+
+							double h_init_pose_dist_to_robot_place = Math.hypot(robot_place.get(0) - init_pose.get(0), 
+									robot_place.get(1) - init_pose.get(1));
+
+							double dist_threshold = m_rosnode.getParameters().getDouble("guiding/tuning_param/human_move_first_dist_th");
+							double h_dist_to_robot_place = Math.hypot(human_pose_now.translation.x - robot_place.get(0), 
+									human_pose_now.translation.y - robot_place.get(1));
+							double value;
+							if(h_dist_to_robot_place > h_init_pose_dist_to_robot_place) {
+								value = QoI.normaFormul0To1(h_dist_to_robot_place, h_init_pose_dist_to_robot_place, dist_threshold);
+							} else {
+								value = QoI.normaFormulaMinus1To0(h_dist_to_robot_place, 0, h_init_pose_dist_to_robot_place);
+							}
+							action_expectation = literal("action_expectation","step",value);
+							actionsQoI.get(id).add(action_expectation);	
+							list.add(action_expectation);
+							if(!wasStepping)
+								startAction = true;
+							wasStepping = true;
+						}
+
+						// action efficiency
+						Literal said = findBel("said(step(_),_)");
+						double c = 0;
+						if(said != null) {
+							c = ((NumberTermImpl) said.getTerm(1)).solve();
+						}
+						action_efficiency = literal("action_efficiency","step",QoI.logaFormula(c, 2, 2) * (-1));
+						actionsQoI.get(id).add(action_efficiency);
+						list.add(action_efficiency);
+					}  else if(wasStepping) {
+						display.insert_discontinuity("action", getRosTimeMilliSeconds());
+						wasStepping = false;
+					}
+					
+					// robot moves
+					Literal move = findBel("move(started)");
+					Literal move_over = findBel("move(over)");
+					if(move != null && move_over == null) {
+						onGoingAction = "robot_move";
+//						logger.info("move(started) found");
+						// action expectations
+						Literal distToGoal = findBel("dist_to_goal(_,_,_)");
+						if(distToGoal != null) {
+//							logger.info("dist_to_goal found");
+							Literal robot_move_l = findBel("robot_move(_,_,_)");
+							ArrayList<Double> robot_pose = null;
+							if(robot_move_l != null) {
+//								logger.info("robot_move found");
+								robot_pose = Tools.listTermNumbers_to_list((ListTermImpl) robot_move_l.getTerm(1));
+							}
+							if(robot_pose != null) {
+								TransformTree tfTree = getTfTree();
+								Transform robot_pose_now;
+								robot_pose_now = tfTree.lookupMostRecent("map", "base_footprint");
+								if(robot_pose_now != null) {
+									
+									ArrayList<Double> init_pose = Tools.listTermNumbers_to_list((ListTermImpl) distToGoal.getTerm(1));
+
+									double r_dist_to_init_pose = Math.hypot(robot_pose_now.translation.x - init_pose.get(0), 
+											robot_pose_now.translation.y - init_pose.get(1));
+
+									ArrayList<Double> goal = Tools.listTermNumbers_to_list((ListTermImpl) distToGoal.getTerm(2));
+									double init_dist_to_goal = Math.hypot(init_pose.get(0) - goal.get(0), 
+											init_pose.get(1) - goal.get(1));
+									double r_dist_to_goal = Math.hypot(robot_pose_now.translation.x - goal.get(0), 
+											robot_pose_now.translation.y - goal.get(1));
+									double ratio = r_dist_to_init_pose/init_dist_to_goal;
+									if(r_dist_to_goal > init_dist_to_goal)
+										ratio = -1 * ratio;
+									action_expectation = literal("action_expectation","robot_move",ratio);
+									actionsQoI.get(id).add(action_expectation);
+									list.add(action_expectation);
+//									logger.info(action_expectation.toString());
+									if(!wasMoving)
+										startAction = true;
+									wasMoving = true;
+								}
+							}
+							
+						}
+						
+					} else if(wasMoving) {
+						display.insert_discontinuity("action", getRosTimeMilliSeconds());
+						wasMoving = false;
+					}
+				}
+			}
+			double sum = 0;
+			for(Literal l : list) {
+				sum += ((NumberTermImpl) l.getTerm(1)).solve();
+			}
+			double actionsQoIAverage = 0;
+			Literal la = null;
+			if(!list.isEmpty()) {
+				double QoI = sum/list.size();
+				this.actionsQoI.get(id).add(literal("qoi",onGoingAction, QoI));
+				currentTaskActQoI.add(QoI);
+				la = findBel(Literal.parseLiteral("qoi(_,_)"), this.actionsQoI.get(id));
+			}
+			actionsQoIAverage = currentTaskActQoI.stream().mapToDouble(val -> val).average().orElse(0.0);
+			if(!currentTaskActQoI.isEmpty()) {
+				tasksQoI.get(id).add(literal("actionsQoI",id,actionsQoIAverage));
+//				logger.info("actions qoi average :"+actionsQoIAverage);
+			}
+			// QoI task - distance to goal and task evolution
+			
+			distToGoal = step/steps;
+			
+			onTimeTaskExecution = Math.max(-Math.max(getRosTimeMilliSeconds() - startTimeOngoingStep - stepsThreshold.get(onGoingStep), 0)/(stepsThreshold.get(onGoingStep) * decreasingSpeed) + onTimeTaskExecutionPrev , -1);
+			
+			tasksQoI.get(id).add(literal("var_DtG",id,distToGoal));
+			tasksQoI.get(id).add(literal("taskExecutionEvolution",id,onTimeTaskExecution));
+//			logger.info("dist to goal :"+distToGoal);
+//			logger.info("taskExecutionEvolution :"+onTimeTaskExecution);
+			tasksQoI.get(id).add(literal("qoi",id,(actionsQoIAverage+distToGoal+onTimeTaskExecution)/3.0));
+				
+			Literal lt = findBel(Literal.parseLiteral("qoi(_,_)"), this.tasksQoI.get(id));
+//			logger.info(lt.toString());
+			display.update(null,lt, la );
+			if(newStep) {
+				newStep = false;
+				display.add_label(onGoingStep, lt);
+			}
+			if(humanAnswer != 0) {
+				humanAnswer = 0;
+				display.insert_discontinuity("action", getRosTimeMilliSeconds());
+			}
+			if(startAction && la != null) {
+				startAction = false;
+//				logger.info("start action to false");
+				display.add_label(onGoingAction, la);
+			}
+//			logger.info(tasksQoI.get(id).toString());
+//			logger.info(this.actionsQoI.get(id).toString());
+			nbTaskQoI++;
+			taskQoIAverage = taskQoIAverage + ( ((NumberTermImpl) lt.getTerm(1)).solve() - taskQoIAverage) / nbTaskQoI;
+			Message msg = new Message("tell", getAgName(), "interac", "qoi("+id+","+Double.toString(taskQoIAverage)+")");
+			try {
+				sendMsg(msg);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+
+
+		super.reasoningCycleStarting();
+	}
+
+
+	@Override
 	public void act(final ActionExec action) {
 		executor.execute(new Runnable() {
 
 			@Override
 			public void run() {
+				
 				String action_name = action.getActionTerm().getFunctor();
+//				logger.info("ONGOING ACTION :"+action_name);
 				Message msg = new Message("tell", getAgName(), "supervisor", "action_started(" + action_name + ")");
 				String tmp_task_id = "";
 				if (action.getIntention().getBottom().getTrigger().getLiteral().getTerms() != null)
@@ -203,7 +529,7 @@ public class RobotAgArch extends ROSAgArch {
 							if (get_route_resp.getCode() == Code.ERROR.getCode()) {
 								action.setResult(false);
 								action.setFailureReason(new Atom("route_not_found"), "No route has been found");
-							
+
 							} else {
 								at_least_one_ok = true;
 							}
@@ -219,12 +545,12 @@ public class RobotAgArch extends ROSAgArch {
 								String route_list = route.getRoute().stream().map(s -> "\"" + s + "\"")
 										.collect(Collectors.joining(", "));
 								getTS().getAg()
-										.addBel(Literal.parseLiteral("route([" + route_list + "])[" + task_id + "]"));
+								.addBel(Literal.parseLiteral("route([" + route_list + "])[" + task_id + "]"));
 								getTS().getAg().addBel(
 										Literal.parseLiteral("target_place(\"" + route.getGoal() + "\")[" + task_id + "]"));
 								action.setResult(true);
 								actionExecuted(action);
-	
+
 							} catch (RevisionFailedException e) {
 								Tools.getStackTrace(e);
 							}
@@ -243,12 +569,12 @@ public class RobotAgArch extends ROSAgArch {
 					human_to_monitor.publish(str);
 					action.setResult(true);
 					actionExecuted(action);
-				}  else if (action_name.equals("web_view_start_processing")) {
+				}  else if (action_name.equals("pause_asr_and_display_processing")) {
 					ServiceResponseListener<std_srvs.EmptyResponse> respListener = new ServiceResponseListener<std_srvs.EmptyResponse>() {
 
 						@Override
 						public void onFailure(RemoteException e) {
-//							handleFailure(action, action_name, e);
+							//							handleFailure(action, action_name, e);
 							action.setResult(true);
 							actionExecuted(action);
 						}
@@ -259,8 +585,10 @@ public class RobotAgArch extends ROSAgArch {
 							actionExecuted(action);
 						}
 					};
+					m_rosnode.callAsyncService("pause_asr", respListener, null);
 					m_rosnode.callAsyncService("web_view_start_processing", respListener, null);
-					
+					action.setResult(true);
+					actionExecuted(action);
 				} else if (action_name.equals("get_onto_individual_info")) {
 					String param = action.getActionTerm().getTerm(0).toString();
 					String individual_o = action.getActionTerm().getTerm(1).toString();
@@ -360,7 +688,7 @@ public class RobotAgArch extends ROSAgArch {
 				} else if (action_name.equals("has_mesh")) {
 					// to remove the extra ""
 					final String param = action.getActionTerm().getTerm(0).toString().replaceAll("^\"|\"$", "");
-					
+
 					ServiceResponseListener<HasMeshResponse> respListener = new ServiceResponseListener<HasMeshResponse>() {
 						public void onFailure(RemoteException e) {
 							handleFailure(action, action_name, e);
@@ -388,7 +716,7 @@ public class RobotAgArch extends ROSAgArch {
 					// to remove the extra ""
 					final String human = action.getActionTerm().getTerm(0).toString().replaceAll("^\"|\"$", "");
 					final String place = action.getActionTerm().getTerm(1).toString().replaceAll("^\"|\"$", "");
-					
+
 					ServiceResponseListener<VisibilityScoreResponse> respListener = new ServiceResponseListener<VisibilityScoreResponse>() {
 						public void onFailure(RemoteException e) {
 							handleFailure(action, action_name, e);
@@ -417,7 +745,7 @@ public class RobotAgArch extends ROSAgArch {
 							actionExecuted(action);
 						}
 					};
-					
+
 					Map<String, Object> parameters = new HashMap<String, Object>();
 					parameters.put("agentname", human);
 					parameters.put("targetname", place);
@@ -428,7 +756,7 @@ public class RobotAgArch extends ROSAgArch {
 					final String frame = action.getActionTerm().getTerm(0).toString().replaceAll("^\"|\"$", "");
 					boolean with_head = Boolean.parseBoolean(action.getActionTerm().getTerm(1).toString());
 					boolean with_base = Boolean.parseBoolean(action.getActionTerm().getTerm(2).toString());
-					
+
 					ServiceResponseListener<PointAtResponse> respListenerP = new ServiceResponseListener<PointAtResponse>() {
 						public void onFailure(RemoteException e) {
 							handleFailure(action, action_name, e);
@@ -453,7 +781,7 @@ public class RobotAgArch extends ROSAgArch {
 					boolean b = Boolean.parseBoolean(action.getActionTerm().getTerm(0).toString());
 					ServiceResponseListener<SetBoolResponse> respListenerA = new ServiceResponseListener<SetBoolResponse>() {
 						public void onFailure(RemoteException e) {
-//							handleFailure(action, action_name, e);
+							//							handleFailure(action, action_name, e);
 						}
 
 						public void onSuccess(SetBoolResponse response) {
@@ -467,13 +795,16 @@ public class RobotAgArch extends ROSAgArch {
 					parametersA.put("data", b);
 
 					m_rosnode.callAsyncService("enable_animated_speech", respListenerA, parametersA);
-					
+					action.setResult(true);
+					actionExecuted(action);	
+
+
 				} else if (action_name.equals("face_human")) {
 					String id = action_name;
 					// to remove the extra ""
 					String frame = action.getActionTerm().getTerm(0).toString();
 					frame = frame.replaceAll("^\"|\"$", "");
-					
+
 					TransformTree tfTree = getTfTree();
 					Transform transform;
 					String frame1 = "base_link";
@@ -481,20 +812,20 @@ public class RobotAgArch extends ROSAgArch {
 						transform = tfTree.lookupMostRecent(frame1, frame);
 						if(transform != null) {
 							float d = (float) Math.atan2(transform.translation.y, transform.translation.x);
-							
+
 							Map<String, Object> parameters = new HashMap<String, Object>();
 							parameters.put("statemachinepepperbasemanager", m_rosnode.build_state_machine_pepper_base_manager(id, (float) d));
 							parameters.put("header", m_rosnode.build_meta_header());
-							
+
 							MetaStateMachineRegisterResponse face_resp = m_rosnode.callSyncService("pepper_synchro", parameters);
-							
-//							sleep(5000);
-//							Map<String, Object> params = new HashMap<String, Object>();
-//							params.put("posturename", "StandInit");
-//							params.put("speed", (float) 0.8);
-//							GoToPostureResponse go_to_posture_resp = m_rosnode.callSyncService("stand_pose",
-//									params);
-//							action.setResult(go_to_posture_resp != null);
+
+							//							sleep(5000);
+							//							Map<String, Object> params = new HashMap<String, Object>();
+							//							params.put("posturename", "StandInit");
+							//							params.put("speed", (float) 0.8);
+							//							GoToPostureResponse go_to_posture_resp = m_rosnode.callSyncService("stand_pose",
+							//									params);
+							//							action.setResult(go_to_posture_resp != null);
 							action.setResult(true);
 							if(face_resp == null) {
 								action.setFailureReason(new Atom("cannot_face_human"), "Service Failure, face human failed for " + frame);
@@ -510,7 +841,7 @@ public class RobotAgArch extends ROSAgArch {
 						action.setFailureReason(new Atom("cannot_face_human"), "Cannot Transform, face human failed for " + frame);
 					}
 					actionExecuted(action);
-					
+
 				} else if (action_name.equals("rotate")) {
 					String id = action_name;
 					// to remove the extra ""
@@ -520,13 +851,13 @@ public class RobotAgArch extends ROSAgArch {
 							((NumberTermImpl) quaternion.get(1)).solve(), ((NumberTermImpl) quaternion.get(2)).solve(),
 							((NumberTermImpl) quaternion.get(3)).solve());
 					double d = q.getYaw();
-					
+
 					Map<String, Object> parameters = new HashMap<String, Object>();
 					parameters.put("statemachinepepperbasemanager", m_rosnode.build_state_machine_pepper_base_manager(id, (float) d));
 					parameters.put("header", m_rosnode.build_meta_header());
 
 					MetaStateMachineRegisterResponse response = m_rosnode.callSyncService("pepper_synchro", parameters);
-					
+
 					action.setResult(response != null);
 					if(response == null) {
 						action.setFailureReason(new Atom("cannot_rotate"), "rotation failed");
@@ -571,7 +902,7 @@ public class RobotAgArch extends ROSAgArch {
 					robot_place = robot_place.replaceAll("^\"|\"$", "");
 					String place = action.getActionTerm().getTerm(2).toString();
 					place = place.replaceAll("^\"|\"$", "");
-					
+
 					ServiceResponseListener<VerbalizeRegionRouteResponse> respListener = new ServiceResponseListener<VerbalizeRegionRouteResponse>() {
 						public void onFailure(RemoteException e) {
 							handleFailure(action, action_name, e);
@@ -596,7 +927,7 @@ public class RobotAgArch extends ROSAgArch {
 							actionExecuted(action);
 						}
 					};
-					
+
 					Map<String, Object> parameters = new HashMap<String, Object>();
 					parameters.put("route", route);
 					parameters.put("startplace", robot_place);
@@ -606,6 +937,7 @@ public class RobotAgArch extends ROSAgArch {
 				} else if (action_name.equals("listen")) {
 					boolean hwu_dial = m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu");
 					if (!hwu_dial) {
+						inQuestion = true;
 						String question = action.getActionTerm().getTerm(0).toString();
 						ArrayList<String> words = new ArrayList<String>();
 						if(action.getActionTerm().getTerms().get(1).isList()) {
@@ -694,16 +1026,16 @@ public class RobotAgArch extends ROSAgArch {
 					MoveBaseActionFeedback move_to_fb;
 					do {
 						move_to_result = m_rosnode.getMove_to_result();
-//							move_to_fb = m_rosnode.getMove_to_fb();
-//							if(move_to_fb != null) {
-//								try {
-//									getTS().getAg().addBel(Literal.parseLiteral("fb(move_to, "+move_to_fb.getFeedback().getBasePosition().getPose().getPosition().getX()+","+
-//											move_to_fb.getFeedback().getBasePosition().getPose().getPosition().getY()+","+
-//											move_to_fb.getFeedback().getBasePosition().getPose().getPosition().getZ()+")["+task_id+"]"));
-//								} catch (RevisionFailedException e) {
-//									Tools.getStackTrace(e);
-//								}
-//							}
+						//							move_to_fb = m_rosnode.getMove_to_fb();
+						//							if(move_to_fb != null) {
+						//								try {
+						//									getTS().getAg().addBel(Literal.parseLiteral("fb(move_to, "+move_to_fb.getFeedback().getBasePosition().getPose().getPosition().getX()+","+
+						//											move_to_fb.getFeedback().getBasePosition().getPose().getPosition().getY()+","+
+						//											move_to_fb.getFeedback().getBasePosition().getPose().getPosition().getZ()+")["+task_id+"]"));
+						//								} catch (RevisionFailedException e) {
+						//									Tools.getStackTrace(e);
+						//								}
+						//							}
 						sleep(200);
 					} while (move_to_result == null);
 					if (move_to_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
@@ -741,9 +1073,9 @@ public class RobotAgArch extends ROSAgArch {
 													+ parameters + "," + task.getCost() + ")[" + task_id + "]"));
 										} else {
 											getTS().getAg()
-													.addBel(Literal.parseLiteral("task(" + task.getId() + ","
-															+ task.getType() + "," + task.getName() + "," + agents + ","
-															+ task.getCost() + ")[" + task_id + "]"));
+											.addBel(Literal.parseLiteral("task(" + task.getId() + ","
+													+ task.getType() + "," + task.getName() + "," + agents + ","
+													+ task.getCost() + ")[" + task_id + "]"));
 										}
 									}
 									for (hatp_msgs.StreamNode stream : plan.getStreams()) {
@@ -795,15 +1127,7 @@ public class RobotAgArch extends ROSAgArch {
 
 	}
 
-	public void handleFailure(ActionExec action, String srv_name, RuntimeException e) {
-		RosRuntimeException RRE = new RosRuntimeException(e);
-		logger.info(Tools.getStackTrace(RRE));
-		
-		action.setResult(false);
-		action.setFailureReason(new Atom(srv_name+ "_ros_failure"), srv_name+" service failed");
-		actionExecuted(action);
-	}
-	
+
 	public RouteImpl select_best_route(List<SemanticRouteResponse> routes_resp_list) {
 		RouteImpl best_route = new RouteImpl();
 		float min_cost = Float.MAX_VALUE;
@@ -825,7 +1149,7 @@ public class RobotAgArch extends ROSAgArch {
 				best_route = null;
 			}
 		}
-		
+
 		return best_route;
 
 	}
@@ -861,7 +1185,7 @@ public class RobotAgArch extends ROSAgArch {
 		return best_routes;
 
 	}
-	
+
 	public void pointPlan(PointingPlannerResponse placements_result, String task_id, String human, int tar_is_dir, String target, String direction, ActionExec action ) {
 		try {
 			if (placements_result != null && !placements_result.getPointedLandmarks().isEmpty()) {
@@ -879,22 +1203,22 @@ public class RobotAgArch extends ROSAgArch {
 					logger.info("robot dist to new pose :"+r_dist_to_new_pose);
 					if (r_dist_to_new_pose > m_rosnode.getParameters()
 							.getDouble("guiding/tuning_param/robot_should_move_dist_th")) {
-						
+
 						getTS().getAg().addBel(Literal.parseLiteral("robot_move(" + r_frame + ","
 								+ robot_pose.toString() + ")[" + task_id + "]"));
-						
+
 						Transform human_pose_now = tfTree.lookupMostRecent("map", human);
 						if(human_pose_now != null) {
 							double h_dist_to_new_pose = Math.hypot(
 									human_pose_now.translation.x - robot_pose.getPosition().getX(),
 									human_pose_now.translation.y - robot_pose.getPosition().getY());
-							
+
 							logger.info("human pose now :"+human_pose_now);
 							logger.info("dist future robot pose and human now :"+h_dist_to_new_pose);
-							
+
 							if (h_dist_to_new_pose < m_rosnode.getParameters()
 									.getDouble("guiding/tuning_param/human_move_first_dist_th")) {
-								
+
 								String side;
 								geometry_msgs.Vector3 vector_msg = messageFactory
 										.newFromType(geometry_msgs.Vector3._TYPE);
@@ -902,14 +1226,14 @@ public class RobotAgArch extends ROSAgArch {
 								side = Tools.isLeft(TransformFactory.vector2msg(robot_pose_now.translation),
 										TransformFactory.vector2msg(human_pose_now.translation),
 										Vector3.fromPointMessage(human_pose.getPosition())
-												.toVector3Message(vector_msg)) ? "right" : "left";
+										.toVector3Message(vector_msg)) ? "right" : "left";
 								getTS().getAg().addBel(
 										Literal.parseLiteral("human_first(" + side + ")[" + task_id + "]"));
-								
+
 							}
 						}
 					}else {
-						
+
 						getTS().getAg().addBel(Literal.parseLiteral("robot_turn(" + r_frame + ", ["
 								+ robot_pose_now.translation.x + ","+ robot_pose_now.translation.y + "," + robot_pose_now.translation.z+ "], ["  
 								+ robot_pose.getOrientation().getX()+ "," + robot_pose.getOrientation().getY()+ ","
@@ -952,8 +1276,9 @@ public class RobotAgArch extends ROSAgArch {
 		action.setResult(true);
 		actionExecuted(action);
 	}
-	
+
 	public void text2speech(Literal bel, String task_id, ActionExec action) {
+//		logger.info("SPEAK");
 		// to remove the extra ""
 		String text = "";
 		String bel_functor = bel.getFunctor();
@@ -1136,19 +1461,34 @@ public class RobotAgArch extends ROSAgArch {
 		}
 		if (hwu_dial & !text.isEmpty()) {
 			boolean result = true;
+			if(!bel_functor.equals("where_are_u") && !bel_functor.equals("cannot_find") && !bel_functor.equals("going_to_move")
+					&& !bel_functor.contains("step") && !bel_functor.contains("closer") && !bel_functor.contains("come")) {
+				start_action(text);
+				speak = bel.toString();
+			}
 			if (text.contains("?")) {
-
-				if(!bel_functor.equals("list_places"))
+				inQuestion = true;
+				humanAnswer = 0;
+				if(!bel_functor.equals("list_places")) {
 					m_rosnode.call_dialogue_as_query("clarification." + bel_functor, bel_arg);
-				else
+				} else {
 					m_rosnode.call_dialogue_as_query("disambiguation", bel_arg);
+				}
 				SupervisionServerQueryActionResult listening_result = wait_dialogue_as_answer(bel_functor, task_id);
-				if(listening_result.getStatus().getStatus() == GoalStatus.PREEMPTED) {
+				inQuestion = false;
+				if(listening_result == null) {
+					humanAnswer = -1;
+					result = false;
+					action.setFailureReason(new Atom("dialogue_no_return"), "dialogue did not returned");
+				} else if(listening_result.getStatus().getStatus() == GoalStatus.PREEMPTED) {
+					humanAnswer = -1;
 					result = false;
 					action.setFailureReason(new Atom("dialogue_preempted"), "dialogue preempted");
 				}else if(listening_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
+					humanAnswer = 1;
 					result = true;
 				}else {
+					humanAnswer = -1;
 					result = false;
 					action.setFailureReason(new Atom("dialogue_failure"), "dialogue failure");
 				}
@@ -1157,8 +1497,8 @@ public class RobotAgArch extends ROSAgArch {
 				} catch (RevisionFailedException e) {
 					Tools.getStackTrace(e);
 				}
-			} else {
 
+			} else {
 				String sentence_code = bel_functor;
 				if(!bel_functor.equals("failed") && !bel_functor.equals("succeeded"))
 					sentence_code = "verbalisation." + bel_functor;
@@ -1179,8 +1519,24 @@ public class RobotAgArch extends ROSAgArch {
 					action.setFailureReason(new Atom("dialogue_failure"), "dialogue failure");
 				}	
 			}
+			pause_asr();
+			display_processing();
 			action.setResult(result);
+			if(!bel_functor.equals("where_are_u") && !bel_functor.equals("cannot_find") && !bel_functor.equals("going_to_move")
+					&& !bel_functor.contains("step") && !bel_functor.contains("closer") && !bel_functor.contains("come")) {
+				if(humanAnswer != 0) {
+					startActionLock.writeLock().lock();
+					startTimeOngoingAction = -1;
+					startActionLock.writeLock().unlock();
+				} else
+					end_action();
+			}
 		} else {
+//			if(!bel_functor.equals("where_are_u") && !bel_functor.equals("cannot_find") && !bel_functor.equals("going_to_move")
+//					&& !bel_functor.contains("step") && !bel_functor.contains("closer")) {
+//				startTimeOngoingAction = getRosTimeMilliSeconds();
+//				speak = bel.toString();
+//			}
 			if (!text.equals("succeeded")) {
 				Map<String, Object> parameters = new HashMap<String, Object>();
 				parameters.put("text", text);
@@ -1189,10 +1545,12 @@ public class RobotAgArch extends ROSAgArch {
 			}else {
 				action.setResult(true);
 			}
+			end_action();
 		}
+//		logger.info("END SPEAK");
 		actionExecuted(action);
 	}
-	
+
 	public SupervisionServerQueryActionResult wait_dialogue_as_answer(String s, String task_id) {
 		try {
 			getTS().getAg().addBel(Literal.parseLiteral("listening[" + task_id + "]"));
@@ -1200,31 +1558,39 @@ public class RobotAgArch extends ROSAgArch {
 			Tools.getStackTrace(e);
 		}
 		SupervisionServerQueryActionResult listening_result;
+		double start = getRosTimeMilliSeconds();
 		do {
 			listening_result = m_rosnode.getListening_result_query();
 			sleep(200);
-		} while (listening_result == null);
-		logger.info("status :"+listening_result.getStatus().getStatus());
-		try {
-			String resp;
-			if (listening_result.getResult().getResult().equals("true")) {
-				resp = "yes";
-			} else if (listening_result.getResult().getResult().equals("false")) {
-				resp = "no";
-			} else {
-				resp = listening_result.getResult().getResult();
+		} while (listening_result == null && getRosTimeSeconds() - start < 15);
+		if(listening_result == null) {
+			try {
+				getTS().getAg().addBel(Literal.parseLiteral("preempted("+task_id+")"));
+			} catch (RevisionFailedException e) {
+				e.printStackTrace();
 			}
-			if(listening_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
-				getTS().getAg().addBel(Literal.parseLiteral("listen_result(" + s + ",\""
-						+ resp + "\")[" + task_id + "]"));
+		} else {
+			try {
+				String resp;
+				if (listening_result.getResult().getResult().equals("true")) {
+					resp = "yes";
+				} else if (listening_result.getResult().getResult().equals("false")) {
+					resp = "no";
+				} else {
+					resp = listening_result.getResult().getResult();
+				}
+				if(listening_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {
+					getTS().getAg().addBel(Literal.parseLiteral("listen_result(" + s + ",\""
+							+ resp + "\")[" + task_id + "]"));
+				}
+			} catch (RevisionFailedException e) {
+				Tools.getStackTrace(e);
 			}
-		} catch (RevisionFailedException e) {
-			Tools.getStackTrace(e);
 		}
 		return listening_result;
-		
+
 	}
-	
+
 
 	@Override
 	public void actionExecuted(ActionExec act) {
@@ -1249,5 +1615,107 @@ public class RobotAgArch extends ROSAgArch {
 		}
 		super.actionExecuted(act);
 	}
+
+	public void reinit_steps_number() {
+		distToGoal = 0;
+		steps = 2;
+	}
+
+	public void increment_steps_number() {
+		steps += 1;
+	}
+
+	public void reinit_step() {
+		step = 0;
+	}
+
+	public void increment_step() {
+		step += 1;
+	}
+	
+	public void set_on_going_step(String step) {
+		onGoingStep = step;
+//		display.setOngoingStep(step);
+//		logger.info("------------------------------------------"+step+"-----------------------------");
+//		logger.info("step "+this.step+" over "+steps);
+		newStep = true;
+		onTimeTaskExecutionPrev = onTimeTaskExecution;
+		startTimeOngoingStep = getRosTimeMilliSeconds();
+	}
+	
+	public double task_achievement() {
+		return step/steps;
+	}
+	
+	public void reinit_qoi_variables() {
+		display.insert_discontinuity("task", getRosTimeMilliSeconds());
+		currentTaskActQoI.clear();
+		firstTimeInTask = true;
+		onGoingStep = "";
+		onGoingAction = "";
+		startActionLock.writeLock().lock();
+		startTimeOngoingAction = -1;
+		startActionLock.writeLock().unlock();
+		wasStepping = false;
+		wasMoving = false;
+		wasComingCloser = false;
+		onTimeTaskExecution = 1;
+		onTimeTaskExecutionPrev = 1;
+	}
+	
+	public void start_action(String text) {
+		if(text.contains("?"))
+			onGoingAction = "question";
+		else
+			onGoingAction = "speak";
+		startTimeOngoingAction = getRosTimeMilliSeconds();
+//		logger.info("start action to true with "+text);
+		startAction = true;
+	}
+	
+	public void end_action() {
+		startActionLock.writeLock().lock();
+		startTimeOngoingAction = -1;
+		startActionLock.writeLock().unlock();
+//		logger.info("insert discontinuity");
+		display.insert_discontinuity("action", getRosTimeMilliSeconds());
+	}
+	
+	public BeliefBase getTaskBB(String id) {
+		return tasksQoI.get(id);
+	}
+	
+	public BeliefBase getActionBB(String id) {
+		return actionsQoI.get(id);
+	}
+	
+	private void pause_asr() {
+		ServiceResponseListener<std_srvs.EmptyResponse> respListener = new ServiceResponseListener<std_srvs.EmptyResponse>() {
+
+			@Override
+			public void onFailure(RemoteException e) {
+			}
+
+			@Override
+			public void onSuccess(EmptyResponse arg0) {
+			}
+		};
+		m_rosnode.callAsyncService("pause_asr", respListener, null);
+	}
+	
+	private void display_processing() {
+		ServiceResponseListener<std_srvs.EmptyResponse> respListener = new ServiceResponseListener<std_srvs.EmptyResponse>() {
+
+			@Override
+			public void onFailure(RemoteException e) {
+			}
+
+			@Override
+			public void onSuccess(EmptyResponse arg0) {
+			}
+		};
+		m_rosnode.callAsyncService("web_view_start_processing", respListener, null);
+	}
+
 
 };

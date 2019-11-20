@@ -1,11 +1,14 @@
 n(-1).
+
 !start.
+
 
 +!start : true <- 
 	.verbose(2); 
 	jia.log_beliefs.
 
-@iE[atomic] +isEngagedWith(Human,_) : not inSession(_,_) & not localising<-
+@iE[atomic] +isAttentive(Human) : not inSession(_,_) & not localising<-
+	jia.store_attentive_times(T);
 	.concat("human_", Human, HTF);
 	human_to_monitor(HTF);
 	?n(N);
@@ -14,12 +17,8 @@ n(-1).
 	engage(N+1);
 	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == false){
-		text2speech(hello);
+		//text2speech(hello);
 	}.
-	
-//+~isEngagedWith(Human, _) : inSession(Human,_) & isPerceiving(_, Human) & ((monitoring(Human) & inTaskWith(Human,_)) | not inTaskWith(Human,_)) <-
-//	disengaging_human(Human);
-//	.print(disengaging).
 	
 -inTaskWith(Human,ID) : not  isPerceiving(_, Human)<- 
 	?n(N);
@@ -43,7 +42,7 @@ n(-1).
 	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	!wait_end_talking;
 	if(Dialogue == false){
-		text2speech(goodbye);
+		//text2speech(goodbye);
 	}else{
 		terminate_interaction(N);
 	}
@@ -135,9 +134,10 @@ n(-1).
 	!wait_for_rating(N);
 	.findall(B[N,source(X),add_time(Y)],B[N,source(X),add_time(Y)], L);
 	jia.beliefs_to_file(L);
+	jia.qoi_to_file(session, session, N);
 	.abolish(_[N]);
 	-rating(N,R)[source(_)];
-	-isEngagedWith(Human, _)[source(_)];
+	-isAttentive(Human)[source(_)];
 	-terminate_interaction(N)[source(_)].
 	
 +!wait_for_rating(N): true <-
@@ -147,12 +147,10 @@ n(-1).
 -!wait_for_rating(Human): true <- true.
 	
 	
--isEngagedWith(Human, O) : inSession(Human,_) <-
-	.send(robot, untell, isEngagedWith(Human, O));
-	.send(robot, tell, ~isEngagedWith(Human, O)).	
+-isAttentive(Human) : inSession(Human,_) <-
+	jia.store_attentive_times.	
 
-+isEngagedWith(Human, O) : inSession(Human,_) <-
-	.send(robot, tell, isEngagedWith(Human, O));
-	.send(robot, untell, ~isEngagedWith(Human, O)).
++isAttentive(Human): inSession(Human,_) <-
+	jia.store_attentive_times.
 	
 	

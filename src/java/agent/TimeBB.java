@@ -36,7 +36,7 @@ public class TimeBB extends DefaultBeliefBase {
 			
 			NodeConfiguration nodeConfiguration;
 			NodeMainExecutor nodeMainExecutor = DefaultNodeMainExecutor.newDefault();
-			if(System.getenv("ROS_MASTER_URI") != null && System.getenv("ROS_IP") != null && !System.getenv("ROS_IP").equals("127.0.0.1")) {
+			if(System.getenv("ROS_MASTER_URI") != null && System.getenv("ROS_IP") != null /*&& !System.getenv("ROS_IP").equals("127.0.0.1")*/) {
 				List<String> emptyArgv = Lists.newArrayList("EmptyList");
 				CommandLineLoader loader = new CommandLineLoader(emptyArgv);
 				URI masterUri = null;
@@ -94,7 +94,7 @@ public class TimeBB extends DefaultBeliefBase {
 		return super.add(bel, addInEnd);
 	}
 
-	private void annote_time(Literal bel) {
+	protected void annote_time(Literal bel) {
 		if (! hasTimeAnnot(bel)) {
 			Structure time = new Structure("add_time");
 //			double pass = connected_node.getCurrentTime().toSeconds() - start;

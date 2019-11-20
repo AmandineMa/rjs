@@ -47,7 +47,7 @@ public class SupervisorAgArch extends ROSAgArch {
 			public void run() {
 				String action_name = action.getActionTerm().getFunctor();
 				if(action_name.equals("configureNode")){
-					if(System.getenv("ROS_MASTER_URI") != null && System.getenv("ROS_IP") != null && !System.getenv("ROS_IP").equals("127.0.0.1")) {
+					if(System.getenv("ROS_MASTER_URI") != null && System.getenv("ROS_IP") != null /*&& !System.getenv("ROS_IP").equals("127.0.0.1")*/) {
 						List<String> emptyArgv = Lists.newArrayList("EmptyList");
 						CommandLineLoader loader = new CommandLineLoader(emptyArgv);
 						URI masterUri = null;

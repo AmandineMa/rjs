@@ -13,6 +13,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+
 import jason.asSemantics.Agent;
 import jason.asSemantics.Unifier;
 import jason.asSyntax.Literal;
@@ -178,6 +179,10 @@ public class FilesAnalysis {
 	
 	public TaskData get_file_task_data(DefaultBeliefBase bb) {
 		ag.setBB(bb);
+		Iterator<Literal> l = get_beliefs_iterator("said(generic(_),_)[source(self)]");
+		if(l != null) {
+			System.out.print("bouh");
+		}
 		float steps = 3;
 		float step = 0;
 		ArrayList<String> steps_list = new ArrayList<String>(Arrays.asList("agree_goal","show_target","check_understand"));
@@ -373,7 +378,7 @@ public class FilesAnalysis {
 				notExecutedSteps.put(s, notExecutedSteps.get(s)+1);
 		}
 	}
-	
+
 	@SuppressWarnings("serial")
 	public static void main(String[] args) {
 		FilesAnalysis fa = new FilesAnalysis("/home/amayima/Projets-robot/MuMMER/log/beliefs");
@@ -403,7 +408,98 @@ public class FilesAnalysis {
 		System.out.println(fa.toString());
 	}
 	
+	    
+	    static double  distToGoal = 0;
+	    static double distToGoalPrev = 0;
+	    
+	    public static void dist(double step, double stepPrev,double steps, int c){
+	    	distToGoalPrev = distToGoal;
+	        if(stepPrev > step) {
+	        	distToGoal = distToGoalPrev + ((stepPrev - step)/steps) * (-1 - distToGoalPrev);
+	        }else if(stepPrev == step) {
+				distToGoal = distToGoalPrev + Math.pow((1/steps),3) * (-1 - distToGoalPrev);
+			} else if(stepPrev < step) {
+				distToGoal = distToGoalPrev + ((step-stepPrev)/steps) * (1 - distToGoalPrev);
+			}
+	        
+			System.out.println("iteration "+c+" -> dist to goal :"+distToGoal);
+	    }
+
+//	     public static void main(String []args){
+//	        double steps = 7;
+//	        double step = 0;
+//	        double stepPrev = 0;
+//	        int c = 0;
+//	        while(c < 15){
+//	            if(c == 0){
+//	                step = 0;
+//	                stepPrev = 0;
+//	                dist(step, stepPrev,steps, c);
+//	            }else if(c==1){
+//	                stepPrev = step;
+//	                step = 1;
+//	                dist(step, stepPrev,steps, c);
+//	            }else if(c==2){
+//	                stepPrev = step;
+//	                step = 1;
+//	                dist(step, stepPrev,steps, c);
+//	            }else if(c==3){
+//	                stepPrev = step;
+//	                step = 1;
+//	                dist(step, stepPrev,steps, c);
+//	            }else if(c==4){
+//	                stepPrev = step;
+//	                step = 3;
+//	                dist(step, stepPrev,steps, c);
+//	            }else if(c==5){
+//	                stepPrev = step;
+//	                step = 4;
+//	                dist(step, stepPrev,steps, c);
+//	            }else if(c==6){
+//	                stepPrev = step;
+//	                step = 4;
+//	                dist(step, stepPrev,steps, c);
+//	            }else if(c==7){
+//	                stepPrev = step;
+//	                step = 4;
+//	                dist(step, stepPrev,steps, c);
+//	            }else if(c==8){
+//	                stepPrev = step;
+//	                step = 4;
+//	                dist(step, stepPrev,steps, c);
+//	            }else if(c==9){
+//	                stepPrev = step;
+//	                step = 4;
+//	                dist(step, stepPrev,steps, c);
+//	            }else if(c==10){
+//	                stepPrev = step;
+//	                step = 6;
+//	                dist(step, stepPrev,steps, c);
+//	            }else if(c==11){
+//	                stepPrev = step;
+//	                step = 5;
+//	                dist(step, stepPrev,steps, c);
+//	            }else if(c==12){
+//	                stepPrev = step;
+//	                step = 4;
+//	                dist(step, stepPrev,steps, c);
+//	            }else if(c==13){
+//	                stepPrev = step;
+//	                step = 6;
+//	                dist(step, stepPrev,steps, c);
+//	            }
+//	            else if(c==14){
+//	                stepPrev = step;
+//	                step = 7;
+//	                dist(step, stepPrev,steps, c);
+//	            }
+//	            c++;
+//	        }
+//	     }
+	
 	
 	
 
+//}
+	
 }

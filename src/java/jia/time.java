@@ -24,7 +24,7 @@ public class time extends DefaultInternalAction {
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
     	TimeBB bb = (TimeBB) ts.getAg().getBB();
 //    	double start_time = bb.getStartTime();
-    	double time_now = ((ROSAgArch) ts.getUserAgArch()).getRosTime();
+    	double time_now = ((ROSAgArch) ts.getUserAgArch()).getRosTimeSeconds();
     	return un.unifies(args[0], new ObjectTermImpl(time_now));
     	
     }

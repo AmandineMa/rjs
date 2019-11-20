@@ -45,8 +45,10 @@
 	-guiding_goal(ID, Human, Target);
 	+current_guiding_goal(ID).
 	
-+preempted(ID) : true <-
-	.send(robot, tell, preempted(ID));
++preempted(ID)[source(A)] : true <-
+	if(.substring(A,self)){
+		.send(robot, tell, preempted(ID));	
+	}
 	-current_guiding_goal(ID);
 	-cancel_goal(ID).
 

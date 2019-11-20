@@ -25,7 +25,6 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!speak(ID, ask_stairs);
 		listen(ask_stairs,["yes","no"]);
 		?listen_result(ask_stairs,Word);
-		web_view_start_processing;
 		if(not jia.believes(got_answer(ask_stairs,Word,_))){
 			+got_answer(ask_stairs,Word,0)[ID];
 		}else{
@@ -115,11 +114,16 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		?robot_turn(Rframe,Rposit, Rorient);
 	}
 	if(jia.believes(human_first(_))){
+		.concat("human_", Human, HTF);
 		?human_first(Side);
+		+step;
+		if(tf.get_transform(map, HTF, Point,_)){
+			+dist_to_goal(HTF,Point,Rposit);
+		}
 		!speak(ID, step(Side));
 		jia.get_param("/guiding/tuning_param/human_move_first_dist_th", "Double", Dist);
-		.concat("human_", Human, HTF);
 		!check_dist(ID, HTF, Rposit, Dist, false);
+		-step;
 		jia.reset_att_counter(check_dist);
 	}
 	.wait(800);
@@ -129,12 +133,18 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	-monitoring(_, _);
 	human_to_monitor(""); 
 	+move(started)[ID];
+	if(tf.get_transform(map, "base_footprint", PointR,_)){
+		+dist_to_goal(_,PointR,Rposit);
+	}
 	move_to(Rframe,Rposit, Rorient);
 	+move(over)[ID];
 	!wait_human(ID);
 	+monitoring(ID, Human).
+	
+-step : true <- -dist_to_goal(_,_,_).
++move(over) : true <- -dist_to_goal(_,_,_).
 
-@cd[max_attempts(15)]+!check_dist(ID, HTF, Point, Dist, Bool) : true <- 
+@cd[max_attempts(10)]+!check_dist(ID, HTF, Point, Dist, Bool) : true <- 
 	tf.is_dist_human2point_sup(HTF, Point, Dist, Result);
 	if(.substring(Result, Bool)){
 		.wait(200);
@@ -149,7 +159,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	!repeat_move(ID, HTF, Point, Dist, Bool).	
 	
 @rm[max_attempts(2)]+!repeat_move(ID, HTF, Point, Dist, Bool, Side) : true <-
-	!speak(ID, step_more(Side));
+	!speak(ID, step(Side));
 	jia.reset_att_counter(check_dist);
 	!check_dist(ID, HTF, Point, Dist, Bool).
 	
@@ -161,6 +171,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 -!repeat_move(ID, HTF, Point, Dist, Bool, Side) : true <- 
 	!speak(ID, cannot_move); 
 	!log_failure(ID, repeat_move, cannot_move, _);
+	-step;
 	.succeed_goal(be_at_good_pos(ID)).
 	
 -!repeat_move(ID, HTF, Point, Dist, Bool) : true <- 
@@ -245,7 +256,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 					+visible(direction, D, false, N+1)[ID];
 				}
 				!adjust_human_pos(ID, Human);
-				!check_pos(ID, Human);
+//				!check_pos(ID, Human);
 			}
 		}elif(.substring(Result, true) & jia.believes(target_to_point(_))){
 			?target_to_point(T);
@@ -258,7 +269,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 					+visible(target, T, false, N+1)[ID];
 				}
 				!adjust_human_pos(ID, Human);
-				!check_pos(ID, Human);
+//				!check_pos(ID, Human);
 			}
 		}
 	}else{
@@ -268,15 +279,20 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 +!adjust_human_pos(ID, Human) : true <-
 	?human_pose(Hframe,Hposit,_);
 	.concat("human_", Human, HTF);
-//	if(tf.h_step_r_or_l(HTF, Hposit, Side)){
 	+adjust;
+	if(tf.get_transform(map, HTF, Point,_)){
+		+dist_to_goal(HTF,Point,Hposit);
+	}
 	!speak(ID, closer);
 	.concat("human_", Human, HTF);
 	jia.get_param("/guiding/tuning_param/human_move_not_visible", "Double", Dist);
 	!check_dist(ID, HTF, Hposit, Dist, true);
 	-adjust;
 	jia.reset_att_counter(check_dist).
-//	}.
+	
+-adjust : true <- 
+	-dist_to_goal(_,_,_);
+	look_at_events(stop_look_at).
 
 -!adjust_human_pos(ID, Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
 	-adjust(_);
@@ -329,42 +345,78 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	.abolish(point_at(_));
 	if(jia.believes(direction(_))){
 		!speak(ID, explain_route);
+		?direction(Dir);
 	}
 	!show_direction(ID); 
+	!ask_understood(ID).
+//	if(jia.believes(direction_explained) & not jia.believes(ask_seen(Dir))){
+//		!speak(ID, ask_understand);
+//		listen(ask_understand,["yes","no"]);
+//		?listen_result(ask_understand,Word1);
+//		if(not jia.believes(got_answer(ask_understand,Word1,_))){
+//			+got_answer(ask_understand,Word1,0)[ID];
+//		}else{
+//			?got_answer(ask_understand,Word1,N);
+//			+got_answer(ask_understand,Word1,N+1)[ID];
+//		}
+//		if(.substring(Word1,yes)){
+//			!speak(ID, happy_end);
+//		}else{
+//			!speak(ID, ask_explain_again);
+//			listen(ask_explain_again,["yes","no"]);
+//			?listen_result(ask_explain_again,Word2);
+//			if(not jia.believes(got_answer(ask_explain_again,Word2,_))){
+//				+got_answer(ask_explain_again,Word2,0)[ID];
+//			}else{
+//				?got_answer(ask_explain_again,Word2,N);
+//				+got_answer(ask_explain_again,Word2,N+1)[ID];
+//			}
+//			if(.substring(Word2,yes)){
+//				!show_landmarks(ID);
+//			}else{
+//				!speak(ID, hope_find_way);
+//			}
+//		}
+	
+	
++!ask_understood(ID) : direction_said & direction(Dir) & not ask_seen(Dir) <-
 	.wait(800);
 	if(Dialogue == true){
 		enable_animated_speech(true);
 	}
-	if(jia.believes(explained)){
-		!speak(ID, ask_understand);
-		listen(ask_understand,["yes","no"]);
-		?listen_result(ask_understand,Word1);
-		web_view_start_processing;
-		if(not jia.believes(got_answer(ask_understand,Word1,_))){
-			+got_answer(ask_understand,Word1,0)[ID];
+	!speak(ID, ask_understand);
+	listen(ask_understand,["yes","no"]);
+	?listen_result(ask_understand,Word1);
+	if(not jia.believes(got_answer(ask_understand,Word1,_))){
+		+got_answer(ask_understand,Word1,0)[ID];
+	}else{
+		?got_answer(ask_understand,Word1,N);
+		+got_answer(ask_understand,Word1,N+1)[ID];
+	}
+	if(.substring(Word1,yes)){
+		+direction_explained[ID];
+		!speak(ID, happy_end);
+	}else{
+		!speak(ID, ask_explain_again);
+		listen(ask_explain_again,["yes","no"]);
+		?listen_result(ask_explain_again,Word2);
+		if(not jia.believes(got_answer(ask_explain_again,Word2,_))){
+			+got_answer(ask_explain_again,Word2,0)[ID];
 		}else{
-			?got_answer(ask_understand,Word1,N);
-			+got_answer(ask_understand,Word1,N+1)[ID];
+			?got_answer(ask_explain_again,Word2,N);
+			+got_answer(ask_explain_again,Word2,N+1)[ID];
 		}
-		if(.substring(Word1,yes)){
-			!speak(ID, happy_end);
+		if(.substring(Word2,yes)){
+			!show_direction(ID);
+			!ask_understood(ID);
 		}else{
-			!speak(ID, ask_explain_again);
-			listen(ask_explain_again,["yes","no"]);
-			?listen_result(ask_explain_again,Word2);
-			web_view_start_processing;
-			if(not jia.believes(got_answer(ask_explain_again,Word2,_))){
-				+got_answer(ask_explain_again,Word2,0)[ID];
-			}else{
-				?got_answer(ask_explain_again,Word2,N);
-				+got_answer(ask_explain_again,Word2,N+1)[ID];
-			}
-			if(.substring(Word2,yes)){
-				!show_landmarks(ID);
-			}else{
-				!speak(ID, hope_find_way);
-			}
+			!speak(ID, hope_find_way);
 		}
+	}.
+	
++!ask_understood(ID) : not ( direction_explained & direction(Dir) & not ask_seen(Dir) ) <-
+	if(jia.believes(target_explained)){
+		!speak(ID, happy_end);
 	}else{
 		!speak(ID, cannot_show);
 	}.
@@ -385,6 +437,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	// if cannot transform, leaves the plan
 	tf.can_transform(map, TargetPlace);
 	!point_look_at(ID, TargetPlace);
+//	+target_explained[ID];
 	jia.reset_att_counter(point_look_at).
 	
 
@@ -393,22 +446,33 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!log_failure(ID, show_target, Failure, Code);
 	}else{
 		?target_place(TargetPlace);
-		!verbalization(ID, TargetPlace);
-		web_view_start_processing;
+		if(jia.believes(target_place(TargetPlace))){
+ 			+target_verba[ID];
+	 	}elif(jia.believes(direction(TargetPlace))){
+	 		+direction_verba[ID];
+	 	};
+		!verba(ID, TargetPlace);
+//		+target_explained[ID];
 	}.
 	
 +!show_direction(ID) : true <-
 	?direction(D);
 	tf.can_transform(map, D);
 	!point_look_at(ID, D);
+//	+direction_explained[ID];
 	jia.reset_att_counter(point_look_at).
 
 -!show_direction(ID)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : true <-
 	?task(ID, guiding, Human, _);
 	if(.substring(can_transform, Code)){
 		?direction(D);
-		!verbalization(ID, D);
-		web_view_start_processing;
+		if(jia.believes(target_place(D))){
+ 			+target_verba[ID];
+	 	}elif(jia.believes(direction(D))){
+	 		+direction_verba[ID];
+	 	};
+		!verba(ID, D);
+//		+direction_explained[ID];
 	}elif(not .substring(test_goal_failed, Error)){
 		!log_failure(ID, show_direction, Failure, Code);
 	}.
@@ -416,13 +480,15 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 // TODO handle timeout point_at
 @pl_l[max_attempts(3), atomic_r]+!point_look_at(ID, Ld) : landmark_to_see(Ld) <-
 	?task(ID, guiding, Human, _);
+	if(jia.believes(target_place(Ld))){
+ 		+target_verba[ID];
+ 	}elif(jia.believes(direction(Ld))){
+ 		+direction_verba[ID];
+ 	};
 	point_at(Ld,false,true);
-	jia.time(T);
-	.print("time before point ",T);
 	.wait(point_at(point),10000);
 	-point_at(point);
-	!verbalization(ID, Ld);
-	web_view_start_processing;
+	!verba(ID, Ld);
 	.wait(point_at(finished),6000);
 	-point_at(finished);
 	?(canSee(Ld)[source(Human)] | hasSeen(Ld)[source(Human)]);
@@ -432,13 +498,16 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 
 @pl_nl[max_attempts(3), atomic_r]+!point_look_at(ID, Ld) : not landmark_to_see(Ld) <-
 	?task(ID, guiding, Human, _);
-	jia.time(T);
-	.print("time before point ",T);
+	if(jia.believes(target_place(Ld))){
+ 		+target_verba[ID];
+ 	}elif(jia.believes(direction(Ld))){
+ 		+direction_verba[ID];
+ 	};
 	point_at(Ld,false,true);
 	.wait(point_at(point),10000);
 	-point_at(point);
-	!verbalization(ID, Ld);
-	web_view_start_processing;
+	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	!verba(ID, Ld);
 	.wait(point_at(finished),6000);
 	-point_at(finished).
 
@@ -451,24 +520,21 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!speak(ID,pl_sorry); 
 		jia.reset_att_counter(point_look_at);
 	}elif(.substring(point_at(point),Code)){
-		jia.time(T2);
 		.print("time out time ",T2);
 		!log_failure(ID, point_look_at, Code, not_received);
-		!verbalization(ID, Ld);
-		web_view_start_processing;
+		!verba(ID, Ld);
 	}else{
 		!log_failure(ID, point_look_at, Failure, Code);
-		!verbalization(ID, Ld);
-		web_view_start_processing;
+		!verba(ID, Ld);
 	}.
 	
 +!ask_seen(ID, Ld) : true <-
+	+ask_seen(Ld)[ID];
 	?task(ID, guiding, Human, _);
 	?verba_name(Ld,Verba);
 	!speak(ID, cannot_tell_seen(Verba));
 	listen(cannot_tell_seen,["yes","no"]);
 	?listen_result(cannot_tell_seen, Word1);
-	web_view_start_processing;
 	if(not jia.believes(got_answer(cannot_tell_seen,Word1,_))){
 		+got_answer(cannot_tell_seen,Word1,0)[ID];
 	}else{
@@ -479,7 +545,6 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!speak(ID, ask_show_again(Ld));
 		listen(ask_show_again,["yes","no"]);
 		?listen_result(ask_show_again, Word2);
-		web_view_start_processing;
 		if(not jia.believes(got_answer(ask_show_again,Word2,_))){
 			+got_answer(ask_show_again,Word2,0)[ID];
 		}else{
@@ -491,37 +556,49 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 			!point_look_at(ID,Ld);
 		}else{
 			!speak(ID, hope_find_way);
+			+did_not_see[ID];
 		}
+	}else{
+		+ld_seen(Ld)[ID];
 	}.
 	
 -!ask_seen(ID, Ld)[Failure, code(Code),code_line(_),code_src(_),error(_),error_msg(_)]: true <-
   	!log_failure(ID, ask_seen, Failure, Code).
+  	
+ +!verba(ID,Place) : true <-
+// 	if(jia.believes(target_place(Place))){
+// 		+target_verba[ID];
+// 	}elif(jia.believes(direction(Place))){
+// 		+direction_verba[ID];
+// 	};
+ 	!verbalization(ID, Place);
+ 	if(jia.believes(target_place(Place))){
+ 		+target_explained[ID];
+ 	}elif(jia.believes(direction(Place))){
+ 		+direction_said[ID];
+ 	}.
 
 +!verbalization(ID, Place) : target_to_point(T) & T == Place & direction(_) <-
 	?task(ID, guiding, Human, _);
 	?verba_name(Place, Name);
-	!speak(ID, visible_target(Name));
-	+explained[ID].
+	!speak(ID, visible_target(Name)).
 	
 +!verbalization(ID, Place) : not target_to_point(_) &  direction(D) & Place \== D <-
 	?task(ID, guiding, Human, _);
 	?verba_name(Place, Name);
-	!speak(ID, not_visible_target(Name));
-	+explained[ID].
+	!speak(ID, not_visible_target(Name)).
 
 +!verbalization(ID, Place) : ( direction(D) & Place == D & dir_to_point(D)) | (target_to_point(T) & T == Place & not direction(_)) <-
 	?task(ID, guiding, Human, _);
 	!get_verba(ID);
 	?verbalization(RouteVerba);
-	!speak(ID, route_verbalization(RouteVerba));
-	+explained[ID].
+	!speak(ID, route_verbalization(RouteVerba)).
 
 +!verbalization(ID, Place) : ( direction(D) & Place == D & not dir_to_point(D) ) | ( not target_to_point(_) & not direction(_)) <-
 	?task(ID, guiding, Human, _);
 	!get_verba(ID);
 	?verbalization(RouteVerba);
-	!speak(ID, route_verbalization_n_vis(RouteVerba));
-	+explained[ID].
+	!speak(ID, route_verbalization_n_vis(RouteVerba)).
 	
 +!get_verba(ID) : true <-
 	?route(Route);

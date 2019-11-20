@@ -1,11 +1,16 @@
 // Agent robot in project supervisor
 
-{ include("monitoring.asl")}
+//{ include("monitoring.asl")}
 { include("guiding_goal_negociation.asl")}
 { include("guiding.asl")}
 !start.
 
-^!guiding(ID, Human, Place)[state(started)] : not started[ID] <- +started[ID]; +monitoring(ID, Human).
+^!guiding(ID, Human, Place)[state(started)] : not started[ID] <- 
+	pause_asr_and_display_processing;
+	.send(interac, tell, inTaskWith(Human,ID)); 
+	+started[ID]; 
+	+monitoring(ID, Human).
+	
 ^!guiding(ID, Human, Place)[state(S)] : (S == finished | S == failed) & not finished[ID] <-
 	+finished[ID];
 	.concat("human_", Human, H);  
@@ -22,11 +27,8 @@
 
 //TODO faire une jia pour changer "Place" dans les params du plan guiding 
 +!guiding(ID, Human, Place) : true <-
-	web_view_start_processing;
 	jia.log_beliefs;	
 	jia.publish_marker(0);
-	.all_names(Agents);
-	.send(interac, tell, inTaskWith(Human,ID));
 	!clean_facts;
 	+goal_from_dialogue(Place)[ID];
 	+task(ID, guiding, Human, Place)[ID];
@@ -97,12 +99,18 @@
 	?task(ID, Task, Human, Param);
 	.findall(B[ID,source(X),add_time(Y)],B[ID,source(X),add_time(Y)], L);
 	jia.beliefs_to_file(L);
+	if(not jia.believes(place_not_found(_))){
+		jia.qoi_to_file(task, Param, ID);
+	}
 	jia.reset_att_counter;
-	.send(interac, untell, inTaskWith(Human,ID));
-	.abolish(_[ID]).	
+	.abolish(_[ID]);
+	jia.reinit_qoi_variables;
+	.send(interac, untell, inTaskWith(Human,ID)).	
 
 +end_task(Status, ID)[ID] :  true <- 
 	?task(ID, _, Human, _); 
+	jia.get_task_achievement(TA);
+	.send(interac, tell, task_achievement(ID, TA));
 	.send(supervisor, tell, end_task(Status, ID)).
 
 +failure(Subgoal, Failure, Code)[ID] : true <- .send(supervisor, tell, failure(ID, Subgoal, Failure, Code)).
@@ -120,7 +128,10 @@
 	
 -!speak(ID, ToSay) : true <-	true.
   	
-+preempted(ID) : true <-
++preempted(ID)[source(A)] : true <-
+	if(.substring(A,robot)){
+		.send(supervisor, tell, preempted(ID));
+	}
 	-preempted(ID)[add_time(_), source(_)];
 	+end_task(preempted, ID)[ID];
 	+finished[ID];
@@ -128,6 +139,8 @@
 	!clean_task(ID);
 	G =.. [Task, [ID,Human,_],[]];
 	.drop_desire(G).
+	
+
 	
 +cancelled(ID) : true <-
 	-preempted(ID)[add_time(_), source(_)];
@@ -151,4 +164,25 @@
 	?task(ID, Task, Human, Place);
 	G =.. [Task, [ID,Human,_],[]];
 	.resume(G).
+	
++said(ask_stairs,0) : true <-  jia.update_steps_number(increment); jia.executing_step(person_abilities).
++direction(_) : true <- jia.update_steps_number(increment); jia.update_steps_number(increment).
++target_to_point(_) : true <-jia.update_steps_number(increment).
++robot_move(_,_,_) : true <- jia.update_steps_number(increment); jia.executing_step(agents_at_right_place).
++robot_turn(_,_,_) : true <- jia.update_steps_number(increment); jia.executing_step(agents_at_right_place).
+
++guiding_goal_nego(_,_) : true <-  jia.update_step(increment).
++persona_asked(_) : true <- jia.update_step(increment).
++visible(target,_,true) : not step_agents_at_right_place_added <- +step_agents_at_right_place_added[ID]; jia.update_step(increment).
++visible(direction,_,true) : not step_agents_at_right_place_added <- +step_agents_at_right_place_added[ID]; jia.update_step(increment).
++target_explained : true <-  jia.update_step(increment).
++direction_explained : true <-  jia.update_step(increment).
+//+said(happy_end,_) : dir_to_point(D) & not ld_seen(D) <-  jia.update_step(increment).
++ld_seen(_) : true  <- jia.update_step(increment).
+
++started : true <- jia.executing_step(goal_nego).
++target_verba : true <- jia.executing_step(target_explanation).
++direction_verba : true <- jia.executing_step(direction_explanation).
++said(cannot_tell_seen(_),0) : true <- jia.executing_step(landmark_seen).
+
 

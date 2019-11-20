@@ -2,7 +2,16 @@ package utils;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+
+import jason.asSemantics.TransitionSystem;
+import jason.asSemantics.Unifier;
+import jason.asSyntax.ListTermImpl;
+import jason.asSyntax.Literal;
+import jason.asSyntax.NumberTermImpl;
+import jason.asSyntax.Term;
 
 public class Tools {
 
@@ -41,6 +50,15 @@ public class Tools {
 		}
 		str_array = "["+str_array+"]";
 		return str_array;
+	}
+	
+	public static ArrayList<Double> listTermNumbers_to_list(ListTermImpl lti){
+		ArrayList<Double> values = new ArrayList<>();
+		Iterator<Term> values_it =  lti.iterator();
+		while(values_it.hasNext()) {
+			values.add(((NumberTermImpl)values_it.next()).solve());
+		}
+		return values;
 	}
 	
 	public static void sleep(long msec) {

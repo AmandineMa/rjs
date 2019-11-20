@@ -75,22 +75,22 @@ n(-1).
 	jia.get_param("/guiding/robot_base/position", "List", P);
 	jia.get_param("/guiding/robot_base/orientation", "List", O);
 	jia.get_param("/guiding/immo", "Boolean", Immo);
-	if(Immo == false){
-		move_to(map, P, O);	
-	}
+//	if(Immo == false){
+	move_to(map, P, O);	
+//	}
 	localise;
-	if(Immo == false){
-		move_to(map, P, O);	
-	}
+//	if(Immo == false){
+	move_to(map, P, O);	
+//	}
 	-localising.
 	
 @loc[max_attempts(2)]+!loca: localising <-
 	jia.get_param("/guiding/robot_base/position", "List", P);
 	jia.get_param("/guiding/robot_base/orientation", "List", O);
 	jia.get_param("/guiding/immo", "Boolean", Immo);
-	if(Immo == false){
-		move_to(map, P, O);	
-	}
+//	if(Immo == false){
+	move_to(map, P, O);	
+//	}
 	-localising.// !loca.
 	
 	

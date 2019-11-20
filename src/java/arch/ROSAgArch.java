@@ -53,7 +53,7 @@ public class ROSAgArch extends MindInspectorAgArch {
 	MessageFactory messageFactory;
 	protected int percept_id = -1;
 	
-	static protected XYLineChart_AWT display = new XYLineChart_AWT("QoI", "QoI data");
+//	static protected XYLineChart_AWT display = new XYLineChart_AWT("QoI", "QoI data");
 
 	protected Logger logger = Logger.getLogger(ROSAgArch.class.getName());
 	

@@ -190,7 +190,7 @@ public class RobotAgArch extends ROSAgArch {
 		Literal onGoingTask = findBel("started");
 		if(!onGoingStep.isEmpty() && onGoingTask != null) {
 			if(firstTimeInTask) {
-				display.insert_discontinuity("task", getRosTimeMilliSeconds());
+//				display.insert_discontinuity("task", getRosTimeMilliSeconds());
 				firstTimeInTask = false;
 				startTimeOngoingStep = ((NumberTermImpl)((Literal) onGoingTask.getAnnots("add_time").get(0)).getTerm(0)).solve();
 			}
@@ -294,7 +294,7 @@ public class RobotAgArch extends ROSAgArch {
 							startAction = true;
 						wasComingCloser = true;
 					} else if(wasComingCloser) {
-						display.insert_discontinuity("action", getRosTimeMilliSeconds());
+//						display.insert_discontinuity("action", getRosTimeMilliSeconds());
 						wasComingCloser = false;
 					}
 
@@ -347,7 +347,7 @@ public class RobotAgArch extends ROSAgArch {
 						actionsQoI.get(id).add(action_efficiency);
 						list.add(action_efficiency);
 					}  else if(wasStepping) {
-						display.insert_discontinuity("action", getRosTimeMilliSeconds());
+//						display.insert_discontinuity("action", getRosTimeMilliSeconds());
 						wasStepping = false;
 					}
 					
@@ -399,7 +399,7 @@ public class RobotAgArch extends ROSAgArch {
 						}
 						
 					} else if(wasMoving) {
-						display.insert_discontinuity("action", getRosTimeMilliSeconds());
+//						display.insert_discontinuity("action", getRosTimeMilliSeconds());
 						wasMoving = false;
 					}
 				}
@@ -435,19 +435,19 @@ public class RobotAgArch extends ROSAgArch {
 				
 			Literal lt = findBel(Literal.parseLiteral("qoi(_,_)"), this.tasksQoI.get(id));
 //			logger.info(lt.toString());
-			display.update(null,lt, la );
+//			display.update(null,lt, la );
 			if(newStep) {
 				newStep = false;
-				display.add_label(onGoingStep, lt);
+//				display.add_label(onGoingStep, lt);
 			}
 			if(humanAnswer != 0) {
 				humanAnswer = 0;
-				display.insert_discontinuity("action", getRosTimeMilliSeconds());
+//				display.insert_discontinuity("action", getRosTimeMilliSeconds());
 			}
 			if(startAction && la != null) {
 				startAction = false;
 //				logger.info("start action to false");
-				display.add_label(onGoingAction, la);
+//				display.add_label(onGoingAction, la);
 			}
 //			logger.info(tasksQoI.get(id).toString());
 //			logger.info(this.actionsQoI.get(id).toString());
@@ -1648,7 +1648,7 @@ public class RobotAgArch extends ROSAgArch {
 	}
 	
 	public void reinit_qoi_variables() {
-		display.insert_discontinuity("task", getRosTimeMilliSeconds());
+//		display.insert_discontinuity("task", getRosTimeMilliSeconds());
 		currentTaskActQoI.clear();
 		firstTimeInTask = true;
 		onGoingStep = "";
@@ -1678,7 +1678,7 @@ public class RobotAgArch extends ROSAgArch {
 		startTimeOngoingAction = -1;
 		startActionLock.writeLock().unlock();
 //		logger.info("insert discontinuity");
-		display.insert_discontinuity("action", getRosTimeMilliSeconds());
+//		display.insert_discontinuity("action", getRosTimeMilliSeconds());
 	}
 	
 	public BeliefBase getTaskBB(String id) {

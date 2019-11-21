@@ -31,13 +31,13 @@
 				ListF=List;
 			}
 			if(.string(ListF)){
-				jia.word_individual(findSub, ListF, PlaceOnto);
+				PlaceOnto=ListF;
+//				jia.word_individual(findSub, ListF, PlaceOnto);
 			}else{
 				jia.verba_name(ListF, PlacesVerba);
 				!speak(ID, list_places(PlacesVerba));
 				listen(list_places,PlacesVerba);
 				?listen_result(list_places,Goal);
-				web_view_start_processing;
 				if(not jia.believes(got_answer(list_places,Goal,_))){
 					+got_answer(list_places,Goal,0)[ID];
 				}else{

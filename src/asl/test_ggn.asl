@@ -8,6 +8,7 @@
 
 +!start : true <- 
 	.verbose(1); 
+	jia.log_beliefs;
 	!tests.
 
 +!test(Place, Result): true <-
@@ -36,7 +37,7 @@
 	!test("atm", ["gf_atm_west","gf_atm_east"]);
 	!test("cash", ["gf_atm_west","gf_atm_east"]);
 	!test("cash machine", ["gf_atm_west","gf_atm_east"]);
-	!test("florist", "Kukkakauppa");
+	!test("florist", "Makelan_Kauppapuutarna");
 	+listen_result(list_places, "bella roma");
 	!test("pizzeria", "Bella_Roma_and_Daddys_Diner");
 	+listen_result(list_places, "linkosuo");
@@ -49,8 +50,8 @@
 	!test("pant", "Brother_Clothing");
 	+listen_result(list_places, "top sport");
 	!test("sport", "Top_Sport");
-	!test("info", "Information_desk");
 	!test("info point", "Information_desk");
+	!test("toy store", "Kid_Zone"); // doesnt work
 	!test("nissan", "Nissen");
 	!test("shoemaker", "Avain__ja_suutarityo_Helsky");
 	!test("beauty pedicure manna", "Kauneus__ja_jalkahoitola_Manna").

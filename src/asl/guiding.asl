@@ -214,8 +214,9 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		-look_at(look);
 		look_at(Hframe,Pointf,true);
 		.wait(isPerceiving(Human),4000);
+		+monitoring(ID, Human);
 		+after_move_status(human_found)[ID];
-		.wait(look_at(look),6000);
+		.wait(look_at(look),4000);
 		look_at_events(human_perceived);
 		!check_pos(ID, Human);
 	}else{

@@ -23,6 +23,7 @@ import geometry_msgs.PoseStamped;
 import jason.RevisionFailedException;
 import jason.architecture.AgArch;
 import jason.asSemantics.ActionExec;
+import jason.asSemantics.Unifier;
 import jason.asSyntax.ArithExpr;
 import jason.asSyntax.Atom;
 import jason.asSyntax.ListTermImpl;
@@ -113,6 +114,7 @@ public class InteractAgArch extends ROSAgArch {
 		MessageListener<std_msgs.Bool> is_talking = new MessageListener<std_msgs.Bool>() {
 			public void onNewMessage(std_msgs.Bool msg) {
 				try {
+					getTS().getAg().abolish(Literal.parseLiteral("finished_talking(_)"), new Unifier());
 					getTS().getAg().addBel(Literal.parseLiteral("finished_talking("+String.valueOf(msg.getData())+")"));
 				} catch (RevisionFailedException e) {
 					e.printStackTrace();

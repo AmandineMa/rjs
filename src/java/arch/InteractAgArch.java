@@ -54,9 +54,9 @@ public class InteractAgArch extends ROSAgArch {
 	@Override
 	public Collection<Literal> perceive() {
 		Collection<Literal> l = new ArrayList<Literal>();
-		if(m_rosnode != null) {
+		if(rosnode != null) {
 //			if(percept_id != m_rosnode.getPercept_id()) {
-				Multimap<String,SimpleFact> mm = m_rosnode.getPerceptions();
+				Multimap<String,SimpleFact> mm = rosnode.getPerceptions();
 				synchronized (mm) {
 					HashMap<String, Collection<SimpleFact>> perceptions = new HashMap<String, Collection<SimpleFact>>(mm.asMap());
 					if(perceptions != null) {
@@ -75,7 +75,7 @@ public class InteractAgArch extends ROSAgArch {
 				}
 
 
-				percept_id = m_rosnode.getPercept_id();
+				percept_id = rosnode.getPercept_id();
 			}
 		}
 		return l;
@@ -97,7 +97,7 @@ public class InteractAgArch extends ROSAgArch {
 				}
 			}
 		};
-		m_rosnode.addListener("guiding/topics/terminate_interaction", TerminateInteractionActionGoal._TYPE, terminate_interac);
+		rosnode.addListener("guiding/topics/terminate_interaction", TerminateInteractionActionGoal._TYPE, terminate_interac);
 
 		MessageListener<KeyValue> rating = new MessageListener<KeyValue>() {
 			public void onNewMessage(KeyValue msg) {
@@ -108,7 +108,7 @@ public class InteractAgArch extends ROSAgArch {
 				}
 			}
 		};
-		m_rosnode.addListener("guiding/topics/rating", KeyValue._TYPE, rating);
+		rosnode.addListener("guiding/topics/rating", KeyValue._TYPE, rating);
 
 		MessageListener<std_msgs.Bool> is_talking = new MessageListener<std_msgs.Bool>() {
 			public void onNewMessage(std_msgs.Bool msg) {
@@ -119,10 +119,10 @@ public class InteractAgArch extends ROSAgArch {
 				}
 			}
 		};
-		m_rosnode.addListener("guiding/topics/finished_talking", std_msgs.Bool._TYPE, is_talking);
+		rosnode.addListener("guiding/topics/finished_talking", std_msgs.Bool._TYPE, is_talking);
 		
-		human_to_monitor = m_rosnode.getConnectedNode().newPublisher(
-				m_rosnode.getParameters().getString("guiding/topics/human_to_monitor"), std_msgs.String._TYPE);
+		human_to_monitor = rosnode.getConnectedNode().newPublisher(
+				rosnode.getParameters().getString("guiding/topics/human_to_monitor"), std_msgs.String._TYPE);
 	}
 	
 	
@@ -136,7 +136,7 @@ public class InteractAgArch extends ROSAgArch {
 				
 				if(action_name.equals("engage")) {
 					String human_id = action.getActionTerm().getTerm(0).toString();
-					m_rosnode.call_engage_as(human_id);
+					rosnode.call_engage_as(human_id);
 					action.setResult(true);
 					actionExecuted(action);
 				}
@@ -158,7 +158,7 @@ public class InteractAgArch extends ROSAgArch {
 							actionExecuted(action);
 						}
 					};
-					m_rosnode.callAsyncService("terminate_interaction", respListener, null);
+					rosnode.callAsyncService("terminate_interaction", respListener, null);
 					
 				} else if (action_name.equals("localise")) {
 					ServiceResponseListener<pepper_localisation.responseResponse> respListener = new ServiceResponseListener<pepper_localisation.responseResponse>() {
@@ -175,7 +175,7 @@ public class InteractAgArch extends ROSAgArch {
 						}
 					};
 					Map<String, Object> parameters = new HashMap<String, Object>();
-					m_rosnode.callAsyncService("localise", respListener, parameters);
+					rosnode.callAsyncService("localise", respListener, parameters);
 
 				} else if (action_name.equals("reinit_loca")) {
 					ServiceResponseListener<pepper_localisation.responseResponse> respListener = new ServiceResponseListener<pepper_localisation.responseResponse>() {
@@ -192,7 +192,7 @@ public class InteractAgArch extends ROSAgArch {
 						}
 					};
 					Map<String, Object> parameters = new HashMap<String, Object>();
-					m_rosnode.callAsyncService("reinit_loca", respListener, parameters);
+					rosnode.callAsyncService("reinit_loca", respListener, parameters);
 
 				}  else if (action_name.equals("move_to")) {
 					String frame = action.getActionTerm().getTerm(0).toString();
@@ -213,11 +213,11 @@ public class InteractAgArch extends ROSAgArch {
 					header.setFrameId(frame);
 					pose_stamped.setHeader(header);
 					pose_stamped.setPose(pose.getPose());
-					m_rosnode.call_move_to_as(pose_stamped);
+					rosnode.call_move_to_as(pose_stamped);
 					MoveBaseActionResult move_to_result;
 					MoveBaseActionFeedback move_to_fb;
 					do {
-						move_to_result = m_rosnode.getMove_to_result();
+						move_to_result = rosnode.getMove_to_result();
 //							move_to_fb = m_rosnode.getMove_to_fb();
 //							if(move_to_fb != null) {
 //								try {

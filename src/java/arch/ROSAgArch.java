@@ -22,6 +22,7 @@ import org.ros.rosjava.tf.TransformTree;
 import com.google.common.collect.Multimap;
 
 import agent.TimeBB;
+import jason.RevisionFailedException;
 import jason.architecture.MindInspectorAgArch;
 import jason.asSemantics.ActionExec;
 import jason.asSemantics.Unifier;
@@ -46,7 +47,7 @@ public class ROSAgArch extends MindInspectorAgArch {
 		    }
 	}
 	
-	static protected RosNode m_rosnode;
+	static protected RosNode rosnode;
 	
 	protected ExecutorService executor;
 	NodeConfiguration nodeConfiguration;
@@ -88,9 +89,9 @@ public class ROSAgArch extends MindInspectorAgArch {
 	@Override
 	public Collection<Literal> perceive() {
 		Collection<Literal> l = new ArrayList<Literal>();
-		if(m_rosnode != null) {
+		if(rosnode != null) {
 //			if(percept_id != m_rosnode.getPercept_id()) {
-				Multimap<String,SimpleFact> mm = m_rosnode.getPerceptions();
+				Multimap<String,SimpleFact> mm = rosnode.getPerceptions();
 				synchronized (mm) {
 					Collection<SimpleFact> perceptions = new ArrayList<SimpleFact>(mm.get("\""+getAgName()+"\""));
 					if(perceptions != null) {
@@ -103,7 +104,7 @@ public class ROSAgArch extends MindInspectorAgArch {
 						}
 					}
 				}
-				percept_id = m_rosnode.getPercept_id();
+				percept_id = rosnode.getPercept_id();
 //			}
 		}
 		return l;
@@ -111,24 +112,24 @@ public class ROSAgArch extends MindInspectorAgArch {
 	}
 	
 	public ConnectedNode getConnectedNode() {
-		return m_rosnode.getConnectedNode();
+		return rosnode.getConnectedNode();
 	}
 	
 	
 	public static RosNode getM_rosnode() {
-		return m_rosnode;
+		return rosnode;
 	}
 	
 	public double getRosTimeSeconds() {
-		return m_rosnode.getConnectedNode().getCurrentTime().toSeconds();
+		return rosnode.getConnectedNode().getCurrentTime().toSeconds();
 	}
 	
 	public double getRosTimeMilliSeconds() {
-		return m_rosnode.getConnectedNode().getCurrentTime().toSeconds() * 1000.0;
+		return rosnode.getConnectedNode().getCurrentTime().toSeconds() * 1000.0;
 	}
 
 	public TransformTree getTfTree() {
-		return m_rosnode.getTfTree();
+		return rosnode.getTfTree();
 	}
 	
 	void sleep(long msec) {
@@ -213,4 +214,15 @@ public class ROSAgArch extends MindInspectorAgArch {
             return null;
         }
     }
+	
+	protected String taskID = "";
+	
+	public void addBelief(String bel) {
+		try {
+			
+			getTS().getAg().addBel(Literal.parseLiteral(bel+("".equals(taskID)?"":"[" + taskID + "]")));
+		} catch (RevisionFailedException e) {
+			logger.info(Tools.getStackTrace(e));
+		}
+	}
 }

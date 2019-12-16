@@ -22,6 +22,8 @@ import org.ros.rosjava_geometry.Vector3;
 
 import actionlib_msgs.GoalStatus;
 import agent.TimeBB;
+import arch.actions.Action;
+import arch.actions.ActionFactory;
 import deictic_gestures.LookAtResponse;
 import deictic_gestures.LookAtStatus;
 import deictic_gestures.PointAtResponse;
@@ -149,7 +151,7 @@ public class RobotAgArch extends ROSAgArch {
 
 			}
 		};
-		m_rosnode.addListener("guiding/topics/point_at_status", PointAtStatus._TYPE, ml_point_at);
+		rosnode.addListener("guiding/topics/point_at_status", PointAtStatus._TYPE, ml_point_at);
 
 		MessageListener<LookAtStatus> ml_look_at = new MessageListener<LookAtStatus>()  {
 			public void onNewMessage(LookAtStatus status) {
@@ -174,13 +176,13 @@ public class RobotAgArch extends ROSAgArch {
 
 			}
 		};
-		m_rosnode.addListener("guiding/topics/look_at_status", LookAtStatus._TYPE, ml_look_at);
+		rosnode.addListener("guiding/topics/look_at_status", LookAtStatus._TYPE, ml_look_at);
 
-		human_to_monitor = m_rosnode.getConnectedNode().newPublisher(
-				m_rosnode.getParameters().getString("guiding/topics/human_to_monitor"), std_msgs.String._TYPE);
+		human_to_monitor = rosnode.getConnectedNode().newPublisher(
+				rosnode.getParameters().getString("guiding/topics/human_to_monitor"), std_msgs.String._TYPE);
 
-		look_at_events_pub = m_rosnode.getConnectedNode().newPublisher(
-				m_rosnode.getParameters().getString("/guiding/topics/look_at_events"), std_msgs.String._TYPE);
+		look_at_events_pub = rosnode.getConnectedNode().newPublisher(
+				rosnode.getParameters().getString("/guiding/topics/look_at_events"), std_msgs.String._TYPE);
 
 		super.init();
 	}
@@ -320,7 +322,7 @@ public class RobotAgArch extends ROSAgArch {
 							double h_init_pose_dist_to_robot_place = Math.hypot(robot_place.get(0) - init_pose.get(0), 
 									robot_place.get(1) - init_pose.get(1));
 
-							double dist_threshold = m_rosnode.getParameters().getDouble("guiding/tuning_param/human_move_first_dist_th");
+							double dist_threshold = rosnode.getParameters().getDouble("guiding/tuning_param/human_move_first_dist_th");
 							double h_dist_to_robot_place = Math.hypot(human_pose_now.translation.x - robot_place.get(0), 
 									human_pose_now.translation.y - robot_place.get(1));
 							double value;
@@ -465,11 +467,48 @@ public class RobotAgArch extends ROSAgArch {
 
 		super.reasoningCycleStarting();
 	}
+	
+	
+	public class AgRunnable implements Runnable {
+		
+		private ActionExec action;
+		private ROSAgArch rosAgArch;
+		
+		public AgRunnable(ROSAgArch rosAgArch, ActionExec action) {
+			this.action = action;
+			this.rosAgArch = rosAgArch;
+		}
+		
+		@Override
+		public void run() {
+			String action_name = action.getActionTerm().getFunctor();
+			Message msg = new Message("tell", getAgName(), "supervisor", "action_started(" + action_name + ")");
+			String tmp_task_id = "";
+			if (action.getIntention().getBottom().getTrigger().getLiteral().getTerms() != null)
+				tmp_task_id = action.getIntention().getBottom().getTrigger().getLiteral().getTerm(0).toString();
+			taskID = tmp_task_id;
+			try {
+				sendMsg(msg);
+			} catch (Exception e) {
+				Tools.getStackTrace(e);
+			}
+			Action actionExecutable = ActionFactory.createAction(action, rosAgArch);
+			actionExecutable.execute();
+			
+			if(!actionExecutable.isAsync())
+				actionExecuted(action);
+		}
+	}
 
 
 	@Override
 	public void act(final ActionExec action) {
-		executor.execute(new Runnable() {
+		executor.execute(new AgRunnable(this, action));
+				
+/*				
+				
+				
+				new Runnable() {
 
 			@Override
 			public void run() {
@@ -480,13 +519,16 @@ public class RobotAgArch extends ROSAgArch {
 				String tmp_task_id = "";
 				if (action.getIntention().getBottom().getTrigger().getLiteral().getTerms() != null)
 					tmp_task_id = action.getIntention().getBottom().getTrigger().getLiteral().getTerm(0).toString();
-				final String task_id = tmp_task_id;
+				taskID = tmp_task_id;
 				try {
 					sendMsg(msg);
 				} catch (Exception e) {
 					Tools.getStackTrace(e);
 				}
-
+				Action actionExecutable = ActionFactory.createAction(action_name, action, getROSAgArch());
+				actionExecutable.execute();
+				actionExecuted(action);
+				
 				// TODO check number of terms for each action
 				if (action_name.equals("compute_route")) {
 					// to remove the extra ""
@@ -516,7 +558,7 @@ public class RobotAgArch extends ROSAgArch {
 						parameters.put("persona", action.getActionTerm().getTerm(2).toString());
 						parameters.put("signpost", Boolean.parseBoolean(action.getActionTerm().getTerm(3).toString()));
 						// call the service to compute route
-						SemanticRouteResponse resp = ROSAgArch.getM_rosnode().callSyncService("get_route", parameters);
+						SemanticRouteResponse resp = rosnode.callSyncService("get_route", parameters);
 						if(resp != null) {
 							SemanticRouteResponseImpl get_route_resp = new SemanticRouteResponseImpl(resp.getCosts(),
 									resp.getGoals(), resp.getRoutes());
@@ -585,8 +627,8 @@ public class RobotAgArch extends ROSAgArch {
 							actionExecuted(action);
 						}
 					};
-					m_rosnode.callAsyncService("pause_asr", respListener, null);
-					m_rosnode.callAsyncService("web_view_start_processing", respListener, null);
+					rosnode.callAsyncService("pause_asr", respListener, null);
+					rosnode.callAsyncService("web_view_start_processing", respListener, null);
 					action.setResult(true);
 					actionExecuted(action);
 				} else if (action_name.equals("get_onto_individual_info")) {
@@ -601,7 +643,7 @@ public class RobotAgArch extends ROSAgArch {
 						}
 
 						public void onSuccess(OntologeniusServiceResponse onto_individual_resp) {
-							OntologeniusServiceResponse places = m_rosnode
+							OntologeniusServiceResponse places = rosnode
 									.newServiceResponseFromType(OntologeniusService._TYPE);
 							if (onto_individual_resp.getValues().isEmpty()) {
 								places.setCode((short) Code.ERROR.getCode());
@@ -648,7 +690,7 @@ public class RobotAgArch extends ROSAgArch {
 					Map<String, Object> parameters = new HashMap<String, Object>();
 					parameters.put("action", param);
 					parameters.put("param", individual);
-					m_rosnode.callAsyncService("get_individual_info", respListener, parameters);
+					rosnode.callAsyncService("get_individual_info", respListener, parameters);
 
 				} else if (action_name.equals("get_placements")) {
 					// to remove the extra ""
@@ -683,7 +725,7 @@ public class RobotAgArch extends ROSAgArch {
 					parameters.put("targetlandmark", target);
 					parameters.put("directionlandmark", direction);
 					parameters.put("human", human);
-					m_rosnode.callAsyncService("pointing_planner", respListener, parameters);
+					rosnode.callAsyncService("pointing_planner", respListener, parameters);
 
 				} else if (action_name.equals("has_mesh")) {
 					// to remove the extra ""
@@ -710,7 +752,7 @@ public class RobotAgArch extends ROSAgArch {
 					Map<String, Object> parameters = new HashMap<String, Object>();
 					parameters.put("world", "base");
 					parameters.put("name", param);
-					m_rosnode.callAsyncService("has_mesh", respListener, parameters);
+					rosnode.callAsyncService("has_mesh", respListener, parameters);
 
 				} else if (action_name.equals("can_be_visible")) {
 					// to remove the extra ""
@@ -749,7 +791,7 @@ public class RobotAgArch extends ROSAgArch {
 					Map<String, Object> parameters = new HashMap<String, Object>();
 					parameters.put("agentname", human);
 					parameters.put("targetname", place);
-					m_rosnode.callAsyncService("is_visible", respListener, parameters);
+					rosnode.callAsyncService("is_visible", respListener, parameters);
 
 				} else if (action_name.equals("point_at")) {
 					// to remove the extra ""
@@ -771,11 +813,11 @@ public class RobotAgArch extends ROSAgArch {
 						}
 					};
 					Map<String, Object> parameters = new HashMap<String, Object>();
-					parameters.put("point", m_rosnode.build_point_stamped(frame));
+					parameters.put("point", rosnode.build_point_stamped(frame));
 					parameters.put("withhead", with_head);
 					parameters.put("withbase", with_base);
 
-					m_rosnode.callAsyncService("point_at", respListenerP, parameters);
+					rosnode.callAsyncService("point_at", respListenerP, parameters);
 
 				} else if(action_name.equals("enable_animated_speech")){
 					boolean b = Boolean.parseBoolean(action.getActionTerm().getTerm(0).toString());
@@ -794,7 +836,7 @@ public class RobotAgArch extends ROSAgArch {
 					Map<String, Object> parametersA = new HashMap<String, Object>();
 					parametersA.put("data", b);
 
-					m_rosnode.callAsyncService("enable_animated_speech", respListenerA, parametersA);
+					rosnode.callAsyncService("enable_animated_speech", respListenerA, parametersA);
 					action.setResult(true);
 					actionExecuted(action);	
 
@@ -814,16 +856,16 @@ public class RobotAgArch extends ROSAgArch {
 							float d = (float) Math.atan2(transform.translation.y, transform.translation.x);
 
 							Map<String, Object> parameters = new HashMap<String, Object>();
-							parameters.put("statemachinepepperbasemanager", m_rosnode.build_state_machine_pepper_base_manager(id, (float) d));
-							parameters.put("header", m_rosnode.build_meta_header());
+							parameters.put("statemachinepepperbasemanager", rosnode.build_state_machine_pepper_base_manager(id, (float) d));
+							parameters.put("header", rosnode.build_meta_header());
 
-							MetaStateMachineRegisterResponse face_resp = m_rosnode.callSyncService("pepper_synchro", parameters);
+							MetaStateMachineRegisterResponse face_resp = rosnode.callSyncService("pepper_synchro", parameters);
 
 							//							sleep(5000);
 							//							Map<String, Object> params = new HashMap<String, Object>();
 							//							params.put("posturename", "StandInit");
 							//							params.put("speed", (float) 0.8);
-							//							GoToPostureResponse go_to_posture_resp = m_rosnode.callSyncService("stand_pose",
+							//							GoToPostureResponse go_to_posture_resp = rosnode.callSyncService("stand_pose",
 							//									params);
 							//							action.setResult(go_to_posture_resp != null);
 							action.setResult(true);
@@ -853,10 +895,10 @@ public class RobotAgArch extends ROSAgArch {
 					double d = q.getYaw();
 
 					Map<String, Object> parameters = new HashMap<String, Object>();
-					parameters.put("statemachinepepperbasemanager", m_rosnode.build_state_machine_pepper_base_manager(id, (float) d));
-					parameters.put("header", m_rosnode.build_meta_header());
+					parameters.put("statemachinepepperbasemanager", rosnode.build_state_machine_pepper_base_manager(id, (float) d));
+					parameters.put("header", rosnode.build_meta_header());
 
-					MetaStateMachineRegisterResponse response = m_rosnode.callSyncService("pepper_synchro", parameters);
+					MetaStateMachineRegisterResponse response = rosnode.callSyncService("pepper_synchro", parameters);
 
 					action.setResult(response != null);
 					if(response == null) {
@@ -883,9 +925,9 @@ public class RobotAgArch extends ROSAgArch {
 						}
 					};
 					Map<String, Object> parameters = new HashMap<String, Object>();
-					parameters.put("point", m_rosnode.build_point_stamped(action, frame));
+					parameters.put("point", rosnode.build_point_stamped(action, frame));
 					parameters.put("withbase", with_base);
-					m_rosnode.callAsyncService("look_at", respListener, parameters);
+					rosnode.callAsyncService("look_at", respListener, parameters);
 
 				} else if (action_name.equals("text2speech")) {
 					Literal bel = (Literal) action.getActionTerm().getTerm(0);
@@ -932,10 +974,10 @@ public class RobotAgArch extends ROSAgArch {
 					parameters.put("route", route);
 					parameters.put("startplace", robot_place);
 					parameters.put("goalshop", place);
-					m_rosnode.callAsyncService("route_verbalization", respListener, parameters);
+					rosnode.callAsyncService("route_verbalization", respListener, parameters);
 
 				} else if (action_name.equals("listen")) {
-					boolean hwu_dial = m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu");
+					boolean hwu_dial = rosnode.getParameters().getBoolean("guiding/dialogue/hwu");
 					if (!hwu_dial) {
 						inQuestion = true;
 						String question = action.getActionTerm().getTerm(0).toString();
@@ -947,7 +989,7 @@ public class RobotAgArch extends ROSAgArch {
 						}else {
 							words.add(action.getActionTerm().getTerms().get(1).toString().replaceAll("^\"|\"$", ""));
 						}
-						m_rosnode.call_dialogue_as(words);
+						rosnode.call_dialogue_as(words);
 						try {
 							getTS().getAg().addBel(Literal.parseLiteral("listening[" + task_id + "]"));
 						} catch (RevisionFailedException e) {
@@ -959,8 +1001,8 @@ public class RobotAgArch extends ROSAgArch {
 						dialogue_actionActionFeedback listening_fb_prev = null;
 						int count = 0;
 						do {
-							listening_result = m_rosnode.getListening_result();
-							listening_fb = m_rosnode.getListening_fb();
+							listening_result = rosnode.getListening_result();
+							listening_fb = rosnode.getListening_fb();
 							if (listening_fb != null & listening_fb != listening_fb_prev) {
 								try {
 									getTS().getAg().abolish(Literal.parseLiteral("not_exp_ans(_)"), new Unifier());
@@ -1021,12 +1063,12 @@ public class RobotAgArch extends ROSAgArch {
 					header.setFrameId(frame);
 					pose_stamped.setHeader(header);
 					pose_stamped.setPose(pose.getPose());
-					m_rosnode.call_move_to_as(pose_stamped);
+					rosnode.call_move_to_as(pose_stamped);
 					MoveBaseActionResult move_to_result;
 					MoveBaseActionFeedback move_to_fb;
 					do {
-						move_to_result = m_rosnode.getMove_to_result();
-						//							move_to_fb = m_rosnode.getMove_to_fb();
+						move_to_result = rosnode.getMove_to_result();
+						//							move_to_fb = rosnode.getMove_to_fb();
 						//							if(move_to_fb != null) {
 						//								try {
 						//									getTS().getAg().addBel(Literal.parseLiteral("fb(move_to, "+move_to_fb.getFeedback().getBasePosition().getPose().getPosition().getX()+","+
@@ -1114,8 +1156,8 @@ public class RobotAgArch extends ROSAgArch {
 					}
 
 					Map<String, Object> parameters = new HashMap<String, Object>();
-					parameters.put("request", m_rosnode.build_hatp_request(task_name, "plan", params));
-					m_rosnode.callAsyncService("hatp_planner", respListener, parameters);
+					parameters.put("request", rosnode.build_hatp_request(task_name, "plan", params));
+					rosnode.callAsyncService("hatp_planner", respListener, parameters);
 				} else {
 					action.setResult(false);
 					action.setFailureReason(new Atom("act_not_found"), "no action " + action_name + " is implemented");
@@ -1123,7 +1165,7 @@ public class RobotAgArch extends ROSAgArch {
 				}
 
 			}
-		});
+		});*/
 
 	}
 
@@ -1201,7 +1243,7 @@ public class RobotAgArch extends ROSAgArch {
 							robot_pose_now.translation.x - robot_pose.getPosition().getX(),
 							robot_pose_now.translation.y - robot_pose.getPosition().getY());
 					logger.info("robot dist to new pose :"+r_dist_to_new_pose);
-					if (r_dist_to_new_pose > m_rosnode.getParameters()
+					if (r_dist_to_new_pose > rosnode.getParameters()
 							.getDouble("guiding/tuning_param/robot_should_move_dist_th")) {
 
 						getTS().getAg().addBel(Literal.parseLiteral("robot_move(" + r_frame + ","
@@ -1216,7 +1258,7 @@ public class RobotAgArch extends ROSAgArch {
 							logger.info("human pose now :"+human_pose_now);
 							logger.info("dist future robot pose and human now :"+h_dist_to_new_pose);
 
-							if (h_dist_to_new_pose < m_rosnode.getParameters()
+							if (h_dist_to_new_pose < rosnode.getParameters()
 									.getDouble("guiding/tuning_param/human_move_first_dist_th")) {
 
 								String side;
@@ -1283,7 +1325,7 @@ public class RobotAgArch extends ROSAgArch {
 		String text = "";
 		String bel_functor = bel.getFunctor();
 		String bel_arg = null;
-		boolean hwu_dial = m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu");
+		boolean hwu_dial = rosnode.getParameters().getBoolean("guiding/dialogue/hwu");
 		if (bel.getTerms().size() == 1) {
 			bel_arg = bel.getTerms().get(0).toString();
 			if (hwu_dial)
@@ -1470,9 +1512,9 @@ public class RobotAgArch extends ROSAgArch {
 				inQuestion = true;
 				humanAnswer = 0;
 				if(!bel_functor.equals("list_places")) {
-					m_rosnode.call_dialogue_as_query("clarification." + bel_functor, bel_arg);
+					rosnode.call_dialogue_as_query("clarification." + bel_functor, bel_arg);
 				} else {
-					m_rosnode.call_dialogue_as_query("disambiguation", bel_arg);
+					rosnode.call_dialogue_as_query("disambiguation", bel_arg);
 				}
 				SupervisionServerQueryActionResult listening_result = wait_dialogue_as_answer(bel_functor, task_id);
 				inQuestion = false;
@@ -1503,10 +1545,10 @@ public class RobotAgArch extends ROSAgArch {
 				if(!bel_functor.equals("failed") && !bel_functor.equals("succeeded"))
 					sentence_code = "verbalisation." + bel_functor;
 				logger.info(sentence_code);
-				m_rosnode.call_dialogue_as_inform(sentence_code, bel_arg);
+				rosnode.call_dialogue_as_inform(sentence_code, bel_arg);
 				SupervisionServerInformActionResult listening_result;
 				do {
-					listening_result = m_rosnode.getListening_result_inform();
+					listening_result = rosnode.getListening_result_inform();
 					sleep(200);
 				} while (listening_result == null || listening_result.getStatus().getStatus() != GoalStatus.SUCCEEDED);
 				if(listening_result.getStatus().getStatus() == GoalStatus.PREEMPTED) {
@@ -1540,7 +1582,7 @@ public class RobotAgArch extends ROSAgArch {
 			if (!text.equals("succeeded")) {
 				Map<String, Object> parameters = new HashMap<String, Object>();
 				parameters.put("text", text);
-				SayResponse speak_to_resp = m_rosnode.callSyncService("speak_to", parameters);
+				SayResponse speak_to_resp = rosnode.callSyncService("speak_to", parameters);
 				action.setResult(speak_to_resp != null);
 			}else {
 				action.setResult(true);
@@ -1560,7 +1602,7 @@ public class RobotAgArch extends ROSAgArch {
 		SupervisionServerQueryActionResult listening_result;
 		double start = getRosTimeMilliSeconds();
 		do {
-			listening_result = m_rosnode.getListening_result_query();
+			listening_result = rosnode.getListening_result_query();
 			sleep(200);
 		} while (listening_result == null && getRosTimeSeconds() - start < 15);
 		if(listening_result == null) {
@@ -1700,7 +1742,7 @@ public class RobotAgArch extends ROSAgArch {
 			public void onSuccess(EmptyResponse arg0) {
 			}
 		};
-		m_rosnode.callAsyncService("pause_asr", respListener, null);
+		rosnode.callAsyncService("pause_asr", respListener, null);
 	}
 	
 	private void display_processing() {
@@ -1714,7 +1756,7 @@ public class RobotAgArch extends ROSAgArch {
 			public void onSuccess(EmptyResponse arg0) {
 			}
 		};
-		m_rosnode.callAsyncService("web_view_start_processing", respListener, null);
+		rosnode.callAsyncService("web_view_start_processing", respListener, null);
 	}
 
 

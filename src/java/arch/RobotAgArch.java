@@ -10,15 +10,12 @@ import org.ros.message.MessageListener;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 
-import arch.actions.Action;
-import arch.actions.ActionFactory;
 import deictic_gestures.LookAtStatus;
 import deictic_gestures.PointAtStatus;
 import jason.RevisionFailedException;
 import jason.architecture.AgArch;
 import jason.asSemantics.ActionExec;
 import jason.asSemantics.Message;
-import jason.asSyntax.Atom;
 import jason.asSyntax.ListTermImpl;
 import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
@@ -413,49 +410,6 @@ public class RobotAgArch extends ROSAgArch {
 
 
 		super.reasoningCycleStarting();
-	}
-	
-	
-	public class AgRunnable implements Runnable {
-		
-		private ActionExec action;
-		private ROSAgArch rosAgArch;
-		
-		public AgRunnable(ROSAgArch rosAgArch, ActionExec action) {
-			this.action = action;
-			this.rosAgArch = rosAgArch;
-		}
-		
-		@Override
-		public void run() {
-			String action_name = action.getActionTerm().getFunctor();
-			Message msg = new Message("tell", getAgName(), "supervisor", "action_started(" + action_name + ")");
-			String tmp_task_id = "";
-			if (action.getIntention().getBottom().getTrigger().getLiteral().getTerms() != null)
-				tmp_task_id = action.getIntention().getBottom().getTrigger().getLiteral().getTerm(0).toString();
-			taskID = tmp_task_id;
-			try {
-				sendMsg(msg);
-			} catch (Exception e) {
-				Tools.getStackTrace(e);
-			}
-			Action actionExecutable = ActionFactory.createAction(action, rosAgArch);
-			if(action != null) {
-				actionExecutable.execute();
-				if(actionExecutable.isSync())
-					actionExecuted(action);
-			} else {
-				action.setResult(false);
-				action.setFailureReason(new Atom("act_not_found"), "no action " + action_name + " is implemented");
-				actionExecuted(action);
-			}
-		}
-	}
-
-
-	@Override
-	public void act(final ActionExec action) {
-		executor.execute(new AgRunnable(this, action));
 	}
 
 	@Override

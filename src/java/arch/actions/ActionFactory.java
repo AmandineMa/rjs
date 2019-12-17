@@ -1,6 +1,27 @@
 package arch.actions;
 
 import arch.ROSAgArch;
+import arch.actions.robot.EnableAnimatedSpeech;
+import arch.actions.robot.Engage;
+import arch.actions.robot.FaceHuman;
+import arch.actions.robot.HumanToMonitor;
+import arch.actions.robot.Listen;
+import arch.actions.robot.Localise;
+import arch.actions.robot.LookAt;
+import arch.actions.robot.MoveTo;
+import arch.actions.robot.PauseASR;
+import arch.actions.robot.PointAt;
+import arch.actions.robot.PubLookAtEvents;
+import arch.actions.robot.ReinitLoca;
+import arch.actions.robot.Rotate;
+import arch.actions.robot.TerminateInteraction;
+import arch.actions.robot.TextToSpeech;
+import arch.actions.robot.internal.CanBeVisible;
+import arch.actions.robot.internal.ComputeRoute;
+import arch.actions.robot.internal.GetOntoIndividualInfo;
+import arch.actions.robot.internal.GetPlacements;
+import arch.actions.robot.internal.GetRouteVerba;
+import arch.actions.robot.internal.HasMesh;
 import jason.asSemantics.ActionExec;
 
 public class ActionFactory {
@@ -60,6 +81,18 @@ public class ActionFactory {
 				break;
 			case "move_to":
 				action = new MoveTo(actionExec, rosAgArch);
+				break;
+			case "engage":
+				action = new Engage(actionExec, rosAgArch);
+				break;
+			case "terminate_interaction":
+				action = new TerminateInteraction(actionExec, rosAgArch);
+				break;
+			case "localise":
+				action = new Localise(actionExec, rosAgArch);
+				break;
+			case "reinit_loca":
+				action = new ReinitLoca(actionExec, rosAgArch);
 				break;
 			default:
 				break;

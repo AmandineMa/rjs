@@ -1,16 +1,15 @@
 package jia;
 
+import java.util.Iterator;
+
 import jason.JasonException;
 import jason.asSemantics.DefaultInternalAction;
 import jason.asSemantics.InternalAction;
 import jason.asSemantics.TransitionSystem;
 import jason.asSemantics.Unifier;
-import jason.asSyntax.Atom;
 import jason.asSyntax.ListTerm;
 import jason.asSyntax.StringTermImpl;
 import jason.asSyntax.Term;
-
-import java.util.Iterator;
 
 /**
   Does not care about that it is a string or a term

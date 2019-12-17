@@ -43,9 +43,9 @@ public class verba_name extends DefaultInternalAction {
 		
 		Unifier u_i = new Unifier();
 		
-		Class iaclass_wi = Class.forName("jia.word_individual");
+		Class iaclass_wi = Class.forName("jia.robot.word_individual");
 		InternalAction ia_wi = (InternalAction)iaclass_wi.newInstance();
-		Class iaclass_wc = Class.forName("jia.word_class");
+		Class iaclass_wc = Class.forName("jia.robot.word_class");
 		InternalAction ia_wc = (InternalAction)iaclass_wc.newInstance();
 		
     	if(args[0].isList()) {

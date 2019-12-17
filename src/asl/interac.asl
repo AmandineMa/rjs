@@ -8,14 +8,14 @@ n(-1).
 	jia.log_beliefs.
 
 @iE[atomic] +isAttentive(Human) : not inSession(_,_) & not localising<-
-	jia.store_attentive_times(T);
+	jia.qoi.store_attentive_times(T);
 	.concat("human_", Human, HTF);
 	human_to_monitor(HTF);
 	?n(N);
 	-+n(N+1);
 	+inSession(Human,N+1)[N+1];
 	engage(N+1);
-	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	jia.robot.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == false){
 		//text2speech(hello);
 	}.
@@ -39,7 +39,7 @@ n(-1).
 +!bye(Human) : not inTaskWith(_,_) & inSession(Human,N) & not bye <-
 	+bye;
 	+overBy(not_perceived)[N];
-	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	jia.robot.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	!wait_end_talking;
 	if(Dialogue == false){
 		//text2speech(goodbye);
@@ -67,14 +67,14 @@ n(-1).
 
 +!loca: not localising <-
 	+localising;
-	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	jia.robot.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == false){
 		text2speech(localising);
 	}
 	human_to_monitor("");
-	jia.get_param("/guiding/robot_base/position", "List", P);
-	jia.get_param("/guiding/robot_base/orientation", "List", O);
-	jia.get_param("/guiding/immo", "Boolean", Immo);
+	jia.robot.get_param("/guiding/robot_base/position", "List", P);
+	jia.robot.get_param("/guiding/robot_base/orientation", "List", O);
+	jia.robot.get_param("/guiding/immo", "Boolean", Immo);
 //	if(Immo == false){
 	move_to(map, P, O);	
 //	}
@@ -85,9 +85,9 @@ n(-1).
 	-localising.
 	
 @loc[max_attempts(2)]+!loca: localising <-
-	jia.get_param("/guiding/robot_base/position", "List", P);
-	jia.get_param("/guiding/robot_base/orientation", "List", O);
-	jia.get_param("/guiding/immo", "Boolean", Immo);
+	jia.robot.get_param("/guiding/robot_base/position", "List", P);
+	jia.robot.get_param("/guiding/robot_base/orientation", "List", O);
+	jia.robot.get_param("/guiding/immo", "Boolean", Immo);
 //	if(Immo == false){
 	move_to(map, P, O);	
 //	}
@@ -134,7 +134,7 @@ n(-1).
 	!wait_for_rating(N);
 	.findall(B[N,source(X),add_time(Y)],B[N,source(X),add_time(Y)], L);
 	jia.beliefs_to_file(L);
-	jia.qoi_to_file(session, session, N);
+	jia.qoi.qoi_to_file(session, session, N);
 	.abolish(_[N]);
 	-rating(N,R)[source(_)];
 	-isAttentive(Human)[source(_)];
@@ -148,9 +148,9 @@ n(-1).
 	
 	
 -isAttentive(Human) : inSession(Human,_) <-
-	jia.store_attentive_times.	
+	jia.qoi.store_attentive_times.	
 
 +isAttentive(Human): inSession(Human,_) <-
-	jia.store_attentive_times.
+	jia.qoi.store_attentive_times.
 	
 	

@@ -4,7 +4,6 @@ import org.ros.node.topic.Publisher;
 
 import arch.ROSAgArch;
 import jason.asSemantics.ActionExec;
-import ros.RosNode;
 
 public class HumanToMonitor extends AbstractAction {
 	
@@ -15,12 +14,12 @@ public class HumanToMonitor extends AbstractAction {
 		if(humanToMonitorPub == null) {
 			humanToMonitorPub = createPublisher("guiding/topics/human_to_monitor");
 		}
+		setSync(true);
 	}
 
 	@Override
 	public void execute() {
-		String param = actionExec.getActionTerm().getTerm(0).toString();
-		param = removeQuotes(param);
+		String param = removeQuotes(actionExec.getActionTerm().getTerm(0).toString());
 		std_msgs.String str = humanToMonitorPub.newMessage();
 		str.setData(param);
 		humanToMonitorPub.publish(str);

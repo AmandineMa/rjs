@@ -225,4 +225,23 @@ public class ROSAgArch extends MindInspectorAgArch {
 			logger.info(Tools.getStackTrace(e));
 		}
 	}
+	
+	public void removeBelief(String bel) {
+		try {
+			
+			getTS().getAg().abolish(Literal.parseLiteral(bel), new Unifier());
+		} catch (RevisionFailedException e) {
+			logger.info(Tools.getStackTrace(e));
+		}
+	}
+	
+	public <T> T createMessage(String type) {
+		return messageFactory.newFromType(type);
+	}
+	
+	public String getTaskID() {
+		return taskID;
+	}
+	
+	
 }

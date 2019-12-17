@@ -90,7 +90,7 @@ public class SupervisorAgArch extends ROSAgArch {
 					action.setResult(true);
 		        	actionExecuted(action);
 				}else if(action_name.equals("initServices")){
-					HashMap<String, Boolean> services_status = rosnode.init_service_clients();
+					HashMap<String, Boolean> services_status = rosnode.initServiceClients();
 					action.setResult(true);
 					for(Entry<String, Boolean> entry : services_status.entrySet()) {
 						try {
@@ -155,7 +155,7 @@ public class SupervisorAgArch extends ROSAgArch {
 							return true;
 						}
 					};
-					rosnode.set_guiding_as_listener(listener);
+					rosnode.setGuidingASListener(listener);
 					action.setResult(true);
 					actionExecuted(action);
 				}else if(action_name.equals("retryInitServices")){
@@ -168,7 +168,7 @@ public class SupervisorAgArch extends ROSAgArch {
 			        	Term term = var.capply(iu.next());
 			        	list.add(term.toString());
 			        }
-					HashMap<String, Boolean> services_status = rosnode.retry_init_service_clients(list);
+					HashMap<String, Boolean> services_status = rosnode.retryInitServiceClients(list);
 					for(Entry<String, Boolean> entry : services_status.entrySet()) {
 						try {
 							if(entry.getValue()) {
@@ -186,14 +186,14 @@ public class SupervisorAgArch extends ROSAgArch {
 					actionExecuted(action);
 				}else if(action_name.equals("set_guiding_result")){
 					logger.info("cancel dialogue goal when goal over");
-					rosnode.cancel_dialogue_inform_goal();
-					rosnode.cancel_dialogue_query_goal();
+					rosnode.cancelDialogueInformGoal();
+					rosnode.cancelDialogueQueryGoal();
 					String success = action.getActionTerm().getTerm(0).toString();
 					success = success.replaceAll("^\"|\"$", "");
 					String id = action.getActionTerm().getTerm(1).toString();
 					id = id.replaceAll("^\"|\"$", "");
 					if(!success.equals("preempted"))
-						rosnode.set_task_result(success, id);
+						rosnode.setTaskResult(success, id);
 					logger.info("goal result : "+success);
 					if(current_goal != null && current_goal.equals(id)) {
 						current_goal = null;

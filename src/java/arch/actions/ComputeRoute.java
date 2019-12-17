@@ -23,7 +23,7 @@ public class ComputeRoute extends AbstractAction {
 
 	public ComputeRoute(ActionExec actionExec, ROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
-		// TODO Auto-generated constructor stub
+		setSync(true);
 	}
 
 	@Override

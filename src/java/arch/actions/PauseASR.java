@@ -11,6 +11,7 @@ public class PauseASR extends AbstractAction implements Action {
 
 	public PauseASR(ActionExec actionExec, ROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
+		setSync(true);
 	}
 	
 	@Override

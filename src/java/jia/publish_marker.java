@@ -30,7 +30,7 @@ public class publish_marker extends DefaultInternalAction {
 			String frame;
 			NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
 			MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
-			Publisher<visualization_msgs.Marker> pub = ROSAgArch.getM_rosnode().getMarker_pub();
+			Publisher<visualization_msgs.Marker> pub = ROSAgArch.getM_rosnode().getMarkerPub();
 			Marker marker = pub.newMessage();
 			Pose pose = messageFactory.newFromType(Pose._TYPE);
 			Point point = messageFactory.newFromType(Point._TYPE);
@@ -87,7 +87,7 @@ public class publish_marker extends DefaultInternalAction {
 			marker.setHeader(header);
 			pub.publish(marker);
 		}else {
-			Publisher<visualization_msgs.Marker> pub = ROSAgArch.getM_rosnode().getMarker_pub();
+			Publisher<visualization_msgs.Marker> pub = ROSAgArch.getM_rosnode().getMarkerPub();
 			Marker marker = pub.newMessage();
 			marker.setNs("supervisor");
 			marker.setAction(Marker.DELETEALL);

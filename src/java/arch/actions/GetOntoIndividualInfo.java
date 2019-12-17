@@ -19,7 +19,6 @@ public class GetOntoIndividualInfo extends AbstractAction {
 
 	public GetOntoIndividualInfo(ActionExec actionExec, ROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
-		setAsync(true);
 	}
 
 	@Override

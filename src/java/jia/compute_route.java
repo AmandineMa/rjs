@@ -75,7 +75,7 @@ public class compute_route extends DefaultInternalAction {
 			int n_routes = Integer.parseInt(args[4].toString());
 			
 			if(n_routes == 1) {
-				RouteImpl route = ((RobotAgArch) ts.getUserAgArch()).select_best_route(routes);
+				RouteImpl route = select_best_route(routes);
 				ListTerm route_list = new ListTermImpl();
 				String s_route_list = route.getRoute().stream()
 						  .map(s -> "\"" + s + "\"")

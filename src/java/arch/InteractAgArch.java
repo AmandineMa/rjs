@@ -136,7 +136,7 @@ public class InteractAgArch extends ROSAgArch {
 				
 				if(action_name.equals("engage")) {
 					String human_id = action.getActionTerm().getTerm(0).toString();
-					rosnode.call_engage_as(human_id);
+					rosnode.callEngageAS(human_id);
 					action.setResult(true);
 					actionExecuted(action);
 				}
@@ -213,11 +213,11 @@ public class InteractAgArch extends ROSAgArch {
 					header.setFrameId(frame);
 					pose_stamped.setHeader(header);
 					pose_stamped.setPose(pose.getPose());
-					rosnode.call_move_to_as(pose_stamped);
+					rosnode.callMoveToAS(pose_stamped);
 					MoveBaseActionResult move_to_result;
 					MoveBaseActionFeedback move_to_fb;
 					do {
-						move_to_result = rosnode.getMove_to_result();
+						move_to_result = rosnode.getMoveToResult();
 //							move_to_fb = m_rosnode.getMove_to_fb();
 //							if(move_to_fb != null) {
 //								try {
@@ -433,7 +433,7 @@ public class InteractAgArch extends ROSAgArch {
 	
 	public double attentive_ratio(double startTime, double endTime) {
 		
-		if(endTime<=startTime) 
+		if(endTime<=startTime || attentive_times.isEmpty()) 
 			return 0;
 		
 		double time_attentive = 0;

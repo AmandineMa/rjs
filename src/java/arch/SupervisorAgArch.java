@@ -13,7 +13,6 @@ import java.util.Set;
 import org.ros.helpers.ParameterLoaderNode;
 import org.ros.internal.loader.CommandLineLoader;
 import org.ros.node.DefaultNodeMainExecutor;
-import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
 
 import com.github.rosjava_actionlib.ActionServerListener;
@@ -34,7 +33,6 @@ import utils.Tools;
 
 public class SupervisorAgArch extends ROSAgArch {
 	private NodeMainExecutor nodeMainExecutor = DefaultNodeMainExecutor.newDefault();
-	private NodeConfiguration nodeConfiguration;
 	private ParameterLoaderNode parameterLoaderNode;
 	private GoalIDGenerator goalIDGenerator;
 	private String current_goal = null;

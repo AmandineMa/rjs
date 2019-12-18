@@ -14,6 +14,7 @@ import com.google.common.collect.Multimap;
 import diagnostic_msgs.KeyValue;
 import jason.RevisionFailedException;
 import jason.architecture.AgArch;
+import jason.asSemantics.Unifier;
 import jason.asSyntax.ArithExpr;
 import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
@@ -96,6 +97,7 @@ public class InteractAgArch extends ROSAgArch {
 		MessageListener<std_msgs.Bool> is_talking = new MessageListener<std_msgs.Bool>() {
 			public void onNewMessage(std_msgs.Bool msg) {
 				try {
+					getTS().getAg().abolish(Literal.parseLiteral("finished_talking(_)"), new Unifier());
 					getTS().getAg().addBel(Literal.parseLiteral("finished_talking("+String.valueOf(msg.getData())+")"));
 				} catch (RevisionFailedException e) {
 					e.printStackTrace();

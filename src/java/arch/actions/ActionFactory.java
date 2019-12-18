@@ -1,5 +1,7 @@
 package arch.actions;
 
+import org.ros.node.topic.Publisher;
+
 import arch.ROSAgArch;
 import arch.actions.robot.EnableAnimatedSpeech;
 import arch.actions.robot.Engage;
@@ -23,8 +25,30 @@ import arch.actions.robot.internal.GetPlacements;
 import arch.actions.robot.internal.GetRouteVerba;
 import arch.actions.robot.internal.HasMesh;
 import jason.asSemantics.ActionExec;
+import ros.RosNode;
+import utils.Tools;
 
 public class ActionFactory {
+	
+	private ROSAgArch rosAgArch;
+	
+	private RosNode rosnode = ROSAgArch.getM_rosnode();
+	
+	private static Publisher<std_msgs.String> lookAtEventsPub; 
+	private static Publisher<std_msgs.String> humanToMonitorPub; 
+	
+	public ActionFactory(ROSAgArch rosAgArch) {
+		this.rosAgArch = rosAgArch;
+		lookAtEventsPub = createPublisher("guiding/topics/look_at_events");
+		humanToMonitorPub = createPublisher("guiding/topics/human_to_monitor");
+	}
+	
+	protected Publisher<std_msgs.String> createPublisher(String topic) {
+		String param = rosnode.getParameters().getString(topic);
+		Publisher<std_msgs.String> pub = rosAgArch.getConnectedNode().newPublisher(param, std_msgs.String._TYPE);
+		Tools.sleep(400);
+		return pub;
+	}
 	
 	public static Action createAction(ActionExec actionExec, ROSAgArch rosAgArch) {
 		String actionName = actionExec.getActionTerm().getFunctor();
@@ -32,7 +56,7 @@ public class ActionFactory {
 		
 		switch(actionName) {
 			case "human_to_monitor" :
-				action = new HumanToMonitor(actionExec, rosAgArch);
+				action = new HumanToMonitor(actionExec, rosAgArch, humanToMonitorPub);
 				break;
 			case "compute_route" :
 				action = new ComputeRoute(actionExec, rosAgArch);
@@ -77,7 +101,7 @@ public class ActionFactory {
 				action = new GetRouteVerba(actionExec, rosAgArch);
 				break;
 			case "look_at_events":
-				action = new PubLookAtEvents(actionExec, rosAgArch);
+				action = new PubLookAtEvents(actionExec, rosAgArch, lookAtEventsPub);
 				break;
 			case "move_to":
 				action = new MoveTo(actionExec, rosAgArch);
@@ -100,5 +124,5 @@ public class ActionFactory {
 			
 		return action;
 	}
-
+	
 }

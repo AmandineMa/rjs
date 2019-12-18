@@ -55,6 +55,7 @@ public class ROSAgArch extends MindInspectorAgArch {
 	NodeConfiguration nodeConfiguration;
 	MessageFactory messageFactory;
 	protected int percept_id = -1;
+	protected static ActionFactory actionFactory;
 	
 //	static protected XYLineChart_AWT display = new XYLineChart_AWT("QoI", "QoI data");
 
@@ -125,6 +126,8 @@ public class ROSAgArch extends MindInspectorAgArch {
 		
 		@Override
 		public void run() {
+			if(actionFactory == null && rosnode != null)
+				actionFactory = new ActionFactory(ROSAgArch.this);
 			String action_name = action.getActionTerm().getFunctor();
 			Message msg = new Message("tell", getAgName(), "supervisor", "action_started(" + action_name + ")");
 			String tmp_task_id = "";

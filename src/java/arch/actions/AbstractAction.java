@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import org.ros.exception.RosRuntimeException;
-import org.ros.node.topic.Publisher;
 
 import arch.ROSAgArch;
 import jason.asSemantics.ActionExec;
@@ -28,11 +27,6 @@ public abstract class AbstractAction implements Action {
 		this.rosAgArch = rosAgArch;
 		this.actionExec = actionExec;
 		actionName = actionExec.getActionTerm().getFunctor();
-	}
-	
-	protected Publisher<std_msgs.String> createPublisher(String topic) {
-		String param = rosnode.getParameters().getString(topic);
-		return rosAgArch.getConnectedNode().newPublisher(param, std_msgs.String._TYPE);
 	}
 	
 	protected String removeQuotes(String string) {

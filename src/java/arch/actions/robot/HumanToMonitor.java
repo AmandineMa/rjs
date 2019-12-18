@@ -8,13 +8,11 @@ import jason.asSemantics.ActionExec;
 
 public class HumanToMonitor extends AbstractAction {
 	
-	private static Publisher<std_msgs.String> humanToMonitorPub; 
+	private Publisher<std_msgs.String> humanToMonitorPub; 
 
-	public HumanToMonitor(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public HumanToMonitor(ActionExec actionExec, ROSAgArch rosAgArch, Publisher<std_msgs.String> humanToMonitorPub) {
 		super(actionExec, rosAgArch);
-		if(humanToMonitorPub == null) {
-			humanToMonitorPub = createPublisher("guiding/topics/human_to_monitor");
-		}
+		this.humanToMonitorPub = humanToMonitorPub;
 		setSync(true);
 	}
 
@@ -26,5 +24,10 @@ public class HumanToMonitor extends AbstractAction {
 		humanToMonitorPub.publish(str);
 		actionExec.setResult(true);
 	}
+
+	public void setHumanToMonitorPub(Publisher<std_msgs.String> humanToMonitorPub) {
+		this.humanToMonitorPub = humanToMonitorPub;
+	}
+	
 
 }

@@ -22,6 +22,8 @@ public class Listen extends AbstractAction {
 
 	@Override
 	public void execute() {
+		boolean hwu_dial = rosnode.getParameters().getBoolean("guiding/dialogue/hwu");
+		if(!hwu_dial) {
 		((RobotAgArch) rosAgArch).setInQuestion(true);
 		String question = actionExec.getActionTerm().getTerm(0).toString();
 		ArrayList<String> words = new ArrayList<String>();
@@ -53,6 +55,9 @@ public class Listen extends AbstractAction {
 		rosAgArch.addBelief("listen_result(" + question + ",\"" + listening_result.getResult().getSubject() + "\")");
 		actionExec.setResult(true);
 		rosAgArch.removeBelief("listening");
+		} else {
+			actionExec.setResult(true);
+		}
 
 	}
 

@@ -8,13 +8,11 @@ import jason.asSemantics.ActionExec;
 
 public class PubLookAtEvents extends AbstractAction {
 	
-	private static Publisher<std_msgs.String> lookAtEventsPub; 
+	private Publisher<std_msgs.String> lookAtEventsPub; 
 
-	public PubLookAtEvents(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public PubLookAtEvents(ActionExec actionExec, ROSAgArch rosAgArch, Publisher<std_msgs.String> lookAtEventsPub) {
 		super(actionExec, rosAgArch);
-		if(lookAtEventsPub == null) {
-			lookAtEventsPub = createPublisher("guiding/topics/look_at_events");
-		}
+		this.lookAtEventsPub = lookAtEventsPub;
 		setSync(true);
 	}
 
@@ -27,4 +25,8 @@ public class PubLookAtEvents extends AbstractAction {
 		actionExec.setResult(true);
 	}
 
+	public void setLookAtEventsPub(Publisher<std_msgs.String> lookAtEventsPub) {
+		this.lookAtEventsPub = lookAtEventsPub;
+	}
+	
 }

@@ -36,7 +36,7 @@
 @lfh[max_attempts(2)] +!look_for_human(Human) : not isPerceiving(Human) & monitoring(_, Human) <- 
 	?task(ID, Task, Human, Place);
 	G =.. [Task, [ID,Human,_],[]];
-	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	jia.robot.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == false){
 		.suspend(G);
 		.wait(800);
@@ -44,7 +44,7 @@
 	}
 	.wait(isPerceiving(Human),6000);
 	?task(ID, _, Human, _);
-	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	jia.robot.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == false){
 		!speak(ID,found_again);	
 		.wait(800);
@@ -56,7 +56,7 @@
 
 -!look_for_human(Human)[Failure, code(Code),code_line(_),code_src(_),error(Error),error_msg(_)] : isPerceiving(Human) <- 
 	?task(ID, Task, Human, _);
-	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	jia.robot.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == false){
 		!speak(ID,found_again);
 		G =.. [Task, [ID,Human,_],[]];
@@ -69,7 +69,7 @@
 	?task(ID, _, Human, _);
 	-look_for_human(Human);
 	if(.substring(Error,max_attempts)){
-		jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+		jia.robot.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 		if(Dialogue == false){
 			!speak(ID,cannot_find); 
 		}

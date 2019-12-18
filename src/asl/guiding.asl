@@ -80,11 +80,11 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	?task(ID, guiding, Human, _);
 	?target_place(TargetLD);
 	.concat("human_", Human, HTF);
-	if(jia.has_mesh(TargetLD)){
+	if(jia.robot.has_mesh(TargetLD)){
 		// if there is a direction
 		if(jia.believes(direction(_))){
 			?direction(Dir);
-			if(jia.has_mesh(Dir)){
+			if(jia.robot.has_mesh(Dir)){
 				get_placements(TargetLD,Dir,HTF,0);
 			}
 		}else{
@@ -93,7 +93,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	}else{
 		if(jia.believes(direction(_))){
 			?direction(Dir);
-			if(jia.has_mesh(Dir)){
+			if(jia.robot.has_mesh(Dir)){
 				get_placements(Dir,"",HTF,1);
 			}
 		}
@@ -105,9 +105,9 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 +!be_at_good_pos(ID) : true <- 
 	?task(ID, guiding, Human, _);
 	?robot_pose(RframeC,RpositC, RorientC);
-	jia.publish_marker(RframeC,RpositC, yellow);
+	jia.robot.publish_marker(RframeC,RpositC, yellow);
 	?human_pose(Hframe,Hposit,_);
-	jia.publish_marker(Hframe, Hposit, blue);
+	jia.robot.publish_marker(Hframe, Hposit, blue);
 	if(jia.believes(robot_move(_,_, _))){
 		?robot_move(Rframe,Rposit, Rorient);
 	}else{
@@ -121,7 +121,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 			+dist_to_goal(HTF,Point,Rposit);
 		}
 		!speak(ID, step(Side));
-		jia.get_param("/guiding/tuning_param/human_move_first_dist_th", "Double", Dist);
+		jia.robot.get_param("/guiding/tuning_param/human_move_first_dist_th", "Double", Dist);
 		!check_dist(ID, HTF, Rposit, Dist, false);
 		-step;
 		jia.reset_att_counter(check_dist);
@@ -139,7 +139,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	move_to(Rframe,Rposit, Rorient);
 	+move(over)[ID];
 	!wait_human(ID);
-	+monitoring(ID, Human).
+	++monitoring(ID, Human).
 	
 -step : true <- -dist_to_goal(_,_,_).
 +move(over) : true <- -dist_to_goal(_,_,_).
@@ -178,13 +178,13 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	!log_failure(ID, repeat_move, adjust, _);
 	if(jia.believes(dir_to_point(_))){
 		?dir_to_point(D);
-		if(not jia.can_be_visible(HTF, D)){
+		if(not jia.robot.can_be_visible(HTF, D)){
 			-dir_to_point(D);
 		}
 	}
 	if(jia.believes(target_to_point(_))){
 		?target_to_point(T);
-		if(not jia.can_be_visible(HTF, T)){
+		if(not jia.robot.can_be_visible(HTF, T)){
 			-target_to_point(T);
 		}
 	}
@@ -210,11 +210,11 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 			Zbis=Z;
 		}	
 		jia.replace(2, Hposit, Zbis, Pointf);
-		jia.publish_marker(Hframe, Pointf, blue);
+		jia.robot.publish_marker(Hframe, Pointf, blue);
 		-look_at(look);
 		look_at(Hframe,Pointf,true);
 		.wait(isPerceiving(Human),4000);
-		+monitoring(ID, Human);
+		++monitoring(ID, Human);
 		+after_move_status(human_found)[ID];
 		.wait(look_at(look),4000);
 		look_at_events(human_perceived);
@@ -243,13 +243,13 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	if(.substring(not_visible,Failure)){
 		.concat("human_", Human, HTF);
 		?human_pose(Hframe,Hposit,_);
-		jia.get_param("/guiding/tuning_param/human_move_not_visible", "Double", Dist);
+		jia.robot.get_param("/guiding/tuning_param/human_move_not_visible", "Double", Dist);
 		tf.is_dist_human2point_sup(HTF, Hposit, Dist, Result);
 		
 		if(.substring(Result, true) & jia.believes(dir_to_point(_))){
 			?dir_to_point(D);
 			.concat("human_", Human, HTF);
-			if(not jia.can_be_visible(HTF, D)){
+			if(not jia.robot.can_be_visible(HTF, D)){
 				if(not jia.believes(visible(direction, D, false, _))){
 					+visible(direction, D, false, 0)[ID];
 				}else{
@@ -262,7 +262,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		}elif(.substring(Result, true) & jia.believes(target_to_point(_))){
 			?target_to_point(T);
 			.concat("human_", Human, HTF);
-			if(not jia.can_be_visible(HTF, T)){
+			if(not jia.robot.can_be_visible(HTF, T)){
 				if(not jia.believes(visible(target, T, false, _))){
 					+visible(target, T, false, 0)[ID];
 				}else{
@@ -286,7 +286,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	}
 	!speak(ID, closer);
 	.concat("human_", Human, HTF);
-	jia.get_param("/guiding/tuning_param/human_move_not_visible", "Double", Dist);
+	jia.robot.get_param("/guiding/tuning_param/human_move_not_visible", "Double", Dist);
 	!check_dist(ID, HTF, Hposit, Dist, true);
 	-adjust;
 	jia.reset_att_counter(check_dist).
@@ -329,7 +329,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		!log_failure(ID, wait_human, Failure, Code);
 	}.
 
-+!wait_look_at : true <- .wait(look_at(look),6000).
++!wait_look_at : true <- .wait(look_at(look),4000).
 -!wait_look_at : true <- true.
 	
 /*******  show landmarks **********/
@@ -337,7 +337,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 @sl[max_attempts(3)]+!show_landmarks(ID) : true <- 
 	?task(ID, guiding, Human, _);
 //	++need_attentive_human(Human);
-	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	jia.robot.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	if(Dialogue == true){
 		enable_animated_speech(false);
 	}
@@ -492,9 +492,9 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	!verba(ID, Ld);
 	.wait(point_at(finished),6000);
 	-point_at(finished);
-	?(canSee(Ld)[source(Human)] | hasSeen(Ld)[source(Human)]);
-	?verba_name(Ld,Verba);
-	!speak(ID, tell_seen(Verba)).
+	?(canSee(Ld)[source(Human)] | hasSeen(Ld)[source(Human)]).
+//	?verba_name(Ld,Verba);
+//	!speak(ID, tell_seen(Verba)).
 
 
 @pl_nl[max_attempts(3), atomic_r]+!point_look_at(ID, Ld) : not landmark_to_see(Ld) <-
@@ -507,7 +507,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	point_at(Ld,false,true);
 	.wait(point_at(point),10000);
 	-point_at(point);
-	jia.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
+	jia.robot.get_param("/guiding/dialogue/hwu", "Boolean", Dialogue);
 	!verba(ID, Ld);
 	.wait(point_at(finished),6000);
 	-point_at(finished).

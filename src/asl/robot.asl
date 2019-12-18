@@ -22,13 +22,13 @@
 
 +!start : true <- 
 	.verbose(2); 
-	jia.get_param("/guiding/perspective/robot_place", String, Rp);
+	jia.robot.get_param("/guiding/perspective/robot_place", String, Rp);
 	+robot_place(Rp).
 
 //TODO faire une jia pour changer "Place" dans les params du plan guiding 
 +!guiding(ID, Human, Place) : true <-
 	jia.log_beliefs;	
-	jia.publish_marker(0);
+	jia.robot.publish_marker(0);
 	!clean_facts;
 	+goal_from_dialogue(Place)[ID];
 	+task(ID, guiding, Human, Place)[ID];
@@ -38,18 +38,18 @@
 	// task belief with onto name
 	+task(ID, guiding, Human, PlaceNego)[ID];	
 	!get_optimal_route(ID);
-	jia.get_param("/guiding/immo", "Boolean", Immo);
+	jia.robot.get_param("/guiding/immo", "Boolean", Immo);
 	if(Immo == false){
 		!go_to_see_target(ID);
 	}else{
 		?target_place(T);
 		.concat("human_", Human, HTF);
-		if(jia.can_be_visible(HTF, T)){
+		if(jia.robot.can_be_visible(HTF, T)){
 			+target_to_point(T)[ID];
 		}
 		if(jia.believes(direction(_))){
 			?direction(D);
-			if(jia.can_be_visible(HTF, D)){
+			if(jia.robot.can_be_visible(HTF, D)){
 				+dir_to_point(D)[ID];
 			}
 		}
@@ -100,16 +100,16 @@
 	.findall(B[ID,source(X),add_time(Y)],B[ID,source(X),add_time(Y)], L);
 	jia.beliefs_to_file(L);
 	if(not jia.believes(place_not_found(_))){
-		jia.qoi_to_file(task, Param, ID);
+		jia.qoi.qoi_to_file(task, Param, ID);
 	}
 	jia.reset_att_counter;
 	.abolish(_[ID]);
-	jia.reinit_qoi_variables;
+	jia.qoi.reinit_qoi_variables;
 	.send(interac, untell, inTaskWith(Human,ID)).	
 
 +end_task(Status, ID)[ID] :  true <- 
 	?task(ID, _, Human, _); 
-	jia.get_task_achievement(TA);
+	jia.qoi.get_task_achievement(TA);
 	.send(interac, tell, task_achievement(ID, TA));
 	.send(supervisor, tell, end_task(Status, ID)).
 
@@ -165,24 +165,24 @@
 	G =.. [Task, [ID,Human,_],[]];
 	.resume(G).
 	
-+said(ask_stairs,0) : true <-  jia.update_steps_number(increment); jia.executing_step(person_abilities).
-+direction(_) : true <- jia.update_steps_number(increment); jia.update_steps_number(increment).
-+target_to_point(_) : true <-jia.update_steps_number(increment).
-+robot_move(_,_,_) : true <- jia.update_steps_number(increment); jia.executing_step(agents_at_right_place).
-+robot_turn(_,_,_) : true <- jia.update_steps_number(increment); jia.executing_step(agents_at_right_place).
++said(ask_stairs,0) : true <-  jia.qoi.update_steps_number(increment); jia.qoi.executing_step(person_abilities).
++direction(_) : true <- jia.qoi.update_steps_number(increment); jia.qoi.update_steps_number(increment).
++target_to_point(_) : true <-jia.qoi.update_steps_number(increment).
++robot_move(_,_,_) : true <- jia.qoi.update_steps_number(increment); jia.qoi.executing_step(agents_at_right_place).
++robot_turn(_,_,_) : true <- jia.qoi.update_steps_number(increment); jia.qoi.executing_step(agents_at_right_place).
 
-+guiding_goal_nego(_,_) : true <-  jia.update_step(increment).
-+persona_asked(_) : true <- jia.update_step(increment).
-+visible(target,_,true) : not step_agents_at_right_place_added <- +step_agents_at_right_place_added[ID]; jia.update_step(increment).
-+visible(direction,_,true) : not step_agents_at_right_place_added <- +step_agents_at_right_place_added[ID]; jia.update_step(increment).
-+target_explained : true <-  jia.update_step(increment).
-+direction_explained : true <-  jia.update_step(increment).
-//+said(happy_end,_) : dir_to_point(D) & not ld_seen(D) <-  jia.update_step(increment).
-+ld_seen(_) : true  <- jia.update_step(increment).
++guiding_goal_nego(_,_) : true <-  jia.qoi.update_step(increment).
++persona_asked(_) : true <- jia.qoi.update_step(increment).
++visible(target,_,true) : not step_agents_at_right_place_added <- +step_agents_at_right_place_added[ID]; jia.qoi.update_step(increment).
++visible(direction,_,true) : not step_agents_at_right_place_added <- +step_agents_at_right_place_added[ID]; jia.qoi.update_step(increment).
++target_explained : true <-  jia.qoi.update_step(increment).
++direction_explained : true <-  jia.qoi.update_step(increment).
+//+said(happy_end,_) : dir_to_point(D) & not ld_seen(D) <-  jia.qoi.update_step(increment).
++ld_seen(_) : true  <- jia.qoi.update_step(increment).
 
-+started : true <- jia.executing_step(goal_nego).
-+target_verba : true <- jia.executing_step(target_explanation).
-+direction_verba : true <- jia.executing_step(direction_explanation).
-+said(cannot_tell_seen(_),0) : true <- jia.executing_step(landmark_seen).
++started : true <- jia.qoi.executing_step(goal_nego).
++target_verba : true <- jia.qoi.executing_step(target_explanation).
++direction_verba : true <- jia.qoi.executing_step(direction_explanation).
++said(cannot_tell_seen(_),0) : true <- jia.qoi.executing_step(landmark_seen).
 
 

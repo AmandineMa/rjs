@@ -2,10 +2,28 @@ package utils;
 
 import org.ros.rosjava_geometry.Vector3;
 
+import jason.asSyntax.ListTerm;
+import jason.asSyntax.NumberTermImpl;
+
 public class Quaternion extends org.ros.rosjava_geometry.Quaternion {
 
 	public Quaternion(double x, double y, double z, double w) {
 		super(x, y, z, w);
+	}
+	
+	private Quaternion(ListTerm listTerm){
+		super(((NumberTermImpl) listTerm.get(0)).solve(),
+			  ((NumberTermImpl) listTerm.get(1)).solve(), 
+			  ((NumberTermImpl) listTerm.get(2)).solve(),
+			  ((NumberTermImpl) listTerm.get(3)).solve());
+	}
+	
+	public static Quaternion create(ListTerm listTerm) throws  IllegalArgumentException{
+		if(listTerm.size() != 4) {
+			throw new IllegalArgumentException("The listTerm should have four elements to create a quaternion");
+		}else {
+			return new Quaternion(listTerm);
+		}
 	}
 
 	public double getAngle() {

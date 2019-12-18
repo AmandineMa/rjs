@@ -13,7 +13,6 @@ import java.util.Set;
 import org.ros.helpers.ParameterLoaderNode;
 import org.ros.internal.loader.CommandLineLoader;
 import org.ros.node.DefaultNodeMainExecutor;
-import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
 
 import com.github.rosjava_actionlib.ActionServerListener;
@@ -34,7 +33,6 @@ import utils.Tools;
 
 public class SupervisorAgArch extends ROSAgArch {
 	private NodeMainExecutor nodeMainExecutor = DefaultNodeMainExecutor.newDefault();
-	private NodeConfiguration nodeConfiguration;
 	private ParameterLoaderNode parameterLoaderNode;
 	private GoalIDGenerator goalIDGenerator;
 	private String current_goal = null;
@@ -80,17 +78,17 @@ public class SupervisorAgArch extends ROSAgArch {
 		        	actionExecuted(action);
 		        	
 				}else if(action_name.equals("startROSNode")){
-					m_rosnode = new RosNode("supervisor");
-					nodeMainExecutor.execute(m_rosnode, nodeConfiguration);
-					while(m_rosnode.getConnectedNode() == null) {
+					rosnode = new RosNode("supervisor");
+					nodeMainExecutor.execute(rosnode, nodeConfiguration);
+					while(rosnode.getConnectedNode() == null) {
 						sleep(100);
 					}
-					m_rosnode.init();
+					rosnode.init();
 					goalIDGenerator = new GoalIDGenerator(getConnectedNode());
 					action.setResult(true);
 		        	actionExecuted(action);
 				}else if(action_name.equals("initServices")){
-					HashMap<String, Boolean> services_status = m_rosnode.init_service_clients();
+					HashMap<String, Boolean> services_status = rosnode.initServiceClients();
 					action.setResult(true);
 					for(Entry<String, Boolean> entry : services_status.entrySet()) {
 						try {
@@ -145,7 +143,7 @@ public class SupervisorAgArch extends ROSAgArch {
 							}
 							current_goal = goal.getGoalId().getId();
 							String person = "\""+goal.getGoal().getPersonFrame()+"\"";
-							if(m_rosnode.getParameters().getBoolean("guiding/dialogue/hwu"))
+							if(rosnode.getParameters().getBoolean("guiding/dialogue/hwu"))
 								person = person.replaceAll("human-", "");
 							try {
 								getTS().getAg().addBel(Literal.parseLiteral("guiding_goal(\""+goal.getGoalId().getId()+"\",\"0\",\""+goal.getGoal().getPlaceFrame()+"\")"));
@@ -155,7 +153,7 @@ public class SupervisorAgArch extends ROSAgArch {
 							return true;
 						}
 					};
-					m_rosnode.set_guiding_as_listener(listener);
+					rosnode.setGuidingASListener(listener);
 					action.setResult(true);
 					actionExecuted(action);
 				}else if(action_name.equals("retryInitServices")){
@@ -168,7 +166,7 @@ public class SupervisorAgArch extends ROSAgArch {
 			        	Term term = var.capply(iu.next());
 			        	list.add(term.toString());
 			        }
-					HashMap<String, Boolean> services_status = m_rosnode.retry_init_service_clients(list);
+					HashMap<String, Boolean> services_status = rosnode.retryInitServiceClients(list);
 					for(Entry<String, Boolean> entry : services_status.entrySet()) {
 						try {
 							if(entry.getValue()) {
@@ -186,14 +184,14 @@ public class SupervisorAgArch extends ROSAgArch {
 					actionExecuted(action);
 				}else if(action_name.equals("set_guiding_result")){
 					logger.info("cancel dialogue goal when goal over");
-					m_rosnode.cancel_dialogue_inform_goal();
-					m_rosnode.cancel_dialogue_query_goal();
+					rosnode.cancelDialogueInformGoal();
+					rosnode.cancelDialogueQueryGoal();
 					String success = action.getActionTerm().getTerm(0).toString();
 					success = success.replaceAll("^\"|\"$", "");
 					String id = action.getActionTerm().getTerm(1).toString();
 					id = id.replaceAll("^\"|\"$", "");
 					if(!success.equals("preempted"))
-						m_rosnode.set_task_result(success, id);
+						rosnode.setTaskResult(success, id);
 					logger.info("goal result : "+success);
 					if(current_goal != null && current_goal.equals(id)) {
 						current_goal = null;

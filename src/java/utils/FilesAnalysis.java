@@ -381,7 +381,7 @@ public class FilesAnalysis {
 
 	@SuppressWarnings("serial")
 	public static void main(String[] args) {
-		FilesAnalysis fa = new FilesAnalysis("/home/amayima/Projets-robot/MuMMER/log/beliefs");
+		FilesAnalysis fa = new FilesAnalysis("/home/amayima/Téléchargements/logs/beliefs");
 		fa.plannedSteps = new LinkedHashMap<String, Double>() {{
 	        put("agree_goal", 0.0);
 	        put("ask_stairs", 0.0);

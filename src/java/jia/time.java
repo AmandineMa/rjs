@@ -2,10 +2,12 @@
 
 package jia;
 
-import agent.TimeBB;
 import arch.ROSAgArch;
-import jason.asSemantics.*;
-import jason.asSyntax.*;
+import jason.asSemantics.DefaultInternalAction;
+import jason.asSemantics.TransitionSystem;
+import jason.asSemantics.Unifier;
+import jason.asSyntax.ObjectTermImpl;
+import jason.asSyntax.Term;
 
 /**
 	<p>Internal action: <b><code>supervisor.time(Time)</code></b>.
@@ -22,8 +24,6 @@ public class time extends DefaultInternalAction {
 
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
-    	TimeBB bb = (TimeBB) ts.getAg().getBB();
-//    	double start_time = bb.getStartTime();
     	double time_now = ((ROSAgArch) ts.getUserAgArch()).getRosTimeSeconds();
     	return un.unifies(args[0], new ObjectTermImpl(time_now));
     	

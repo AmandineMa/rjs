@@ -29,7 +29,7 @@
 	
 +!retry_init_services : true <-
 	retryInitServices;
-	jia.publish_marker(0);
+	jia.robot.publish_marker(0);
 	.print("started");
 	.create_agent(interac, "src/asl/interac.asl", [agentArchClass("arch.InteractAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]);
 	.create_agent(robot, "src/asl/robot.asl", [agentArchClass("arch.RobotAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]).

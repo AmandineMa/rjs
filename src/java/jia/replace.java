@@ -2,9 +2,12 @@
 
 package jia;
 
-import jason.*;
-import jason.asSemantics.*;
-import jason.asSyntax.*;
+import jason.asSemantics.DefaultInternalAction;
+import jason.asSemantics.TransitionSystem;
+import jason.asSemantics.Unifier;
+import jason.asSyntax.ListTerm;
+import jason.asSyntax.NumberTerm;
+import jason.asSyntax.Term;
 
 public class replace extends DefaultInternalAction {
 

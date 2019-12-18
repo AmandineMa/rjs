@@ -2,15 +2,10 @@ package jia;
 
 import java.util.Iterator;
 
-import jason.JasonException;
 import jason.asSemantics.DefaultInternalAction;
-import jason.asSemantics.InternalAction;
 import jason.asSemantics.TransitionSystem;
 import jason.asSemantics.Unifier;
 import jason.asSyntax.ListTerm;
-import jason.asSyntax.ListTermImpl;
-import jason.asSyntax.NumberTerm;
-import jason.asSyntax.StringTerm;
 import jason.asSyntax.StringTermImpl;
 import jason.asSyntax.Term;
 

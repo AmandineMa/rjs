@@ -3,9 +3,10 @@
 package jia;
 
 import agent.LimitedAgent;
-import jason.*;
-import jason.asSemantics.*;
-import jason.asSyntax.*;
+import jason.asSemantics.DefaultInternalAction;
+import jason.asSemantics.TransitionSystem;
+import jason.asSemantics.Unifier;
+import jason.asSyntax.Term;
 
 public class reset_att_counter extends DefaultInternalAction {
 

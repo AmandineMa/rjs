@@ -7,7 +7,6 @@ import jason.asSemantics.DefaultInternalAction;
 import jason.asSemantics.TransitionSystem;
 import jason.asSemantics.Unifier;
 import jason.asSyntax.LogicalFormula;
-import jason.asSyntax.NumberTermImpl;
 import jason.asSyntax.Term;
 
 @SuppressWarnings("serial")

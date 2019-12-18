@@ -32,7 +32,7 @@ import org.jfree.ui.TextAnchor;
 
 import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
-import javafx.scene.text.Font;
+//import javafx.scene.text.Font;
 
 /**
  * @see https://stackoverflow.com/a/21307289/230513

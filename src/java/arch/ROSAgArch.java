@@ -22,8 +22,12 @@ import org.ros.rosjava.tf.TransformTree;
 import com.google.common.collect.Multimap;
 
 import agent.TimeBB;
+import arch.actions.Action;
+import arch.actions.ActionFactory;
+import jason.RevisionFailedException;
 import jason.architecture.MindInspectorAgArch;
 import jason.asSemantics.ActionExec;
+import jason.asSemantics.Message;
 import jason.asSemantics.Unifier;
 import jason.asSyntax.Atom;
 import jason.asSyntax.Literal;
@@ -32,7 +36,6 @@ import jason.bb.BeliefBase;
 import ros.RosNode;
 import utils.SimpleFact;
 import utils.Tools;
-import utils.XYLineChart_AWT;
 
 public class ROSAgArch extends MindInspectorAgArch {
 	
@@ -46,12 +49,13 @@ public class ROSAgArch extends MindInspectorAgArch {
 		    }
 	}
 	
-	static protected RosNode m_rosnode;
+	static protected RosNode rosnode;
 	
 	protected ExecutorService executor;
 	NodeConfiguration nodeConfiguration;
 	MessageFactory messageFactory;
 	protected int percept_id = -1;
+	protected static ActionFactory actionFactory;
 	
 //	static protected XYLineChart_AWT display = new XYLineChart_AWT("QoI", "QoI data");
 
@@ -88,9 +92,9 @@ public class ROSAgArch extends MindInspectorAgArch {
 	@Override
 	public Collection<Literal> perceive() {
 		Collection<Literal> l = new ArrayList<Literal>();
-		if(m_rosnode != null) {
+		if(rosnode != null) {
 //			if(percept_id != m_rosnode.getPercept_id()) {
-				Multimap<String,SimpleFact> mm = m_rosnode.getPerceptions();
+				Multimap<String,SimpleFact> mm = rosnode.getPerceptions();
 				synchronized (mm) {
 					Collection<SimpleFact> perceptions = new ArrayList<SimpleFact>(mm.get("\""+getAgName()+"\""));
 					if(perceptions != null) {
@@ -103,32 +107,75 @@ public class ROSAgArch extends MindInspectorAgArch {
 						}
 					}
 				}
-				percept_id = m_rosnode.getPercept_id();
+				percept_id = rosnode.getPercept_id();
 //			}
 		}
 		return l;
 		
 	}
 	
+	public class AgRunnable implements Runnable {
+		
+		private ActionExec action;
+		private ROSAgArch rosAgArch;
+		
+		public AgRunnable(ROSAgArch rosAgArch, ActionExec action) {
+			this.action = action;
+			this.rosAgArch = rosAgArch;
+		}
+		
+		@Override
+		public void run() {
+			if(actionFactory == null && rosnode != null)
+				actionFactory = new ActionFactory(ROSAgArch.this);
+			String action_name = action.getActionTerm().getFunctor();
+			Message msg = new Message("tell", getAgName(), "supervisor", "action_started(" + action_name + ")");
+			String tmp_task_id = "";
+			if (action.getIntention().getBottom().getTrigger().getLiteral().getTerms() != null)
+				tmp_task_id = action.getIntention().getBottom().getTrigger().getLiteral().getTerm(0).toString();
+			taskID = tmp_task_id;
+			try {
+				sendMsg(msg);
+			} catch (Exception e) {
+				Tools.getStackTrace(e);
+			}
+			Action actionExecutable = ActionFactory.createAction(action, rosAgArch);
+			if(action != null) {
+				actionExecutable.execute();
+				if(actionExecutable.isSync())
+					actionExecuted(action);
+			} else {
+				action.setResult(false);
+				action.setFailureReason(new Atom("act_not_found"), "no action " + action_name + " is implemented");
+				actionExecuted(action);
+			}
+		}
+	}
+	
+	@Override
+	public void act(final ActionExec action) {
+		executor.execute(new AgRunnable(this, action));
+	}
+	
 	public ConnectedNode getConnectedNode() {
-		return m_rosnode.getConnectedNode();
+		return rosnode.getConnectedNode();
 	}
 	
 	
 	public static RosNode getM_rosnode() {
-		return m_rosnode;
+		return rosnode;
 	}
 	
 	public double getRosTimeSeconds() {
-		return m_rosnode.getConnectedNode().getCurrentTime().toSeconds();
+		return rosnode.getConnectedNode().getCurrentTime().toSeconds();
 	}
 	
 	public double getRosTimeMilliSeconds() {
-		return m_rosnode.getConnectedNode().getCurrentTime().toSeconds() * 1000.0;
+		return rosnode.getConnectedNode().getCurrentTime().toSeconds() * 1000.0;
 	}
 
 	public TransformTree getTfTree() {
-		return m_rosnode.getTfTree();
+		return rosnode.getTfTree();
 	}
 	
 	void sleep(long msec) {
@@ -213,4 +260,34 @@ public class ROSAgArch extends MindInspectorAgArch {
             return null;
         }
     }
+	
+	protected String taskID = "";
+	
+	public void addBelief(String bel) {
+		try {
+			
+			getTS().getAg().addBel(Literal.parseLiteral(bel+("".equals(taskID)?"":"[" + taskID + "]")));
+		} catch (RevisionFailedException e) {
+			logger.info(Tools.getStackTrace(e));
+		}
+	}
+	
+	public void removeBelief(String bel) {
+		try {
+			
+			getTS().getAg().abolish(Literal.parseLiteral(bel), new Unifier());
+		} catch (RevisionFailedException e) {
+			logger.info(Tools.getStackTrace(e));
+		}
+	}
+	
+	public <T> T createMessage(String type) {
+		return messageFactory.newFromType(type);
+	}
+	
+	public String getTaskID() {
+		return taskID;
+	}
+	
+	
 }

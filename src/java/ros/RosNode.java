@@ -114,35 +114,35 @@ public class RosNode extends AbstractNodeMain {
 	private TransformListener tfl;
 	private ParameterTree parameters;
 	private MasterStateClient msc;
-	HashMap<String, HashMap<String, String>> services_map;
-	private HashMap<String, ServiceClient<Message, Message>> service_clients;
-	private ActionServer<taskActionGoal, taskActionFeedback, taskActionResult> guiding_as;
-	private taskActionGoal new_guiding_goal = null;
-	private Stack<taskActionGoal> stack_guiding_goals;
-	private Subscriber<perspectives_msgs.FactArrayStamped> facts_sub;
-	private PointingActionResult placements_result;
-	private PointingActionFeedback placements_fb;
-	private dialogue_actionActionResult listening_result;
-	private dialogue_actionActionFeedback listening_fb;
-	private SupervisionServerInformActionResult listening_result_inform;
-	private SupervisionServerQueryActionResult listening_result_query;
-	private MoveBaseActionResult move_to_result;
-	private MoveBaseActionFeedback move_to_fb;
-	private Publisher<MoveBaseActionGoal> move_to_goal_pub;
-	private Publisher<dialogue_actionActionGoal> dialogue_pub;
-	private Publisher<SupervisionServerInformActionGoal> dialogue_pub_inform;
-	private GoalID inform_goal_id;
-	private Publisher<GoalID> dialogue_cancel_pub_inform;
-	private Publisher<SupervisionServerQueryActionGoal> dialogue_pub_query;
-	private GoalID query_goal_id;
-	private Publisher<GoalID> dialogue_cancel_pub_query;
-	private Publisher<GoalID> dialogue_cancel_pub;
-	private Publisher<DialogueArbiterActionGoal> engage_pub;
-	private Publisher<visualization_msgs.Marker> marker_pub;
-	private Publisher<std_msgs.Int32> person_of_interest_pub;
+	HashMap<String, HashMap<String, String>> servicesMap;
+	private HashMap<String, ServiceClient<Message, Message>> serviceClients;
+	private ActionServer<taskActionGoal, taskActionFeedback, taskActionResult> guidingAS;
+	private taskActionGoal newGuidingGoal = null;
+	private Stack<taskActionGoal> stackGuidingGoals;
+	private Subscriber<perspectives_msgs.FactArrayStamped> factsSub;
+	private PointingActionResult placementsResult;
+	private PointingActionFeedback placementsFb;
+	private dialogue_actionActionResult listeningResult;
+	private dialogue_actionActionFeedback listeningFb;
+	private SupervisionServerInformActionResult listeningResultInform;
+	private SupervisionServerQueryActionResult listeningResultQuery;
+	private MoveBaseActionResult moveToResult;
+	private MoveBaseActionFeedback moveToFb;
+	private Publisher<MoveBaseActionGoal> moveToGoalPub;
+	private Publisher<dialogue_actionActionGoal> dialoguePub;
+	private Publisher<SupervisionServerInformActionGoal> dialoguePubInform;
+	private GoalID informGoalId;
+	private Publisher<GoalID> dialogueCancelPubInform;
+	private Publisher<SupervisionServerQueryActionGoal> dialoguePubQuery;
+	private GoalID queryGoalId;
+	private Publisher<GoalID> dialogueCancelPubQuery;
+	private Publisher<GoalID> dialogueCancelPub;
+	private Publisher<DialogueArbiterActionGoal> engagePub;
+	private Publisher<visualization_msgs.Marker> markerPub;
+	private Publisher<std_msgs.Int32> personOfInterestPub;
 	private Multimap<String, SimpleFact> perceptions = Multimaps
 			.synchronizedMultimap(ArrayListMultimap.<String, SimpleFact>create());
-	private volatile int percept_id = 0;
+	private volatile int perceptID = 0;
 
 	public RosNode(String name) {
 	}
@@ -159,8 +159,8 @@ public class RosNode extends AbstractNodeMain {
 
 	@Override
 	public void onShutdown(Node node) {
-		cancel_dialogue_inform_goal();
-		cancel_dialogue_query_goal();
+		cancelDialogueInformGoal();
+		cancelDialogueQueryGoal();
 		
 		// code degueu, ne devrait pas être là
 		ServiceResponseListener<std_srvs.EmptyResponse> respListener = new ServiceResponseListener<std_srvs.EmptyResponse>() {
@@ -190,43 +190,43 @@ public class RosNode extends AbstractNodeMain {
 				logger.info("Wrong URI syntax :" + e.getMessage());
 			}
 			msc = new MasterStateClient(connectedNode, uri);
-			service_clients = new HashMap<String, ServiceClient<Message, Message>>();
-			services_map = null;
+			serviceClients = new HashMap<String, ServiceClient<Message, Message>>();
+			servicesMap = null;
 			if(parameters.has("/guiding/base_services"))
-				services_map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/base_services");
+				servicesMap = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/base_services");
 			
 			if(parameters.has("/guiding/services_moving") && !parameters.getBoolean("/guiding/immo")) {
 				HashMap<String, HashMap<String, String>> map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services_moving");
-				services_map.putAll(map);
+				servicesMap.putAll(map);
 			}
 			
 			if(parameters.has("/guiding/services_hwu") && parameters.getBoolean("/guiding/dialogue/hwu")) {
 				HashMap<String, HashMap<String, String>> map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services_hwu");
-				services_map.putAll(map);
+				servicesMap.putAll(map);
 			}
 			
 			if(parameters.has("/guiding/services_wo_hwu") && !parameters.getBoolean("/guiding/dialogue/hwu")) {
 				HashMap<String, HashMap<String, String>> map = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/services_wo_hwu");
-				services_map.putAll(map);
+				servicesMap.putAll(map);
 			}
 			
-			stack_guiding_goals = new Stack<taskActionGoal>();
-			marker_pub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher("/pp_debug",
+			stackGuidingGoals = new Stack<taskActionGoal>();
+			markerPub = ROSAgArch.getM_rosnode().getConnectedNode().newPublisher("/pp_debug",
 					visualization_msgs.Marker._TYPE);
-			person_of_interest_pub = ROSAgArch.getM_rosnode().getConnectedNode()
+			personOfInterestPub = ROSAgArch.getM_rosnode().getConnectedNode()
 					.newPublisher(parameters.getString("/guiding/topics/person_of_interest"), std_msgs.Int32._TYPE);
-			guiding_as = new ActionServer<>(connectedNode, "/guiding_task", taskActionGoal._TYPE,
+			guidingAS = new ActionServer<>(connectedNode, "/guiding_task", taskActionGoal._TYPE,
 					taskActionFeedback._TYPE, taskActionResult._TYPE);
 
 			if(parameters.has("/guiding/action_servers/move_to")) {
-				move_to_goal_pub = connectedNode.newPublisher(
+				moveToGoalPub = connectedNode.newPublisher(
 						parameters.getString("/guiding/action_servers/move_to") + "/goal", MoveBaseActionGoal._TYPE);
 				
 				MessageListener<MoveBaseActionResult> ml_move = new MessageListener<MoveBaseActionResult>() {
 	
 					@Override
 					public void onNewMessage(MoveBaseActionResult result) {
-						move_to_result = result;
+						moveToResult = result;
 					}
 				};
 				addListenerResult("/guiding/action_servers/move_to", MoveBaseActionResult._TYPE, ml_move);
@@ -234,47 +234,47 @@ public class RosNode extends AbstractNodeMain {
 			
 			if(parameters.has("/guiding/action_servers/dialogue_inform") && parameters.has("/guiding/action_servers/dialogue_query") 
 					&& parameters.getBoolean("guiding/dialogue/hwu")) {
-				dialogue_pub_inform = connectedNode.newPublisher(
+				dialoguePubInform = connectedNode.newPublisher(
 						parameters.getString("/guiding/action_servers/dialogue_inform") + "/goal", SupervisionServerInformActionGoal._TYPE);
 				
-				dialogue_pub_query = connectedNode.newPublisher(
+				dialoguePubQuery = connectedNode.newPublisher(
 						parameters.getString("/guiding/action_servers/dialogue_query") + "/goal", SupervisionServerQueryActionGoal._TYPE);
 				
 				MessageListener<SupervisionServerInformActionResult> ml_inform = new MessageListener<SupervisionServerInformActionResult>() {
 					
 					@Override
 					public void onNewMessage(SupervisionServerInformActionResult result) {
-						listening_result_inform = result;
+						listeningResultInform = result;
 					}
 				};
 				addListenerResult("/guiding/action_servers/dialogue_inform", SupervisionServerInformActionResult._TYPE, ml_inform);
-				dialogue_cancel_pub_inform = connectedNode.newPublisher(
+				dialogueCancelPubInform = connectedNode.newPublisher(
 						parameters.getString("/guiding/action_servers/dialogue_inform") + "/cancel", GoalID._TYPE);
 				
 				MessageListener<SupervisionServerQueryActionResult> ml_query = new MessageListener<SupervisionServerQueryActionResult>() {
 					
 					@Override
 					public void onNewMessage(SupervisionServerQueryActionResult result) {
-						listening_result_query = result;
+						listeningResultQuery = result;
 					}
 				};
 				addListenerResult("/guiding/action_servers/dialogue_query", SupervisionServerQueryActionResult._TYPE, ml_query);
-				dialogue_cancel_pub_query = connectedNode.newPublisher(
+				dialogueCancelPubQuery = connectedNode.newPublisher(
 						parameters.getString("/guiding/action_servers/dialogue_query") + "/cancel", GoalID._TYPE);
 				
 			}
 			
 			if(parameters.has("/guiding/action_servers/dialogue") && !parameters.getBoolean("guiding/dialogue/hwu")) {
-				dialogue_pub = connectedNode.newPublisher(
+				dialoguePub = connectedNode.newPublisher(
 						parameters.getString("/guiding/action_servers/dialogue") + "/goal", dialogue_actionActionGoal._TYPE);
-				dialogue_cancel_pub = connectedNode.newPublisher(
+				dialogueCancelPub = connectedNode.newPublisher(
 						parameters.getString("/guiding/action_servers/dialogue") + "/cancel", GoalID._TYPE);
 				
 				MessageListener<dialogue_actionActionResult> ml_dialogue = new MessageListener<dialogue_actionActionResult>() {
 	
 					@Override
 					public void onNewMessage(dialogue_actionActionResult result) {
-						listening_result = result;
+						listeningResult = result;
 						if(result.getStatus().getStatus()==actionlib_msgs.GoalStatus.SUCCEEDED) {
 							logger.info("result succeeded :"+result.getResult().getSubject());
 						}	
@@ -284,22 +284,22 @@ public class RosNode extends AbstractNodeMain {
 				MessageListener<dialogue_actionActionFeedback> ml_dialogue_fb = new MessageListener<dialogue_actionActionFeedback>() {
 					@Override
 					public void onNewMessage(dialogue_actionActionFeedback fb) {
-						listening_fb = fb;
+						listeningFb = fb;
 					}
 				};
 				addListenerFb("/guiding/action_servers/dialogue", dialogue_actionActionFeedback._TYPE, ml_dialogue_fb);
 			}
 			
 			if(parameters.has("/guiding/action_servers/engage")) {
-				engage_pub = connectedNode.newPublisher(
+				engagePub = connectedNode.newPublisher(
 						parameters.getString("/guiding/action_servers/engage") + "/goal", DialogueArbiterActionGoal._TYPE);
 			}
 			
 
-			facts_sub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"),
+			factsSub = connectedNode.newSubscriber(parameters.getString("/guiding/topics/current_facts"),
 					perspectives_msgs.FactArrayStamped._TYPE);
 
-			facts_sub.addMessageListener(new MessageListener<perspectives_msgs.FactArrayStamped>() {
+			factsSub.addMessageListener(new MessageListener<perspectives_msgs.FactArrayStamped>() {
 
 				public void onNewMessage(FactArrayStamped facts) {
 					synchronized (perceptions) {
@@ -313,7 +313,7 @@ public class RosNode extends AbstractNodeMain {
 								predicate = "canSee";
 								if (subject.startsWith("\""))
 									subject = subject.replaceAll("^\"|\"$", "");
-								if (service_clients.get("get_uwds_name") != null) {
+								if (serviceClients.get("get_uwds_name") != null) {
 									Map<String, Object> parameters = new HashMap<String, Object>();
 									parameters.put("id", subject);
 									parameters.put("world", "robot/merged_visibilities");
@@ -341,7 +341,7 @@ public class RosNode extends AbstractNodeMain {
 							}
 						}
 					}
-					percept_id = facts.getHeader().getSeq();
+					perceptID = facts.getHeader().getSeq();
 				}
 			}, 10);
 
@@ -353,12 +353,12 @@ public class RosNode extends AbstractNodeMain {
 
 
 	public <T> void callAsyncService(String serviceName, ServiceResponseListener<T> srl, Map<String, Object> params) {
-		HashMap<String, String> mapInfoService = services_map.get(serviceName);
+		HashMap<String, String> mapInfoService = servicesMap.get(serviceName);
 
 		if (mapInfoService != null && mapInfoService.containsKey("type")) {
 			String type = mapInfoService.get("type");
 			type = type.replace('/', '.') + "Request";
-			call_service(serviceName, type, srl, params);
+			callService(serviceName, type, srl, params);
 		} else {
 			logger.info("Service (" + serviceName + ") not declared in yaml or type not filled");
 			srl.onFailure(new RemoteException(StatusCode.ERROR, "Service (" + serviceName + ") not declared in yaml or type not filled"));
@@ -396,10 +396,10 @@ public class RosNode extends AbstractNodeMain {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> void call_service(String serviceName, String className, ServiceResponseListener<T> srl,
+	public <T> void callService(String serviceName, String className, ServiceResponseListener<T> srl,
 			Map<String, Object> params) {
 //		logger.info("Calling service (" + serviceName + ") with class: " + className);
-		Message msg = service_clients.get(serviceName).newMessage();
+		Message msg = serviceClients.get(serviceName).newMessage();
 
 		List<Method> setMethods = new ArrayList<Method>();
 		try {
@@ -458,7 +458,7 @@ public class RosNode extends AbstractNodeMain {
 		}
 
 //		logger.info("Calling CALL method");
-		service_clients.get(serviceName).call(msg, (ServiceResponseListener<Message>) srl);
+		serviceClients.get(serviceName).call(msg, (ServiceResponseListener<Message>) srl);
 	}
 
 /*	public <T> void call_service(String serviceName, String className, RosCallback<T> rcb, Map<String, Object> params) {
@@ -483,8 +483,8 @@ public class RosNode extends AbstractNodeMain {
 		};
 	}*/
 
-	public void set_task_result(String success, String id) {
-		if (guiding_as != null) {
+	public void setTaskResult(String success, String id) {
+		if (guidingAS != null) {
 			taskActionResult result = messageFactory.newFromType(taskActionResult._TYPE);
 			taskResult r = messageFactory.newFromType(taskResult._TYPE);
 			GoalID g_id = messageFactory.newFromType(GoalID._TYPE);
@@ -492,58 +492,58 @@ public class RosNode extends AbstractNodeMain {
 			GoalStatus status = messageFactory.newFromType(GoalStatus._TYPE);
 			status.setGoalId(g_id);
 			if (success.equals("succeeded")) {
-				guiding_as.setSucceed(id);
+				guidingAS.setSucceed(id);
 				status.setStatus(GoalStatus.SUCCEEDED);
 				r.setSuccess(true);
 			}else if(success.equals("preempted")) {
-				guiding_as.setPreempt(id);
+				guidingAS.setPreempt(id);
 				status.setStatus(GoalStatus.PREEMPTED);
 				r.setSuccess(true);
 			}else {
-				guiding_as.setAbort(id);
+				guidingAS.setAbort(id);
 				status.setStatus(GoalStatus.ABORTED);
 				r.setSuccess(false);
 			}
 			result.setResult(r);
 			result.setStatus(status);
 			logger.info("set action server result :"+success);
-			guiding_as.sendResult(result);
+			guidingAS.sendResult(result);
 		} else {
 			logger.info("guiding as null");
 		}
 	}
 
-	public HashMap<String, Boolean> init_service_clients() {
+	public HashMap<String, Boolean> initServiceClients() {
 		HashMap<String, Boolean> services_status = new HashMap<String, Boolean>();
 
-		for (Entry<String, HashMap<String, String>> entry : services_map.entrySet()) {
-			services_status.put(entry.getKey(), create_service_client(entry.getKey()));
+		for (Entry<String, HashMap<String, String>> entry : servicesMap.entrySet()) {
+			services_status.put(entry.getKey(), createServiceClient(entry.getKey()));
 		}
 		return services_status;
 	}
 
-	public HashMap<String, Boolean> retry_init_service_clients(Set<String> clients_to_init) {
+	public HashMap<String, Boolean> retryInitServiceClients(Set<String> clients_to_init) {
 		HashMap<String, Boolean> services_status = new HashMap<String, Boolean>();
 
 		for (String client : clients_to_init) {
-			services_status.put(client, create_service_client(client));
+			services_status.put(client, createServiceClient(client));
 		}
 		return services_status;
 	}
 
-	private boolean create_service_client(String key) {
+	private boolean createServiceClient(String key) {
 		boolean status = false;
-		String srv_name = services_map.get(key).get("name");
+		String srv_name = servicesMap.get(key).get("name");
 		URI ls = msc.lookupService(srv_name);
 		if (ls.toString().isEmpty()) {
-			service_clients.put(key, null);
+			serviceClients.put(key, null);
 			status = false;
 		} else {
 			ServiceClient<Message, Message> serv_client;
 			try {
 				logger.info("connect to " + srv_name);
-				serv_client = connectedNode.newServiceClient(srv_name, services_map.get(key).get("type"));
-				service_clients.put(key, serv_client);
+				serv_client = connectedNode.newServiceClient(srv_name, servicesMap.get(key).get("type"));
+				serviceClients.put(key, serv_client);
 				status = true;
 			} catch (ServiceNotFoundException e) {
 				logger.severe("Service not found exception : " + e.getMessage());
@@ -583,7 +583,7 @@ public class RosNode extends AbstractNodeMain {
 		return point_stamped;
 	}
 
-	public MetaStateMachineHeader build_meta_header() {
+	public MetaStateMachineHeader buildMetaHeader() {
 		nodeConfiguration = NodeConfiguration.newPrivate();
 		messageFactory = nodeConfiguration.getTopicMessageFactory();
 
@@ -598,7 +598,7 @@ public class RosNode extends AbstractNodeMain {
 		return metaheader;
 	}
 
-	public SubStateMachine_pepper_base_manager_msgs build_state_machine_pepper_base_manager(String id, float d) {
+	public SubStateMachine_pepper_base_manager_msgs buildStateMachinePepperBaseManager(String id, float d) {
 		nodeConfiguration = NodeConfiguration.newPrivate();
 		messageFactory = nodeConfiguration.getTopicMessageFactory();
 
@@ -651,11 +651,11 @@ public class RosNode extends AbstractNodeMain {
 		return r_request;
 	}
 
-	public void call_move_to_as(PoseStamped pose) {
-		move_to_fb = null;
-		move_to_result = null;
+	public void callMoveToAS(PoseStamped pose) {
+		moveToFb = null;
+		moveToResult = null;
 		MoveBaseActionGoal goal_msg;
-		goal_msg = move_to_goal_pub.newMessage();
+		goal_msg = moveToGoalPub.newMessage();
 
 		nodeConfiguration = NodeConfiguration.newPrivate();
 		messageFactory = nodeConfiguration.getTopicMessageFactory();
@@ -664,12 +664,12 @@ public class RosNode extends AbstractNodeMain {
 		move_to_goal.setTargetPose(pose);
 		goal_msg.setGoal(move_to_goal);
 
-		move_to_goal_pub.publish(goal_msg);
+		moveToGoalPub.publish(goal_msg);
 	}
 	
-	public void call_engage_as(String human_id) {
+	public void callEngageAS(String human_id) {
 		DialogueArbiterActionGoal goal_msg;
-		goal_msg = engage_pub.newMessage();
+		goal_msg = engagePub.newMessage();
 		
 		DialogueArbiterGoal engage_goal = messageFactory.newFromType(DialogueArbiterGoal._TYPE);
 		
@@ -677,11 +677,11 @@ public class RosNode extends AbstractNodeMain {
 		engage_goal.setParams("{\"person_frame\": \"human_"+human_id+"\"}");
 		goal_msg.setGoal(engage_goal);
 		
-		engage_pub.publish(goal_msg);
+		engagePub.publish(goal_msg);
 	}
 	
-	public void call_dialogue_as_inform(String status, String return_value) {
-		listening_result_inform = null;
+	public void callDialogueInformAS(String status, String return_value) {
+		listeningResultInform = null;
 		SupervisionServerInformActionGoal listen_goal_msg = messageFactory.newFromType(SupervisionServerInformActionGoal._TYPE);
 		SupervisionServerInformGoal listen_goal = listen_goal_msg.getGoal();
 		listen_goal.setStatus(status);
@@ -690,24 +690,24 @@ public class RosNode extends AbstractNodeMain {
 		listen_goal_msg.setGoal(listen_goal);
 		GoalID goalID = messageFactory.newFromType(GoalID._TYPE);
 		goalIDGenerator.generateID(goalID);
-		inform_goal_id = goalID;
-		logger.info("inform goal ID: "+inform_goal_id);
+		informGoalId = goalID;
+		logger.info("inform goal ID: "+informGoalId);
 		listen_goal_msg.setGoalId(goalID);
-		dialogue_pub_inform.publish(listen_goal_msg);
+		dialoguePubInform.publish(listen_goal_msg);
 	}
 	
-	public void cancel_dialogue_inform_goal() {
-		if(inform_goal_id != null)
-			dialogue_cancel_pub_inform.publish(inform_goal_id);
+	public void cancelDialogueInformGoal() {
+		if(informGoalId != null)
+			dialogueCancelPubInform.publish(informGoalId);
 	}
 	
-	public void cancel_dialogue_query_goal() {
-		if(query_goal_id != null)
-			dialogue_cancel_pub_query.publish(query_goal_id);
+	public void cancelDialogueQueryGoal() {
+		if(queryGoalId != null)
+			dialogueCancelPubQuery.publish(queryGoalId);
 	}
 	
-	public void call_dialogue_as_query(String status, String return_value) {
-		listening_result_query = null;
+	public void callDialogueQueryAS(String status, String return_value) {
+		listeningResultQuery = null;
 		SupervisionServerQueryActionGoal listen_goal_msg = messageFactory.newFromType(SupervisionServerQueryActionGoal._TYPE);
 		SupervisionServerQueryGoal listen_goal = listen_goal_msg.getGoal();
 		listen_goal.setStatus(status);
@@ -716,19 +716,19 @@ public class RosNode extends AbstractNodeMain {
 		listen_goal_msg.setGoal(listen_goal);
 		GoalID goalID = messageFactory.newFromType(GoalID._TYPE);
 		goalIDGenerator.generateID(goalID);
-		query_goal_id = goalID;
-		logger.info("query goal ID: "+query_goal_id);
+		queryGoalId = goalID;
+		logger.info("query goal ID: "+queryGoalId);
 		listen_goal_msg.setGoalId(goalID);
-		dialogue_pub_query.publish(listen_goal_msg);
+		dialoguePubQuery.publish(listen_goal_msg);
 	}
 
-	public void call_dialogue_as(List<String> subjects) {
-		call_dialogue_as(subjects, new ArrayList<String>());
+	public void callDialogueAS(List<String> subjects) {
+		callDialogueAS(subjects, new ArrayList<String>());
 	}
 	
-	public void call_dialogue_as(List<String> subjects, List<String> verbs) {
-		listening_fb = null;
-		listening_result = null;
+	public void callDialogueAS(List<String> subjects, List<String> verbs) {
+		listeningFb = null;
+		listeningResult = null;
 		dialogue_actionActionGoal listen_goal_msg = messageFactory.newFromType(dialogue_actionActionGoal._TYPE);
 		dialogue_actionGoal listen_goal = listen_goal_msg.getGoal();
 		if (!subjects.isEmpty()) {
@@ -744,58 +744,58 @@ public class RosNode extends AbstractNodeMain {
 		listen_goal_msg.setGoal(listen_goal);
 		GoalID goalID = messageFactory.newFromType(GoalID._TYPE);
 		goalID.setId("");
-		dialogue_cancel_pub.publish(goalID);
+		dialogueCancelPub.publish(goalID);
 		sleep(200);
-		dialogue_pub.publish(listen_goal_msg);
+		dialoguePub.publish(listen_goal_msg);
 		logger.info("dialogue_as listening");
 	}
 	
-	public void set_guiding_as_listener(ActionServerListener<taskActionGoal> listener) {
-		guiding_as.attachListener(listener);
+	public void setGuidingASListener(ActionServerListener<taskActionGoal> listener) {
+		guidingAS.attachListener(listener);
 	}
 
-	public taskActionGoal getNew_guiding_goal() {
-		return new_guiding_goal;
+	public taskActionGoal getNewGuidingGoal() {
+		return newGuidingGoal;
 	}
 
-	public void setNew_guiding_goal(taskActionGoal current_guiding_goal) {
-		this.new_guiding_goal = current_guiding_goal;
+	public void setNewGuidingGoal(taskActionGoal current_guiding_goal) {
+		this.newGuidingGoal = current_guiding_goal;
 	}
 
-	public Stack<taskActionGoal> getStack_guiding_goals() {
-		return stack_guiding_goals;
+	public Stack<taskActionGoal> getStackGuidingGoals() {
+		return stackGuidingGoals;
 	}
 
-	public PointingActionResult get_placements_result() {
-		return placements_result;
+	public PointingActionResult getPlacementsResult() {
+		return placementsResult;
 	}
 
-	public PointingActionFeedback getPlacements_fb() {
-		return placements_fb;
+	public PointingActionFeedback getPlacementsFb() {
+		return placementsFb;
 	}
 
-	public SupervisionServerInformActionResult getListening_result_inform() {
-		return listening_result_inform;
+	public SupervisionServerInformActionResult getListeningResultInform() {
+		return listeningResultInform;
 	}
 
-	public SupervisionServerQueryActionResult getListening_result_query() {
-		return listening_result_query;
+	public SupervisionServerQueryActionResult getListeningResultQuery() {
+		return listeningResultQuery;
 	}
 
-	public dialogue_actionActionResult getListening_result() {
-		return listening_result;
+	public dialogue_actionActionResult getListeningResult() {
+		return listeningResult;
 	}
 
-	public dialogue_actionActionFeedback getListening_fb() {
-		return listening_fb;
+	public dialogue_actionActionFeedback getListeningFb() {
+		return listeningFb;
 	}
 
-	public MoveBaseActionResult getMove_to_result() {
-		return move_to_result;
+	public MoveBaseActionResult getMoveToResult() {
+		return moveToResult;
 	}
 
-	public MoveBaseActionFeedback getMove_to_fb() {
-		return move_to_fb;
+	public MoveBaseActionFeedback getMoveToFb() {
+		return moveToFb;
 	}
 
 	public Multimap<String, SimpleFact> getPerceptions() {
@@ -803,7 +803,7 @@ public class RosNode extends AbstractNodeMain {
 	}
 
 	public int getPercept_id() {
-		return percept_id;
+		return perceptID;
 	}
 
 	public void setPerceptions(Multimap<String, SimpleFact> perceptions) {
@@ -822,12 +822,12 @@ public class RosNode extends AbstractNodeMain {
 		return parameters;
 	}
 
-	public Publisher<std_msgs.Int32> getPerson_of_interest_pub() {
-		return person_of_interest_pub;
+	public Publisher<std_msgs.Int32> getPersonOfInterestPub() {
+		return personOfInterestPub;
 	}
 
-	public Publisher<visualization_msgs.Marker> getMarker_pub() {
-		return marker_pub;
+	public Publisher<visualization_msgs.Marker> getMarkerPub() {
+		return markerPub;
 	}
 
 

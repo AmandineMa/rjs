@@ -303,6 +303,15 @@ public class TextToSpeech extends AbstractAction {
 		case "happy_end":
 			text = new String("I am happy that I was able to help you.");
 			break;
+		case "introduce":
+			text = new String("Hello, my name is Pepper. Today, I'm taking my guide exam at Ideapark. Can you come in front of me ? I'm going to show you what I can do.");
+			break;
+		case "other_place":
+			text = new String("I'm going to show you another place");
+			break;
+		case "thanks":
+			text = new String("Thank you for watching me, now you can ask me for other places !");
+			break;
 		case "retire":
 			if (bel_arg == null)
 				throw new IllegalArgumentException("retire speech should have an argument");

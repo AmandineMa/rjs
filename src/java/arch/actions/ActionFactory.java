@@ -24,6 +24,7 @@ import arch.actions.robot.internal.GetOntoIndividualInfo;
 import arch.actions.robot.internal.GetPlacements;
 import arch.actions.robot.internal.GetRouteVerba;
 import arch.actions.robot.internal.HasMesh;
+import arch.actions.robot.internal.SetParam;
 import jason.asSemantics.ActionExec;
 import ros.RosNode;
 import utils.Tools;
@@ -117,6 +118,9 @@ public class ActionFactory {
 				break;
 			case "reinit_loca":
 				action = new ReinitLoca(actionExec, rosAgArch);
+				break;
+			case "set_param":
+				action = new SetParam(actionExec, rosAgArch);
 				break;
 			default:
 				break;

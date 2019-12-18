@@ -492,9 +492,9 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	!verba(ID, Ld);
 	.wait(point_at(finished),6000);
 	-point_at(finished);
-	?(canSee(Ld)[source(Human)] | hasSeen(Ld)[source(Human)]);
-	?verba_name(Ld,Verba);
-	!speak(ID, tell_seen(Verba)).
+	?(canSee(Ld)[source(Human)] | hasSeen(Ld)[source(Human)]).
+//	?verba_name(Ld,Verba);
+//	!speak(ID, tell_seen(Verba)).
 
 
 @pl_nl[max_attempts(3), atomic_r]+!point_look_at(ID, Ld) : not landmark_to_see(Ld) <-

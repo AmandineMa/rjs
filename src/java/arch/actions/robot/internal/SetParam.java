@@ -1,12 +1,12 @@
 package arch.actions.robot.internal;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 
 public class SetParam extends AbstractAction {
 
-	public SetParam(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public SetParam(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 		setSync(true);
 	}

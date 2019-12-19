@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Atom;
 import jason.asSyntax.ListTerm;
@@ -22,7 +22,7 @@ import utils.Code;
 
 public class ComputeRoute extends AbstractAction {
 
-	public ComputeRoute(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public ComputeRoute(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 		setSync(true);
 	}

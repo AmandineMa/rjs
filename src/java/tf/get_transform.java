@@ -4,7 +4,7 @@ package tf;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 
-import arch.ROSAgArch;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.*;
 import jason.asSyntax.*;
 
@@ -16,7 +16,7 @@ public class get_transform extends DefaultInternalAction {
 	    	frame1 = frame1.replaceAll("^\"|\"$", "");
 	    	String frame2 = args[1].toString();
 	    	frame2 = frame2.replaceAll("^\"|\"$", "");
-	    	TransformTree tfTree = ((ROSAgArch) ts.getUserAgArch()).getTfTree();
+	    	TransformTree tfTree = ((AbstractROSAgArch) ts.getUserAgArch()).getTfTree();
 	    	Transform transform;
 	    	if(tfTree.canTransform(frame1, frame2)) {
 		    	try {

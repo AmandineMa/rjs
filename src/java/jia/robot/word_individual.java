@@ -5,7 +5,7 @@ package jia.robot;
 import java.util.HashMap;
 import java.util.Map;
 
-import arch.ROSAgArch;
+import arch.agarch.AbstractROSAgArch;
 
 //import java.util.logging.Logger;
 
@@ -31,11 +31,11 @@ public class word_individual extends DefaultInternalAction {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put("action", action);
 		parameters.put("param", param);
-		OntologeniusServiceResponse onto_individual_resp = ROSAgArch.getM_rosnode().callSyncService("get_individual_info", parameters);
+		OntologeniusServiceResponse onto_individual_resp = AbstractROSAgArch.getRosnode().callSyncService("get_individual_info", parameters);
 		
 		boolean result = false;
 		if(onto_individual_resp != null) {
-			OntologeniusServiceResponse places = ROSAgArch.getM_rosnode().newServiceResponseFromType(OntologeniusService._TYPE);
+			OntologeniusServiceResponse places = AbstractROSAgArch.getRosnode().newServiceResponseFromType(OntologeniusService._TYPE);
 			if(onto_individual_resp.getValues().isEmpty()) {
 				places.setCode((short) Code.ERROR.getCode());
 			}else {

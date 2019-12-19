@@ -7,8 +7,8 @@ import java.util.Map;
 import org.ros.exception.RemoteException;
 import org.ros.node.service.ServiceResponseListener;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Atom;
 import jason.asSyntax.Term;
@@ -16,7 +16,7 @@ import route_verbalization_msgs.VerbalizeRegionRouteResponse;
 
 public class GetRouteVerba extends AbstractAction {
 
-	public GetRouteVerba(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public GetRouteVerba(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 	}
 

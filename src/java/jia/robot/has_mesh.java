@@ -5,8 +5,7 @@ package jia.robot;
 import java.util.HashMap;
 import java.util.Map;
 
-import arch.ROSAgArch;
-
+import arch.agarch.AbstractROSAgArch;
 //import java.util.logging.Logger;
 import jason.asSemantics.DefaultInternalAction;
 import jason.asSemantics.TransitionSystem;
@@ -28,7 +27,7 @@ public class has_mesh extends DefaultInternalAction {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put("world", "robot/merged");
 		parameters.put("name", param);
-		HasMeshResponse resp = ROSAgArch.getM_rosnode().callSyncService("has_mesh", parameters);
+		HasMeshResponse resp = AbstractROSAgArch.getRosnode().callSyncService("has_mesh", parameters);
 		boolean result = false;
 		if(resp != null)
 			result = resp.getHasMesh();

@@ -2,15 +2,15 @@ package arch.actions.robot;
 
 import org.ros.node.topic.Publisher;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 
 public class HumanToMonitor extends AbstractAction {
 	
 	private Publisher<std_msgs.String> humanToMonitorPub; 
 
-	public HumanToMonitor(ActionExec actionExec, ROSAgArch rosAgArch, Publisher<std_msgs.String> humanToMonitorPub) {
+	public HumanToMonitor(ActionExec actionExec, AbstractROSAgArch rosAgArch, Publisher<std_msgs.String> humanToMonitorPub) {
 		super(actionExec, rosAgArch);
 		this.humanToMonitorPub = humanToMonitorPub;
 		setSync(true);

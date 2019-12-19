@@ -6,8 +6,8 @@ import java.util.Map;
 import org.ros.exception.RemoteException;
 import org.ros.node.service.ServiceResponseListener;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Atom;
 import jason.asSyntax.ListTermImpl;
@@ -18,7 +18,7 @@ import utils.Code;
 
 public class GetOntoIndividualInfo extends AbstractAction {
 
-	public GetOntoIndividualInfo(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public GetOntoIndividualInfo(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 	}
 

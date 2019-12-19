@@ -6,14 +6,14 @@ import java.util.Map;
 import org.ros.exception.RemoteException;
 import org.ros.node.service.ServiceResponseListener;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Atom;
 
 public class Localise extends AbstractAction {
 
-	public Localise(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public Localise(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 	}
 

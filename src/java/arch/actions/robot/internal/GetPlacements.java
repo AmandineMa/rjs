@@ -12,8 +12,8 @@ import org.ros.rosjava.tf.TransformFactory;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava_geometry.Vector3;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 import msg_srv_impl.PoseCustom;
 import pointing_planner.PointingPlannerResponse;
@@ -21,7 +21,7 @@ import utils.Tools;
 
 public class GetPlacements extends AbstractAction {
 
-	public GetPlacements(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public GetPlacements(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 	}
 

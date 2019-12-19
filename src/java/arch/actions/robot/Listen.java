@@ -3,19 +3,20 @@ package arch.actions.robot;
 import java.util.ArrayList;
 
 import actionlib_msgs.GoalStatus;
-import arch.ROSAgArch;
-import arch.RobotAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
+import arch.agarch.guiding.RobotAgArch;
 import dialogue_as.dialogue_actionActionFeedback;
 import dialogue_as.dialogue_actionActionResult;
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.ListTermImpl;
 import jason.asSyntax.Term;
+import ros.RosNodeGuiding;
 import utils.Tools;
 
 public class Listen extends AbstractAction {
-
-	public Listen(ActionExec actionExec, ROSAgArch rosAgArch) {
+	
+	public Listen(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 		setSync(true);
 	}
@@ -34,7 +35,7 @@ public class Listen extends AbstractAction {
 		}else {
 			words.add(actionExec.getActionTerm().getTerms().get(1).toString().replaceAll("^\"|\"$", ""));
 		}
-		rosnode.callDialogueAS(words);
+		((RosNodeGuiding) rosnode).callDialogueAS(words);
 		rosAgArch.addBelief("listening");
 		
 		dialogue_actionActionResult listening_result;
@@ -42,8 +43,8 @@ public class Listen extends AbstractAction {
 		dialogue_actionActionFeedback listening_fb_prev = null;
 		int count = 0;
 		do {
-			listening_result = rosnode.getListeningResult();
-			listening_fb = rosnode.getListeningFb();
+			listening_result = ((RosNodeGuiding) rosnode).getListeningResult();
+			listening_fb = ((RosNodeGuiding) rosnode).getListeningFb();
 			if (listening_fb != null & listening_fb != listening_fb_prev) {
 				rosAgArch.removeBelief("not_exp_ans(_)");
 				rosAgArch.addBelief("not_exp_ans(" + Integer.toString(count) + ")");

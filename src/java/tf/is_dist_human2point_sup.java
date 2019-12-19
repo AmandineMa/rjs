@@ -13,8 +13,8 @@ import org.ros.node.NodeConfiguration;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 
-import arch.ROSAgArch;
-import arch.RobotAgArch;
+import arch.agarch.AbstractROSAgArch;
+import arch.agarch.guiding.RobotAgArch;
 import geometry_msgs.Pose;
 import jason.asSemantics.*;
 import jason.asSyntax.*;
@@ -34,7 +34,7 @@ public class is_dist_human2point_sup extends DefaultInternalAction {
 			while(values_it.hasNext()) {
 				point_values.add(((NumberTermImpl)values_it.next()).solve());
 			}
-			TransformTree tfTree = ((ROSAgArch) ts.getUserAgArch()).getTfTree();
+			TransformTree tfTree = ((AbstractROSAgArch) ts.getUserAgArch()).getTfTree();
 			Transform human_pose_now = tfTree.lookupMostRecent("map", human);
 			
 			

@@ -6,15 +6,16 @@ import java.util.Map;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Atom;
 import pepper_resources_synchronizer_msgs.MetaStateMachineRegisterResponse;
+import ros.RosNodeGuiding;
 
 public class FaceHuman extends AbstractAction {
-
-	public FaceHuman(ActionExec actionExec, ROSAgArch rosAgArch) {
+	
+	public FaceHuman(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 		setSync(true);
 	}
@@ -32,8 +33,8 @@ public class FaceHuman extends AbstractAction {
 				float d = (float) Math.atan2(transform.translation.y, transform.translation.x);
 
 				Map<String, Object> parameters = new HashMap<String, Object>();
-				parameters.put("statemachinepepperbasemanager", rosnode.buildStateMachinePepperBaseManager(actionName, (float) d));
-				parameters.put("header", rosnode.buildMetaHeader());
+				parameters.put("statemachinepepperbasemanager", ((RosNodeGuiding) rosnode).buildStateMachinePepperBaseManager(actionName, (float) d));
+				parameters.put("header", ((RosNodeGuiding) rosnode).buildMetaHeader());
 
 				MetaStateMachineRegisterResponse faceResp = rosnode.callSyncService("pepper_synchro", parameters);
 				actionExec.setResult(true);

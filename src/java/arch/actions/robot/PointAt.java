@@ -6,15 +6,15 @@ import java.util.Map;
 import org.ros.exception.RemoteException;
 import org.ros.node.service.ServiceResponseListener;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import deictic_gestures.PointAtResponse;
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Atom;
 
 public class PointAt extends AbstractAction {
 
-	public PointAt(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public PointAt(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 	}
 

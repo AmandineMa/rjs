@@ -3,14 +3,14 @@ package arch.actions.robot;
 import org.ros.exception.RemoteException;
 import org.ros.node.service.ServiceResponseListener;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 import std_srvs.EmptyResponse;
 
 public class TerminateInteraction extends AbstractAction {
 
-	public TerminateInteraction(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public TerminateInteraction(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 	}
 

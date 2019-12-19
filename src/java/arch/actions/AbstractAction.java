@@ -6,7 +6,7 @@ import java.util.logging.Logger;
 
 import org.ros.exception.RosRuntimeException;
 
-import arch.ROSAgArch;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Atom;
 import jason.asSyntax.Term;
@@ -18,12 +18,12 @@ public abstract class AbstractAction implements Action {
 	protected Logger logger = Logger.getLogger(this.getClass().getName());
 	protected boolean sync = false;
 	protected ActionExec actionExec;
-	protected ROSAgArch rosAgArch;
+	protected AbstractROSAgArch rosAgArch;
 	
-	protected RosNode rosnode = ROSAgArch.getM_rosnode();
+	protected static RosNode rosnode;
 	protected String actionName;
 
-	public AbstractAction(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public AbstractAction(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		this.rosAgArch = rosAgArch;
 		this.actionExec = actionExec;
 		actionName = actionExec.getActionTerm().getFunctor();

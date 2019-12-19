@@ -2,7 +2,6 @@ package arch.actions;
 
 import org.ros.node.topic.Publisher;
 
-import arch.ROSAgArch;
 import arch.actions.robot.EnableAnimatedSpeech;
 import arch.actions.robot.Engage;
 import arch.actions.robot.FaceHuman;
@@ -25,21 +24,30 @@ import arch.actions.robot.internal.GetPlacements;
 import arch.actions.robot.internal.GetRouteVerba;
 import arch.actions.robot.internal.HasMesh;
 import arch.actions.robot.internal.SetParam;
+import arch.actions.ros.ConfigureNode;
+import arch.actions.ros.InitServices;
+import arch.actions.ros.RetryInitServices;
+import arch.actions.ros.StartParameterLoaderNode;
+import arch.actions.ros.guiding.InitGuidingAs;
+import arch.actions.ros.guiding.SetGuidingResult;
+import arch.actions.ros.guiding.StartROSNodeGuiding;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 import ros.RosNode;
 import utils.Tools;
 
 public class ActionFactory {
 	
-	private ROSAgArch rosAgArch;
+	private AbstractROSAgArch rosAgArch;
 	
-	private RosNode rosnode = ROSAgArch.getM_rosnode();
+	private RosNode rosnode;
 	
 	private static Publisher<std_msgs.String> lookAtEventsPub; 
 	private static Publisher<std_msgs.String> humanToMonitorPub; 
 	
-	public ActionFactory(ROSAgArch rosAgArch) {
+	public ActionFactory(AbstractROSAgArch rosAgArch) {
 		this.rosAgArch = rosAgArch;
+		rosnode = AbstractROSAgArch.getRosnode();
 		lookAtEventsPub = createPublisher("guiding/topics/look_at_events");
 		humanToMonitorPub = createPublisher("guiding/topics/human_to_monitor");
 	}
@@ -51,7 +59,7 @@ public class ActionFactory {
 		return pub;
 	}
 	
-	public static Action createAction(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public static Action createAction(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		String actionName = actionExec.getActionTerm().getFunctor();
 		Action action = null;
 		
@@ -121,6 +129,27 @@ public class ActionFactory {
 				break;
 			case "set_param":
 				action = new SetParam(actionExec, rosAgArch);
+				break;
+			case "configureNode":
+				action = new ConfigureNode(actionExec, rosAgArch);
+				break;
+			case "startParameterLoaderNode":
+				action = new StartParameterLoaderNode(actionExec, rosAgArch);
+				break;
+			case "startROSNodeGuiding":
+				action = new StartROSNodeGuiding(actionExec, rosAgArch);
+				break;
+			case "initServices":
+				action = new InitServices(actionExec, rosAgArch);
+				break;
+			case "retryInitServices":
+				action = new RetryInitServices(actionExec, rosAgArch);
+				break;
+			case "initGuidingAs":
+				action = new InitGuidingAs(actionExec, rosAgArch);
+				break;
+			case "set_guiding_result":
+				action = new SetGuidingResult(actionExec, rosAgArch);
 				break;
 			default:
 				break;

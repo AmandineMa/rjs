@@ -1,6 +1,6 @@
 package jia.qoi;
 
-import arch.RobotAgArch;
+import arch.agarch.guiding.RobotAgArch;
 import jason.asSemantics.DefaultInternalAction;
 import jason.asSemantics.TransitionSystem;
 import jason.asSemantics.Unifier;

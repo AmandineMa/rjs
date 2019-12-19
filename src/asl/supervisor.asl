@@ -8,15 +8,16 @@
 //TODO check si les srv, action servers sont connectés
 //TODO si initServices fail, reprendre la suite du plan une fois qu'ils se sont connectes via retry
 +!start : true <-
+	.verbose(2);
 	configureNode;
-	startParameterLoaderNode;
-	startROSNode;
+	startParameterLoaderNode("/guiding.yaml");
+	startROSNodeGuiding;
 	initServices;
 	initGuidingAs; 
 	.print("started");
 //	.create_agent(test, "src/asl/test.asl", [agentArchClass("arch.InteractAgArch"), beliefBaseClass("agent.TimeBB")]).
-	.create_agent(interac, "src/asl/interac.asl", [agentArchClass("arch.InteractAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]);
-	.create_agent(robot, "src/asl/robot.asl", [agentArchClass("arch.RobotAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]).
+	.create_agent(interac, "src/asl/interac.asl", [agentArchClass("arch.agarch.guiding.InteractAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]);
+	.create_agent(robot, "src/asl/robot.asl", [agentArchClass("arch.agarch.guiding.RobotAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]).
 
 +~connected_srv(S) : true <- .print("service not connected : ", S).
 
@@ -31,8 +32,8 @@
 	retryInitServices;
 	jia.robot.publish_marker(0);
 	.print("started");
-	.create_agent(interac, "src/asl/interac.asl", [agentArchClass("arch.InteractAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]);
-	.create_agent(robot, "src/asl/robot.asl", [agentArchClass("arch.RobotAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]).
+	.create_agent(interac, "src/asl/interac.asl", [agentArchClass("arch.agarch.guiding.InteractAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]);
+	.create_agent(robot, "src/asl/robot.asl", [agentArchClass("arch.agarch.guiding.RobotAgArch"), beliefBaseClass("agent.TimeBB"), agentClass("agent.LimitedAgent")]).
 	
 -!retry_init_services : true <-
 	.wait(3000);

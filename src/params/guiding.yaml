@@ -17,33 +17,33 @@ guiding:
     get_class_info: 
       name: /ontologenius/class
       type: ontologenius_msgs/OntologeniusService
-    look_at: 
-      name: /deictic_gestures/look_at
-      type: deictic_gestures/LookAt
-    point_at: 
-      name: /deictic_gestures/point_at
-      type: deictic_gestures/PointAt
-    has_mesh: 
-     name: /has_mesh
-     type: perspectives_msgs/HasMesh
-    pepper_synchro: 
-     name: /pepper_resources_synchronizer/state_machines_register
-     type: pepper_resources_synchronizer_msgs/MetaStateMachineRegister
-    get_uwds_name: 
-     name: /get_name
-     type: perspectives_msgs/GetName
-    localise:
-     name: /mummer_localisation_tf/localise
-     type: pepper_localisation/response
-    is_visible: 
-     name: /pointing_planner/visibility_score
-     type: pointing_planner/VisibilityScore
-    pointing_planner: 
-     name: /pointing_planner/plan
-     type: pointing_planner/PointingPlanner
-    speak_to: 
-     name: /naoqi_driver/tts/say
-     type: nao_interaction_msgs/Say
+#    look_at: 
+#      name: /deictic_gestures/look_at
+#      type: deictic_gestures/LookAt
+#    point_at: 
+#      name: /deictic_gestures/point_at
+#      type: deictic_gestures/PointAt
+#    has_mesh: 
+#     name: /has_mesh
+#     type: perspectives_msgs/HasMesh
+#    pepper_synchro: 
+#     name: /pepper_resources_synchronizer/state_machines_register
+#     type: pepper_resources_synchronizer_msgs/MetaStateMachineRegister
+#    get_uwds_name: 
+#     name: /get_name
+#     type: perspectives_msgs/GetName
+#    localise:
+#     name: /mummer_localisation_tf/localise
+#     type: pepper_localisation/response
+#    is_visible: 
+#     name: /pointing_planner/visibility_score
+#     type: pointing_planner/VisibilityScore
+#    pointing_planner: 
+#     name: /pointing_planner/plan
+#     type: pointing_planner/PointingPlanner
+#    speak_to: 
+#     name: /naoqi_driver/tts/say
+#     type: nao_interaction_msgs/Say
 
   services_moving:
     pointing_planner: 

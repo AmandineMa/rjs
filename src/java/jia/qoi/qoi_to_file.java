@@ -10,8 +10,8 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-import arch.InteractAgArch;
-import arch.RobotAgArch;
+import arch.agarch.guiding.InteractAgArch;
+import arch.agarch.guiding.RobotAgArch;
 import jason.asSemantics.DefaultInternalAction;
 import jason.asSemantics.TransitionSystem;
 import jason.asSemantics.Unifier;

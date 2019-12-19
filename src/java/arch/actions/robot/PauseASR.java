@@ -3,15 +3,15 @@ package arch.actions.robot;
 import org.ros.exception.RemoteException;
 import org.ros.node.service.ServiceResponseListener;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
 import arch.actions.Action;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 import std_srvs.EmptyResponse;
 
 public class PauseASR extends AbstractAction implements Action {
 
-	public PauseASR(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public PauseASR(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 		setSync(true);
 	}

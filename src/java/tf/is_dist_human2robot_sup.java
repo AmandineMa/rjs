@@ -4,7 +4,7 @@ package tf;
 import org.ros.rosjava.tf.Transform;
 import org.ros.rosjava.tf.TransformTree;
 
-import arch.ROSAgArch;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.DefaultInternalAction;
 import jason.asSemantics.TransitionSystem;
 import jason.asSemantics.Unifier;
@@ -19,7 +19,7 @@ public class is_dist_human2robot_sup extends DefaultInternalAction {
 	    public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
 	    	String human = args[0].toString();
 	    	human = human.replaceAll("^\"|\"$", "");
-			TransformTree tfTree = ((ROSAgArch) ts.getUserAgArch()).getTfTree();
+			TransformTree tfTree = ((AbstractROSAgArch) ts.getUserAgArch()).getTfTree();
 			Atom is_dist_sup = new Atom(Literal.parseLiteral("no_transform"));
 			Transform h_tf = tfTree.lookupMostRecent("map", human);
 			Transform r_tf = tfTree.lookupMostRecent("map", "base_footprint");

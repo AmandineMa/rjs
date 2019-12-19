@@ -4,7 +4,7 @@ import org.ros.message.MessageFactory;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.topic.Publisher;
 
-import arch.ROSAgArch;
+import arch.agarch.guiding.AgArchGuiding;
 import geometry_msgs.Point;
 import geometry_msgs.Pose;
 import geometry_msgs.Vector3;
@@ -14,6 +14,7 @@ import jason.asSemantics.Unifier;
 import jason.asSyntax.ListTermImpl;
 import jason.asSyntax.NumberTermImpl;
 import jason.asSyntax.Term;
+import ros.RosNodeGuiding;
 import std_msgs.ColorRGBA;
 import std_msgs.Header;
 import visualization_msgs.Marker;
@@ -28,7 +29,7 @@ public class publish_marker extends DefaultInternalAction {
 			String frame;
 			NodeConfiguration nodeConfiguration = NodeConfiguration.newPrivate();
 			MessageFactory messageFactory = nodeConfiguration.getTopicMessageFactory();
-			Publisher<visualization_msgs.Marker> pub = ROSAgArch.getM_rosnode().getMarkerPub();
+			Publisher<visualization_msgs.Marker> pub = ((RosNodeGuiding) AgArchGuiding.getRosnode()).getMarkerPub();
 			Marker marker = pub.newMessage();
 			Pose pose = messageFactory.newFromType(Pose._TYPE);
 			Point point = messageFactory.newFromType(Point._TYPE);
@@ -85,7 +86,7 @@ public class publish_marker extends DefaultInternalAction {
 			marker.setHeader(header);
 			pub.publish(marker);
 		}else {
-			Publisher<visualization_msgs.Marker> pub = ROSAgArch.getM_rosnode().getMarkerPub();
+			Publisher<visualization_msgs.Marker> pub = ((RosNodeGuiding) AgArchGuiding.getRosnode()).getMarkerPub();
 			Marker marker = pub.newMessage();
 			marker.setNs("supervisor");
 			marker.setAction(Marker.DELETEALL);

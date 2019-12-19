@@ -5,7 +5,7 @@ MAS supervisor {
 //	executionControl: jason.control.ExecutionControlGUI
 
 	agents:
-		supervisor [verbose=1] agentArchClass arch.SupervisorAgArch beliefBaseClass agent.TimeBB;
+		supervisor [verbose=1] agentArchClass arch.agarch.guiding.SupervisorAgArch beliefBaseClass agent.TimeBB;
 
 	aslSourcePath:
 		"src/asl";

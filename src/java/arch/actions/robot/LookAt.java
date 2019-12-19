@@ -6,15 +6,15 @@ import java.util.Map;
 import org.ros.exception.RemoteException;
 import org.ros.node.service.ServiceResponseListener;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import deictic_gestures.LookAtResponse;
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Atom;
 
 public class LookAt extends AbstractAction {
 
-	public LookAt(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public LookAt(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 		// TODO Auto-generated constructor stub
 	}

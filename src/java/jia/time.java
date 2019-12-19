@@ -2,7 +2,7 @@
 
 package jia;
 
-import arch.ROSAgArch;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.DefaultInternalAction;
 import jason.asSemantics.TransitionSystem;
 import jason.asSemantics.Unifier;
@@ -24,7 +24,7 @@ public class time extends DefaultInternalAction {
 
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
-    	double time_now = ((ROSAgArch) ts.getUserAgArch()).getRosTimeSeconds();
+    	double time_now = ((AbstractROSAgArch) ts.getUserAgArch()).getRosTimeSeconds();
     	return un.unifies(args[0], new ObjectTermImpl(time_now));
     	
     }

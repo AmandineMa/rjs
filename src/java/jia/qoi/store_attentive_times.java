@@ -1,6 +1,6 @@
 package jia.qoi;
 
-import arch.InteractAgArch;
+import arch.agarch.guiding.InteractAgArch;
 import jason.JasonException;
 import jason.asSemantics.DefaultInternalAction;
 import jason.asSemantics.TransitionSystem;

@@ -4,21 +4,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 import actionlib_msgs.GoalStatus;
-import arch.ROSAgArch;
-import arch.RobotAgArch;
 import arch.actions.AbstractAction;
 import arch.actions.Action;
+import arch.agarch.AbstractROSAgArch;
+import arch.agarch.guiding.AgArchGuiding;
+import arch.agarch.guiding.RobotAgArch;
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Atom;
 import jason.asSyntax.Literal;
 import nao_interaction_msgs.SayResponse;
+import ros.RosNodeGuiding;
 import rpn_recipe_planner_msgs.SupervisionServerInformActionResult;
 import rpn_recipe_planner_msgs.SupervisionServerQueryActionResult;
 import utils.Tools;
 
 public class TextToSpeech extends AbstractAction {
-
-	public TextToSpeech(ActionExec actionExec, ROSAgArch rosAgArch) {
+	
+	public TextToSpeech(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 		setSync(true);
 	}
@@ -58,9 +60,9 @@ public class TextToSpeech extends AbstractAction {
 			((RobotAgArch) rosAgArch).setInQuestion(true);
 			((RobotAgArch) rosAgArch).setHumanAnswer(0);
 			if(!bel_functor.equals("list_places")) {
-				rosnode.callDialogueQueryAS("clarification." + bel_functor, bel_arg);
+				((RosNodeGuiding) rosnode).callDialogueQueryAS("clarification." + bel_functor, bel_arg);
 			} else {
-				rosnode.callDialogueQueryAS("disambiguation", bel_arg);
+				((RosNodeGuiding) rosnode).callDialogueQueryAS("disambiguation", bel_arg);
 			}
 			SupervisionServerQueryActionResult listening_result = waitDialogueQueryAnswer(bel_functor);
 			
@@ -92,7 +94,7 @@ public class TextToSpeech extends AbstractAction {
 			if(!bel_functor.equals("failed") && !bel_functor.equals("succeeded"))
 				sentence_code = "verbalisation." + bel_functor;
 			
-			rosnode.callDialogueInformAS(sentence_code, bel_arg);
+			((RosNodeGuiding) rosnode).callDialogueInformAS(sentence_code, bel_arg);
 			
 			SupervisionServerInformActionResult listening_result = waitDialogueInformAnswer();
 			
@@ -121,7 +123,7 @@ public class TextToSpeech extends AbstractAction {
 	public SupervisionServerInformActionResult waitDialogueInformAnswer() {
 		SupervisionServerInformActionResult listening_result;
 		do {
-			listening_result = rosnode.getListeningResultInform();
+			listening_result = ((RosNodeGuiding) rosnode).getListeningResultInform();
 			Tools.sleep(200);
 		} while (listening_result == null || listening_result.getStatus().getStatus() != GoalStatus.SUCCEEDED);
 		return listening_result;
@@ -133,11 +135,11 @@ public class TextToSpeech extends AbstractAction {
 		SupervisionServerQueryActionResult listening_result;
 		double start = rosAgArch.getRosTimeMilliSeconds();
 		do {
-			listening_result = rosnode.getListeningResultQuery();
+			listening_result = ((RosNodeGuiding) rosnode).getListeningResultQuery();
 			Tools.sleep(200);
 		} while (listening_result == null && rosAgArch.getRosTimeSeconds() - start < 15);
 		if(listening_result == null) {
-			rosAgArch.addBelief("preempted("+rosAgArch.getTaskID()+")");
+			rosAgArch.addBelief("preempted("+((AgArchGuiding) rosAgArch).getTaskID()+")");
 		} else {
 			String resp;
 			if (listening_result.getResult().getResult().equals("true")) {

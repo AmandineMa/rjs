@@ -6,8 +6,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import arch.ROSAgArch;
-
+import arch.agarch.AbstractROSAgArch;
 //import java.util.logging.Logger;
 import jason.asSemantics.DefaultInternalAction;
 import jason.asSemantics.TransitionSystem;
@@ -35,11 +34,11 @@ public class word_class extends DefaultInternalAction {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put("action", action);
 		parameters.put("param", param);
-		OntologeniusServiceResponse onto_class_resp = ROSAgArch.getM_rosnode().callSyncService("get_class_info", parameters);
+		OntologeniusServiceResponse onto_class_resp = AbstractROSAgArch.getRosnode().callSyncService("get_class_info", parameters);
 		
 		boolean result = false;
 		if(onto_class_resp != null) {
-			OntologeniusServiceResponse places = ROSAgArch.getM_rosnode().newServiceResponseFromType(OntologeniusService._TYPE);
+			OntologeniusServiceResponse places = AbstractROSAgArch.getRosnode().newServiceResponseFromType(OntologeniusService._TYPE);
 			if(((OntologeniusServiceResponse) onto_class_resp).getValues().isEmpty()) {
 				places.setCode((short) Code.ERROR.getCode());
 			}else {

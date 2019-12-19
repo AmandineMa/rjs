@@ -6,14 +6,14 @@ import java.util.Map;
 import org.ros.exception.RemoteException;
 import org.ros.node.service.ServiceResponseListener;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 import std_srvs.SetBoolResponse;
 
 public class EnableAnimatedSpeech extends AbstractAction {
 
-	public EnableAnimatedSpeech(ActionExec actionExec, ROSAgArch rosAgArch) {
+	public EnableAnimatedSpeech(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 		setSync(true);
 	}

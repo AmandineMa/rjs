@@ -6,7 +6,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 
-import arch.ROSAgArch;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.DefaultInternalAction;
 import jason.asSemantics.TransitionSystem;
 import jason.asSemantics.Unifier;
@@ -33,21 +33,21 @@ public class get_param extends DefaultInternalAction {
 	    	if(class_name.equals("List"))
 	    		prefix = "java.util.";
 			Class<?> c = Class.forName(prefix+class_name);
-			Method m = ROSAgArch.getM_rosnode().getParameters().getClass().getMethod("get"+class_name, String.class);
+			Method m = AbstractROSAgArch.getRosnode().getParameters().getClass().getMethod("get"+class_name, String.class);
 			if(c.equals(Boolean.class)){
-				Boolean p = (Boolean) m.invoke(ROSAgArch.getM_rosnode().getParameters(), args[0].toString().replaceAll("^\"|\"$", ""));
+				Boolean p = (Boolean) m.invoke(AbstractROSAgArch.getRosnode().getParameters(), args[0].toString().replaceAll("^\"|\"$", ""));
 				return un.unifies(args[2], new Atom(Literal.parseLiteral(p.toString())));
 			}else if(c.equals(Double.class)) {
-				Double p = (Double) m.invoke(ROSAgArch.getM_rosnode().getParameters(), args[0].toString().replaceAll("^\"|\"$", ""));
+				Double p = (Double) m.invoke(AbstractROSAgArch.getRosnode().getParameters(), args[0].toString().replaceAll("^\"|\"$", ""));
 				return un.unifies(args[2], new NumberTermImpl(p));
 			}else if(c.equals(Integer.class)) {
-				Integer p = (Integer) m.invoke(ROSAgArch.getM_rosnode().getParameters(), args[0].toString().replaceAll("^\"|\"$", ""));
+				Integer p = (Integer) m.invoke(AbstractROSAgArch.getRosnode().getParameters(), args[0].toString().replaceAll("^\"|\"$", ""));
 				return un.unifies(args[2], new NumberTermImpl(p));
 			}else if(c.equals(String.class)) {
-				String p = (String) m.invoke(ROSAgArch.getM_rosnode().getParameters(), args[0].toString().replaceAll("^\"|\"$", ""));
+				String p = (String) m.invoke(AbstractROSAgArch.getRosnode().getParameters(), args[0].toString().replaceAll("^\"|\"$", ""));
 				return un.unifies(args[2], new StringTermImpl(p));
 			}else if(c.equals(List.class)) {
-				List<?> p = (List<?>) m.invoke(ROSAgArch.getM_rosnode().getParameters(), args[0].toString().replaceAll("^\"|\"$", ""));
+				List<?> p = (List<?>) m.invoke(AbstractROSAgArch.getRosnode().getParameters(), args[0].toString().replaceAll("^\"|\"$", ""));
 				ListTermImpl list = new ListTermImpl();
 				for(int i=0; i < p.size(); i++) {
 					Double d = null;

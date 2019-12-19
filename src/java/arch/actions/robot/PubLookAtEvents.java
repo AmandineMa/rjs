@@ -2,15 +2,15 @@ package arch.actions.robot;
 
 import org.ros.node.topic.Publisher;
 
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.ActionExec;
 
 public class PubLookAtEvents extends AbstractAction {
 	
 	private Publisher<std_msgs.String> lookAtEventsPub; 
 
-	public PubLookAtEvents(ActionExec actionExec, ROSAgArch rosAgArch, Publisher<std_msgs.String> lookAtEventsPub) {
+	public PubLookAtEvents(ActionExec actionExec, AbstractROSAgArch rosAgArch, Publisher<std_msgs.String> lookAtEventsPub) {
 		super(actionExec, rosAgArch);
 		this.lookAtEventsPub = lookAtEventsPub;
 		setSync(true);

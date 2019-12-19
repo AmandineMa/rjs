@@ -5,8 +5,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import actionlib_msgs.GoalStatus;
-import arch.ROSAgArch;
 import arch.actions.AbstractAction;
+import arch.agarch.AbstractROSAgArch;
 import geometry_msgs.PoseStamped;
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Atom;
@@ -15,12 +15,13 @@ import jason.asSyntax.NumberTermImpl;
 import jason.asSyntax.Term;
 import move_base_msgs.MoveBaseActionResult;
 import msg_srv_impl.PoseCustom;
+import ros.RosNodeGuiding;
 import std_msgs.Header;
 import utils.Tools;
 
 public class MoveTo extends AbstractAction {
-
-	public MoveTo(ActionExec actionExec, ROSAgArch rosAgArch) {
+	
+	public MoveTo(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 		setSync(true);
 	}
@@ -43,10 +44,10 @@ public class MoveTo extends AbstractAction {
 		header.setFrameId(frame);
 		pose_stamped.setHeader(header);
 		pose_stamped.setPose(pose.getPose());
-		rosnode.callMoveToAS(pose_stamped);
+		((RosNodeGuiding) rosnode).callMoveToAS(pose_stamped);
 		MoveBaseActionResult move_to_result;
 		do {
-			move_to_result = rosnode.getMoveToResult();
+			move_to_result = ((RosNodeGuiding) rosnode).getMoveToResult();
 			Tools.sleep(200);
 		} while (move_to_result == null);
 		if (move_to_result.getStatus().getStatus() == GoalStatus.SUCCEEDED) {

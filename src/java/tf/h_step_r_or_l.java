@@ -11,7 +11,7 @@ import org.ros.rosjava.tf.TransformFactory;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava_geometry.Vector3;
 
-import arch.ROSAgArch;
+import arch.agarch.AbstractROSAgArch;
 import jason.asSemantics.DefaultInternalAction;
 import jason.asSemantics.TransitionSystem;
 import jason.asSemantics.Unifier;
@@ -33,7 +33,7 @@ public class h_step_r_or_l extends DefaultInternalAction {
 			while(values_it.hasNext()) {
 				point_values.add(((NumberTermImpl)values_it.next()).solve());
 			}
-	    	TransformTree tfTree = ((ROSAgArch) ts.getUserAgArch()).getTfTree();
+	    	TransformTree tfTree = ((AbstractROSAgArch) ts.getUserAgArch()).getTfTree();
 			Transform human_pose_now = tfTree.lookupMostRecent("map", human);
 			Transform robot_pose_now = tfTree.lookupMostRecent("map", "base_footprint");
 			if(human_pose_now != null && robot_pose_now != null) {

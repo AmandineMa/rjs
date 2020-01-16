@@ -1,0 +1,20 @@
+
+disambi:
+
+  ontologies:
+    robot: robot
+    
+  services:
+    disambiguate: 
+      name: /KSP/disambiguate
+      type: knowledge_sharing_planner_msgs/Disambiguation
+    verbalize:
+      name: /KSP/verbalize
+      type: knowledge_sharing_planner_msgs/Verbalization
+  
+  topics:
+    clicked_object: /clicked_object
+    set_transparent: /set_transparent
+    set_opaque: /set_opaque
+    say: /say
+   

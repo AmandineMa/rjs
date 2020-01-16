@@ -3,6 +3,7 @@ package ros;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +32,8 @@ import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
 
+import com.github.rosjava_actionlib.GoalIDGenerator;
+
 import geometry_msgs.Point;
 import geometry_msgs.PointStamped;
 import jason.asSemantics.ActionExec;
@@ -49,7 +52,8 @@ import utils.Tools;
  */
 public abstract class RosNode extends AbstractNodeMain {
 	private Logger logger = Logger.getLogger(RosNode.class.getName());
-
+	
+	protected GoalIDGenerator goalIDGenerator;
 	protected ConnectedNode connectedNode;
 	protected NodeConfiguration nodeConfiguration;
 	protected MessageFactory messageFactory;
@@ -69,7 +73,20 @@ public abstract class RosNode extends AbstractNodeMain {
 		this.connectedNode = connectedNode;
 	}
 	
-	public void init() {}
+	public void init() {
+		goalIDGenerator = new GoalIDGenerator(getConnectedNode());
+		tfl = new TransformListener(connectedNode);
+		parameters = connectedNode.getParameterTree();
+		URI uri = null;
+		try {
+			uri = new URI(System.getenv("ROS_MASTER_URI"));
+		} catch (URISyntaxException e) {
+			logger.info("Wrong URI syntax :" + e.getMessage());
+		}
+		msc = new MasterStateClient(connectedNode, uri);
+		serviceClients = new HashMap<String, ServiceClient<Message, Message>>();
+		servicesMap = null;
+	}
 
 	public <T> void callAsyncService(String serviceName, ServiceResponseListener<T> srl, Map<String, Object> params) {
 		HashMap<String, String> mapInfoService = servicesMap.get(serviceName);

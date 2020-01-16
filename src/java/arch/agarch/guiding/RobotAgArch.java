@@ -71,6 +71,7 @@ public class RobotAgArch extends AgArchGuiding {
 	boolean wasComingCloser = false;
 	boolean wasStepping = false;
 	boolean wasMoving = false;
+	boolean wasWaiting = false;
 	boolean newStep = false;
 	boolean startAction = false;
 
@@ -135,7 +136,7 @@ public class RobotAgArch extends AgArchGuiding {
 		Literal onGoingTask = findBel("started");
 		if(!onGoingStep.isEmpty() && onGoingTask != null) {
 			if(firstTimeInTask) {
-//				display.insert_discontinuity("task", getRosTimeMilliSeconds());
+				display.insert_discontinuity("task", getRosTimeMilliSeconds());
 				firstTimeInTask = false;
 				startTimeOngoingStep = ((NumberTermImpl)((Literal) onGoingTask.getAnnots("add_time").get(0)).getTerm(0)).solve();
 			}
@@ -183,11 +184,35 @@ public class RobotAgArch extends AgArchGuiding {
 				actionsQoI.get(id).add(action_expectation);
 				list.add(action_expectation);
 			} else {
+				
+				Literal come_front = findBel("wait_human");
+				if(come_front != null) {
+					onGoingAction = "wait_human";
+
+					// action efficiency
+					Literal said = findBel("said(come,_)");
+					double c = 0;
+					if(said != null) {
+						c = ((NumberTermImpl) said.getTerm(1)).solve();
+					}
+					action_efficiency = literal("action_efficiency","come_front",QoI.logaFormula(c, 2, 2) * (-1));
+					actionsQoI.get(id).add(action_efficiency);
+					list.add(action_efficiency);
+//					logger.info(action_efficiency.toString());
+					if(!wasWaiting)
+						startAction = true;
+					wasWaiting = true;
+				} else if(wasWaiting) {
+					display.insert_discontinuity("action", getRosTimeMilliSeconds());
+					wasWaiting = false;
+				}
+
 
 				// attentive ratio & action expectations & action efficiency
 				// come closer
-				Literal closer = findBel("adjust");
+				
 				if(humanAnswer == 0){
+					Literal closer = findBel("adjust");
 					if(closer != null) {
 						onGoingAction = "come_closer";
 						// attentive ratio
@@ -239,7 +264,7 @@ public class RobotAgArch extends AgArchGuiding {
 							startAction = true;
 						wasComingCloser = true;
 					} else if(wasComingCloser) {
-//						display.insert_discontinuity("action", getRosTimeMilliSeconds());
+						display.insert_discontinuity("action", getRosTimeMilliSeconds());
 						wasComingCloser = false;
 					}
 
@@ -292,7 +317,7 @@ public class RobotAgArch extends AgArchGuiding {
 						actionsQoI.get(id).add(action_efficiency);
 						list.add(action_efficiency);
 					}  else if(wasStepping) {
-//						display.insert_discontinuity("action", getRosTimeMilliSeconds());
+						display.insert_discontinuity("action", getRosTimeMilliSeconds());
 						wasStepping = false;
 					}
 					
@@ -344,7 +369,7 @@ public class RobotAgArch extends AgArchGuiding {
 						}
 						
 					} else if(wasMoving) {
-//						display.insert_discontinuity("action", getRosTimeMilliSeconds());
+						display.insert_discontinuity("action", getRosTimeMilliSeconds());
 						wasMoving = false;
 					}
 				}
@@ -380,19 +405,19 @@ public class RobotAgArch extends AgArchGuiding {
 				
 			Literal lt = findBel(Literal.parseLiteral("qoi(_,_)"), this.tasksQoI.get(id));
 //			logger.info(lt.toString());
-//			display.update(null,lt, la );
+			display.update(null,lt, la );
 			if(newStep) {
 				newStep = false;
-//				display.add_label(onGoingStep, lt);
+				display.add_label(onGoingStep, lt);
 			}
 			if(humanAnswer != 0) {
 				humanAnswer = 0;
-//				display.insert_discontinuity("action", getRosTimeMilliSeconds());
+				display.insert_discontinuity("action", getRosTimeMilliSeconds());
 			}
 			if(startAction && la != null) {
 				startAction = false;
 //				logger.info("start action to false");
-//				display.add_label(onGoingAction, la);
+				display.add_label(onGoingAction, la);
 			}
 //			logger.info(tasksQoI.get(id).toString());
 //			logger.info(this.actionsQoI.get(id).toString());
@@ -451,7 +476,7 @@ public class RobotAgArch extends AgArchGuiding {
 	
 	public void set_on_going_step(String step) {
 		onGoingStep = step;
-//		display.setOngoingStep(step);
+		display.setOngoingStep(step);
 //		logger.info("------------------------------------------"+step+"-----------------------------");
 //		logger.info("step "+this.step+" over "+steps);
 		newStep = true;
@@ -464,7 +489,7 @@ public class RobotAgArch extends AgArchGuiding {
 	}
 	
 	public void reinit_qoi_variables() {
-//		display.insert_discontinuity("task", getRosTimeMilliSeconds());
+		display.insert_discontinuity("task", getRosTimeMilliSeconds());
 		currentTaskActQoI.clear();
 		firstTimeInTask = true;
 		onGoingStep = "";
@@ -494,7 +519,7 @@ public class RobotAgArch extends AgArchGuiding {
 		startTimeOngoingAction = -1;
 		startActionLock.writeLock().unlock();
 //		logger.info("insert discontinuity");
-//		display.insert_discontinuity("action", getRosTimeMilliSeconds());
+		display.insert_discontinuity("action", getRosTimeMilliSeconds());
 	}
 	
 	public BeliefBase getTaskBB(String id) {

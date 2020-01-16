@@ -8,7 +8,7 @@ import com.google.common.collect.Multimap;
 
 import agent.TimeBB;
 import arch.actions.Action;
-import arch.actions.ActionFactory;
+import arch.actions.ActionFactoryGuiding;
 import arch.agarch.AbstractROSAgArch;
 import jason.RevisionFailedException;
 import jason.asSemantics.ActionExec;
@@ -19,6 +19,7 @@ import jason.asSyntax.Literal;
 import ros.RosNodeGuiding;
 import utils.SimpleFact;
 import utils.Tools;
+import utils.XYLineChart_AWT;
 
 public class AgArchGuiding extends AbstractROSAgArch {
 
@@ -32,9 +33,8 @@ public class AgArchGuiding extends AbstractROSAgArch {
 		    }
 	}
 	
-//	static protected RosNodeGuiding rosnode;
 	
-//	static protected XYLineChart_AWT display = new XYLineChart_AWT("QoI", "QoI data");
+	static protected XYLineChart_AWT display = new XYLineChart_AWT("QoI", "QoI data");
 
 	protected Logger logger = Logger.getLogger(AgArchGuiding.class.getName());
 	protected int percept_id = -1;
@@ -83,7 +83,7 @@ public class AgArchGuiding extends AbstractROSAgArch {
 		@Override
 		public void run() {
 			if(actionFactory == null && rosnode != null)
-				actionFactory = new ActionFactory(AgArchGuiding.this);
+				actionFactory = new ActionFactoryGuiding(AgArchGuiding.this);
 			String action_name = action.getActionTerm().getFunctor();
 			Message msg = new Message("tell", getAgName(), "supervisor", "action_started(" + action_name + ")");
 			String tmp_task_id = "";
@@ -95,7 +95,7 @@ public class AgArchGuiding extends AbstractROSAgArch {
 			} catch (Exception e) {
 				Tools.getStackTrace(e);
 			}
-			Action actionExecutable = ActionFactory.createAction(action, rosAgArch);
+			Action actionExecutable = ActionFactoryGuiding.createAction(action, rosAgArch);
 			if(action != null) {
 				actionExecutable.execute();
 				if(actionExecutable.isSync())
@@ -137,10 +137,5 @@ public class AgArchGuiding extends AbstractROSAgArch {
 		return taskID;
 	}
 
-
-//	public static RosNodeGuiding getRosnodeGuiding() {
-//		return rosnode;
-//	}
-	
 	
 }

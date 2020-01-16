@@ -20,6 +20,9 @@ import utils.Tools;
 
 public class TextToSpeech extends AbstractAction {
 	
+	String bel_functor;
+	String bel_arg;
+	
 	public TextToSpeech(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		super(actionExec, rosAgArch);
 		setSync(true);
@@ -28,8 +31,8 @@ public class TextToSpeech extends AbstractAction {
 	@Override
 	public void execute() {
 		Literal bel = (Literal) actionExec.getActionTerm().getTerm(0);
-		String bel_functor = bel.getFunctor();
-		String bel_arg = null;
+		bel_functor = bel.getFunctor();
+		bel_arg = null;
 		if (bel.getTerms().size() == 1)
 			bel_arg = bel.getTerms().get(0).toString();
 		boolean dialogueHWU = rosnode.getParameters().getBoolean("guiding/dialogue/hwu");
@@ -39,9 +42,9 @@ public class TextToSpeech extends AbstractAction {
 			else 
 				bel_arg = removeQuotes(bel_arg).replaceAll("\\[", "").replaceAll("\\]", "");
 		}
-		String text = getText(bel_functor, bel_arg);
+		String text = getText();
 		if(dialogueHWU) {
-			textToSpeechHWU(bel_functor, bel_arg, (text.contains("?") ? true : false));
+			textToSpeechHWU(text.contains("?") ? true : false);
 		} else {
 			if(!text.equals("succeeded") )
 				textToSpeechHomeMade(text);
@@ -50,7 +53,7 @@ public class TextToSpeech extends AbstractAction {
 		}
 	}
 	
-	private void textToSpeechHWU(String bel_functor, String bel_arg, boolean isQuestion) {
+	private void textToSpeechHWU(boolean isQuestion) {
 		boolean result = true;
 		if(!bel_functor.equals("where_are_u") && !bel_functor.equals("cannot_find") && !bel_functor.equals("going_to_move")
 				&& !bel_functor.contains("step") && !bel_functor.contains("closer") && !bel_functor.contains("come")) {
@@ -166,7 +169,7 @@ public class TextToSpeech extends AbstractAction {
 	}
 	
 	
-	private String getText(String bel_functor, String bel_arg) {
+	private String getText() {
 		String text = "";
 		switch (bel_functor) {
 		case "hello":
@@ -249,7 +252,7 @@ public class TextToSpeech extends AbstractAction {
 			if(bel_arg.equals("left")) {
 				bel_functor = "step_more_left";
 			}else {
-				bel_functor = "step__more_right";
+				bel_functor = "step_more_right";
 			}
 			bel_arg = null;
 			break;

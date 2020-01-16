@@ -1,7 +1,5 @@
 package ros;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -14,8 +12,6 @@ import java.util.logging.Logger;
 import org.ros.exception.ParameterNotFoundException;
 import org.ros.exception.RemoteException;
 import org.ros.exception.RosRuntimeException;
-import org.ros.internal.message.Message;
-import org.ros.master.client.MasterStateClient;
 import org.ros.message.Duration;
 import org.ros.message.MessageListener;
 import org.ros.namespace.GraphName;
@@ -23,23 +19,19 @@ import org.ros.node.ConnectedNode;
 import org.ros.node.Node;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.parameter.ParameterTree;
-import org.ros.node.service.ServiceClient;
 import org.ros.node.service.ServiceResponseListener;
 import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.TransformTree;
-import org.ros.rosjava.tf.pubsub.TransformListener;
 
 import com.github.rosjava_actionlib.ActionServer;
 import com.github.rosjava_actionlib.ActionServerListener;
-import com.github.rosjava_actionlib.GoalIDGenerator;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
 import actionlib_msgs.GoalID;
 import actionlib_msgs.GoalStatus;
-import arch.agarch.AbstractROSAgArch;
 import dialogue_arbiter.DialogueArbiterActionGoal;
 import dialogue_arbiter.DialogueArbiterGoal;
 import dialogue_as.dialogue_actionActionFeedback;
@@ -89,7 +81,6 @@ import utils.Tools;
 public class RosNodeGuiding extends RosNode {
 	private Logger logger = Logger.getLogger(RosNodeGuiding.class.getName());
 
-	private GoalIDGenerator goalIDGenerator;
 	private ActionServer<taskActionGoal, taskActionFeedback, taskActionResult> guidingAS;
 	private taskActionGoal newGuidingGoal = null;
 	private Stack<taskActionGoal> stackGuidingGoals;
@@ -125,11 +116,6 @@ public class RosNodeGuiding extends RosNode {
 	public GraphName getDefaultNodeName() {
 		return GraphName.of("supervisor_clients");
 	}
-
-	@Override
-	public void onStart(final ConnectedNode connectedNode) {
-		this.connectedNode = connectedNode;
-	}
 	
 
 	@Override
@@ -153,18 +139,20 @@ public class RosNodeGuiding extends RosNode {
 	@SuppressWarnings("unchecked")
 	public void init() {
 		try {
-			goalIDGenerator = new GoalIDGenerator(getConnectedNode());
-			tfl = new TransformListener(connectedNode);
-			parameters = connectedNode.getParameterTree();
-			URI uri = null;
-			try {
-				uri = new URI(System.getenv("ROS_MASTER_URI"));
-			} catch (URISyntaxException e) {
-				logger.info("Wrong URI syntax :" + e.getMessage());
-			}
-			msc = new MasterStateClient(connectedNode, uri);
-			serviceClients = new HashMap<String, ServiceClient<Message, Message>>();
-			servicesMap = null;
+//			goalIDGenerator = new GoalIDGenerator(getConnectedNode());
+//			tfl = new TransformListener(connectedNode);
+//			parameters = connectedNode.getParameterTree();
+//			URI uri = null;
+//			try {
+//				uri = new URI(System.getenv("ROS_MASTER_URI"));
+//			} catch (URISyntaxException e) {
+//				logger.info("Wrong URI syntax :" + e.getMessage());
+//			}
+//			msc = new MasterStateClient(connectedNode, uri);
+//			serviceClients = new HashMap<String, ServiceClient<Message, Message>>();
+//			servicesMap = null;
+			super.init();
+			
 			if(parameters.has("/guiding/base_services"))
 				servicesMap = (HashMap<String, HashMap<String, String>>) parameters.getMap("/guiding/base_services");
 			

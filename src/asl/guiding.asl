@@ -197,6 +197,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 	}.
  
 @wh[max_attempts(3)]+!wait_human(ID) : true <- 
+	+wait_human;
 	human_to_monitor("");
 	?task(ID, guiding, Human, _);
 	?robot_pose(Rframe,Rposit, Rorient);
@@ -218,6 +219,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		+after_move_status(human_found)[ID];
 		.wait(look_at(look),4000);
 		look_at_events(human_perceived);
+		-wait_human;
 		!check_pos(ID, Human);
 	}else{
 		!log_failure(ID, wait_human, no_transform, tf.get_transform(map, HTF, Point,_));
@@ -317,6 +319,7 @@ landmark_to_see(Ld) :- (target_to_point(T) & T == Ld) | (dir_to_point(D) & D == 
 		look_at_events(stop_look_at);
 		+after_move_status(look_at_not_received)[ID];
 		!log_failure(ID, look_at, not_received, look_at(look));
+		-wait_human;
 		!check_pos(ID, Human);
 	}elif(.substring(max_attempts,Error)){
 		-look_at(look);

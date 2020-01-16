@@ -22,7 +22,7 @@ import org.ros.rosjava.tf.TransformTree;
 
 import com.github.rosjava_actionlib.GoalIDGenerator;
 
-import arch.actions.ActionFactory;
+import arch.actions.AbstractActionFactory;
 import jason.RevisionFailedException;
 import jason.architecture.MindInspectorAgArch;
 import jason.asSemantics.ActionExec;
@@ -45,7 +45,7 @@ public abstract class AbstractROSAgArch extends MindInspectorAgArch {
 	protected GoalIDGenerator goalIDGenerator;
 
 	MessageFactory messageFactory;
-	protected static ActionFactory actionFactory;
+	protected static AbstractActionFactory actionFactory;
 	
 	protected Logger logger = Logger.getLogger(AbstractROSAgArch.class.getName());
 	
@@ -147,7 +147,7 @@ public abstract class AbstractROSAgArch extends MindInspectorAgArch {
 		actionExecuted(action);
 	}
 	
-	protected Literal findBel(String s) {
+	public Literal findBel(String s) {
 		return getTS().getAg().findBel(Literal.parseLiteral(s), new Unifier());
 	}
 	

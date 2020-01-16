@@ -23,11 +23,6 @@ public class HumanToMonitor extends AbstractAction {
 		str.setData(param);
 		humanToMonitorPub.publish(str);
 		actionExec.setResult(true);
-	}
-
-	public void setHumanToMonitorPub(Publisher<std_msgs.String> humanToMonitorPub) {
-		this.humanToMonitorPub = humanToMonitorPub;
-	}
-	
+	}	
 
 }

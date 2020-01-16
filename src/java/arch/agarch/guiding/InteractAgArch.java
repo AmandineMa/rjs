@@ -71,7 +71,7 @@ public class InteractAgArch extends AgArchGuiding {
 	public void init() {
 //		attentive_ratio_test();
 		super.init();
-//		display.setVisible(true);
+		display.setVisible(true);
 
 		MessageListener<TerminateInteractionActionGoal> terminate_interac = new MessageListener<TerminateInteractionActionGoal>() {
 			public void onNewMessage(TerminateInteractionActionGoal msg) {
@@ -122,7 +122,7 @@ public class InteractAgArch extends AgArchGuiding {
 		
 		if(!contains("overBy(_)") && contains("inSession(_,_)")){
 			if(first) {
-//				display.insert_discontinuity("session", getRosTimeMilliSeconds());
+				display.insert_discontinuity("session", getRosTimeMilliSeconds());
 				first = false;
 			}
 			
@@ -162,7 +162,7 @@ public class InteractAgArch extends AgArchGuiding {
 			Literal qoi_chat_bot = null;
 			if(!contains("inTaskWith(_,_)")) {
 				if(startChat) {
-//					display.insert_discontinuity("task", getRosTimeMilliSeconds());
+					display.insert_discontinuity("task", getRosTimeMilliSeconds());
 					startChat = false;
 				}
 				double startTime = sessionStartTime;
@@ -214,7 +214,7 @@ public class InteractAgArch extends AgArchGuiding {
 			sessionsQoI.get(session_id).add(literal("qoi",session_id, QoI));
 			
 			Literal qoi_l = findBel(Literal.parseLiteral("qoi(_,_)"), this.sessionsQoI.get(session_id));
-//			display.update(qoi_l,qoi_chat_bot,null );
+			display.update(qoi_l,qoi_chat_bot,null );
 		} else {
 			first = true;
 		}

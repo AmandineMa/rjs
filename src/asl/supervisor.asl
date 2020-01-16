@@ -8,7 +8,7 @@
 //TODO check si les srv, action servers sont connectés
 //TODO si initServices fail, reprendre la suite du plan une fois qu'ils se sont connectes via retry
 +!start : true <-
-	.verbose(2);
+	.verbose(1);
 	configureNode;
 	startParameterLoaderNode("/guiding.yaml");
 	startROSNodeGuiding;

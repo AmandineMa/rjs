@@ -1,11 +1,5 @@
 package utils;
 
-import java.util.Iterator;
-
-import jason.asSemantics.TransitionSystem;
-import jason.asSemantics.Unifier;
-import jason.asSyntax.Literal;
-
 public class QoI {
 
 	

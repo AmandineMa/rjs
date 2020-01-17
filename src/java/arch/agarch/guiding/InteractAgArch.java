@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.logging.Logger;
 
 import org.ros.message.MessageListener;
@@ -18,7 +19,6 @@ import jason.asSemantics.Unifier;
 import jason.asSyntax.ArithExpr;
 import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
-import jason.bb.BeliefBase;
 import pepper_engage_human.TerminateInteractionActionGoal;
 import ros.RosNodeGuiding;
 import utils.QoI;
@@ -30,7 +30,7 @@ public class InteractAgArch extends AgArchGuiding {
 	static ArrayList<Double> attentive_times = new ArrayList<>();
 	protected Publisher<std_msgs.String> human_to_monitor;
 	protected Logger logger = Logger.getLogger(InteractAgArch.class.getName());
-	private HashMap<String, UpdateTimeBB> sessionsQoI = new HashMap<String, UpdateTimeBB>();
+	private HashMap<String, QoIDB> sessionsQoI = new HashMap<String, QoIDB>();
 	double nbChatBotQoI;
 	double chatBotQoIAverage;
 	boolean first = true;
@@ -136,13 +136,6 @@ public class InteractAgArch extends AgArchGuiding {
 				sessionDuration = QoI.logaFormula(getRosTimeSeconds() - sessionStartTime/1000.0, 150, 1.5);
 			}
 
-			it = get_beliefs_iterator("startTask(_,_)");
-			int c = 0;
-			while (it != null && it.hasNext()) {
-				c++;
-				it.next();
-			}
-			taskNumber = QoI.logaFormula(c, 1, 2);
 			
 			it = get_beliefs_iterator("task_achievement(_,_)");
 			double sum = 0;
@@ -156,14 +149,15 @@ public class InteractAgArch extends AgArchGuiding {
 			taskEfficiency = QoI.normaFormulaMinus1To1(taskEfficiencyAverage, 0, 1);
 			
 			if(sessionsQoI.get(session_id) == null)
-				sessionsQoI.put(session_id, new UpdateTimeBB());
+				sessionsQoI.put(session_id, new QoIDB());
 			
 			// chatbot task
 			Literal qoi_chat_bot = null;
 			if(!contains("inTaskWith(_,_)")) {
 				if(startChat) {
 					display.insert_discontinuity("task", getRosTimeMilliSeconds());
-					startChat = false;
+//					startChat = false;
+					display.setNoOngoingStep();
 				}
 				double startTime = sessionStartTime;
 				if(contains("endTask(_,_)")) {
@@ -183,6 +177,14 @@ public class InteractAgArch extends AgArchGuiding {
 
 			Literal l = findBel("qoi(_,_)[source(robot)]");
 			if(l != null) {
+				it = get_beliefs_iterator("startTask(_,_)");
+				int c = 0;
+				while (it != null && it.hasNext()) {
+					c++;
+					it.next();
+				}
+				taskNumber = QoI.logaFormula(c, 1, 2);
+				
 				double d;
 				if(l.getTerm(1).isArithExpr())
 					d = ((NumberTermImpl) ((ArithExpr) l.getTerm(1)).getLHS()).solve();
@@ -210,11 +212,17 @@ public class InteractAgArch extends AgArchGuiding {
 			QoI = sum/qoi_values.size();
 
 //			logger.info("QoI metrics :"+sessionDuration+","+taskNumber+","+taskEfficiency+","+taskLevQoI);
-			
-			sessionsQoI.get(session_id).add(literal("qoi",session_id, QoI));
-			
-			Literal qoi_l = findBel(Literal.parseLiteral("qoi(_,_)"), this.sessionsQoI.get(session_id));
+			sessionsQoI.get(session_id).add(literal("session_duration",session_id,sessionDuration));
+			sessionsQoI.get(session_id).add(literal("task_number", session_id, taskNumber));
+			sessionsQoI.get(session_id).add(literal("task_efficiency", session_id, taskEfficiency));
+			sessionsQoI.get(session_id).add(literal("task_QoI", session_id, taskLevQoI));
+			Literal qoi_l = literal("qoi",session_id, QoI);
+			sessionsQoI.get(session_id).add(qoi_l);			
 			display.update(qoi_l,qoi_chat_bot,null );
+			if(startChat && !contains("inTaskWith(_,_)")) {
+				startChat = false;
+				display.add_label("chat", qoi_chat_bot);
+			}
 		} else {
 			first = true;
 		}
@@ -317,7 +325,7 @@ public class InteractAgArch extends AgArchGuiding {
 		return time_attentive/(endTime-startTime);
 	}
 	
-	public BeliefBase getSessionBB(String id) {
+	public LinkedList<Literal> getSessionQoI(String id) {
 		return sessionsQoI.get(id);
 	}
 

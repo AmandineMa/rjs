@@ -2,6 +2,7 @@ package arch.agarch.guiding;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
@@ -19,7 +20,6 @@ import jason.asSemantics.Message;
 import jason.asSyntax.ListTermImpl;
 import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
-import jason.bb.BeliefBase;
 import utils.QoI;
 import utils.Tools;
 
@@ -50,8 +50,8 @@ public class RobotAgArch extends AgArchGuiding {
 	String onGoingAction = "";
 	String onGoingStep = "";
 	String speak;
-	HashMap<String, UpdateTimeBB> actionsQoI = new HashMap<String, UpdateTimeBB>();
-	HashMap<String, UpdateTimeBB> tasksQoI = new HashMap<String, UpdateTimeBB>();
+	HashMap<String, QoIDB> actionsQoI = new HashMap<String, QoIDB>();
+	HashMap<String, QoIDB> tasksQoI = new HashMap<String,  QoIDB>();
 	String taskId = "";
 	boolean inQuestion = false;
 	int humanAnswer = 0;
@@ -149,9 +149,9 @@ public class RobotAgArch extends AgArchGuiding {
 			String id = onGoingTask.getAnnots().get(0).toString();
 
 			if(actionsQoI.get(id) == null)
-				actionsQoI.put(id, new UpdateTimeBB());
+				actionsQoI.put(id, new QoIDB());
 			if(tasksQoI.get(id) == null)
-				tasksQoI.put(id, new UpdateTimeBB());
+				tasksQoI.put(id, new QoIDB());
 
 			// attentive ratio
 			// inform & questions
@@ -173,11 +173,11 @@ public class RobotAgArch extends AgArchGuiding {
 				if(humanAnswer == 0)
 					monitorTimeAnswering = Math.max(-Math.max(getRosTimeMilliSeconds() - startTimeOngoingAction - actionsThreshold.get(onGoingAction), 0)
 																/ (actionsThreshold.get(onGoingAction) * decreasingSpeed) + 1 , -1);	
-				else if(attentive_ratio == null)  {
-					attentive_ratio = findBel(Literal.parseLiteral("attentive_ratio("+onGoingAction+",_)"), this.actionsQoI.get(id));
-					actionsQoI.get(id).add(attentive_ratio);
-					list.add(attentive_ratio);
-				}
+//				else if(attentive_ratio == null)  {
+//					attentive_ratio = findBel(Literal.parseLiteral("attentive_ratio("+onGoingAction+",_)"), this.actionsQoI.get(id));
+//					actionsQoI.get(id).add(attentive_ratio);
+//					list.add(attentive_ratio);
+//				}
 					
 				action_expectation = literal("action_expectation", onGoingAction,monitorTimeAnswering);
 //				logger.info(action_expectation.toString());
@@ -382,9 +382,9 @@ public class RobotAgArch extends AgArchGuiding {
 			Literal la = null;
 			if(!list.isEmpty()) {
 				double QoI = sum/list.size();
-				this.actionsQoI.get(id).add(literal("qoi",onGoingAction, QoI));
+				la = literal("qoi",onGoingAction, QoI);
+				this.actionsQoI.get(id).add(la);
 				currentTaskActQoI.add(QoI);
-				la = findBel(Literal.parseLiteral("qoi(_,_)"), this.actionsQoI.get(id));
 			}
 			actionsQoIAverage = currentTaskActQoI.stream().mapToDouble(val -> val).average().orElse(0.0);
 			if(!currentTaskActQoI.isEmpty()) {
@@ -397,13 +397,13 @@ public class RobotAgArch extends AgArchGuiding {
 			
 			onTimeTaskExecution = Math.max(-Math.max(getRosTimeMilliSeconds() - startTimeOngoingStep - stepsThreshold.get(onGoingStep), 0)/(stepsThreshold.get(onGoingStep) * decreasingSpeed) + onTimeTaskExecutionPrev , -1);
 			
-			tasksQoI.get(id).add(literal("var_DtG",id,distToGoal));
+			tasksQoI.get(id).add(literal("taskDtG",id,distToGoal));
 			tasksQoI.get(id).add(literal("taskExecutionEvolution",id,onTimeTaskExecution));
 //			logger.info("dist to goal :"+distToGoal);
 //			logger.info("taskExecutionEvolution :"+onTimeTaskExecution);
-			tasksQoI.get(id).add(literal("qoi",id,(actionsQoIAverage+distToGoal+onTimeTaskExecution)/3.0));
+			Literal lt = literal("qoi",id,(actionsQoIAverage+distToGoal+onTimeTaskExecution)/3.0);
+			tasksQoI.get(id).add(lt);
 				
-			Literal lt = findBel(Literal.parseLiteral("qoi(_,_)"), this.tasksQoI.get(id));
 //			logger.info(lt.toString());
 			display.update(null,lt, la );
 			if(newStep) {
@@ -522,11 +522,11 @@ public class RobotAgArch extends AgArchGuiding {
 		display.insert_discontinuity("action", getRosTimeMilliSeconds());
 	}
 	
-	public BeliefBase getTaskBB(String id) {
+	public LinkedList<Literal> getTaskQoI(String id) {
 		return tasksQoI.get(id);
 	}
 	
-	public BeliefBase getActionBB(String id) {
+	public LinkedList<Literal> getActionQoI(String id) {
 		return actionsQoI.get(id);
 	}
 	

@@ -3,19 +3,17 @@ package utils;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.EventQueue;
-import java.awt.FlowLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-
-import javax.swing.JPanel;
-import javax.swing.Timer;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
+import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.annotations.XYPointerAnnotation;
-import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.Marker;
 import org.jfree.chart.plot.PlotOrientation;
@@ -45,15 +43,18 @@ public class XYLineChart_AWT extends ApplicationFrame {
 	final XYSeries session = new XYSeries( "Session QoI");  
 	final XYSeries task = new XYSeries( "task QoI", false);  
 	final XYSeries action = new XYSeries( "action QoI" );
+	JFreeChart xylineChart;
 	final Marker start;
 	double MIN_X = 0;
 	final XYPlot plot;
+	boolean hasMarker = false;
+	boolean first = true;
 
 	public NumberAxis xAxis = new NumberAxis();
 
 	public XYLineChart_AWT( String applicationTitle, String chartTitle ) {
 		super(applicationTitle);
-		JFreeChart xylineChart = ChartFactory.createXYLineChart(
+		xylineChart = ChartFactory.createXYLineChart(
 				chartTitle ,
 				"Category" ,
 				"Score" ,
@@ -131,7 +132,17 @@ public class XYLineChart_AWT extends ApplicationFrame {
 	}
 	
 	public void setOngoingStep(String step) {
-		start.setLabel(step);
+		if(!hasMarker) {
+			plot.addRangeMarker(start);
+			hasMarker = true;
+		}
+		start.setLabel("guiding task ongoing step: "+step);
+		
+	}
+	
+	public void setNoOngoingStep() {
+		hasMarker = false;
+		plot.removeRangeMarker(start);
 	}
 	
 	public void insert_discontinuity(String type, double time) {
@@ -155,8 +166,35 @@ public class XYLineChart_AWT extends ApplicationFrame {
 	public void add_label(String text, Literal point) {
 		double x = ((NumberTermImpl) point.getAnnot("add_time").getTerm(0)).solve();
 		double y = ((NumberTermImpl) point.getTerm(1)).solve();
-		XYPointerAnnotation textAnnotaion = new XYPointerAnnotation(text, x, y, 3.0 * Math.PI / 4.0);
+		XYPointerAnnotation textAnnotaion;
+		if(first) {
+			textAnnotaion = new XYPointerAnnotation(text, x, y, Math.PI / 4.0);
+			first = false;
+		} else
+			textAnnotaion = new XYPointerAnnotation(text, x, y, 3 * Math.PI / 4.0);
         plot.addAnnotation(textAnnotaion);
+	}
+	
+	public void saveChart() {
+//		setNoOngoingStep();
+		try {
+			int counter = 1;
+
+	    	File  f = new File("log/charts");
+	    	if(!f.exists()){
+	    		f.mkdirs();
+	    	}
+	    	String file_name = "chart";
+	    	Path path = Paths.get("log/charts/chart");
+	    	while(Files.exists(path)){
+	    		file_name = "chart_"+counter;
+	    	    path = Paths.get("log/charts/"+file_name);
+	    	    counter++;
+	    	}
+			ChartUtilities.saveChartAsPNG(new File(path.toString()), xylineChart, 1700, 450 );
+		} catch (IOException e) {
+			System.out.print(Tools.getStackTrace(e));
+		}
 	}
 
 }

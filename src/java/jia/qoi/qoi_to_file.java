@@ -5,10 +5,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.List;
+import java.util.LinkedList;
 
 import arch.agarch.guiding.InteractAgArch;
 import arch.agarch.guiding.RobotAgArch;
@@ -18,7 +17,6 @@ import jason.asSemantics.Unifier;
 import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
 import jason.asSyntax.Term;
-import jason.bb.BeliefBase;
 
 public class qoi_to_file  extends DefaultInternalAction {
 
@@ -41,7 +39,7 @@ public class qoi_to_file  extends DefaultInternalAction {
 		String type = args[0].toString();	
     	String name = args[1].toString().replaceAll("^\"|\"$", "");
     	String id = args[2].toString();
-    	List<String> s_list = new ArrayList<String>();
+    	LinkedList<String> s_list = new LinkedList<String>();
     	
     	int counter = 1;
 
@@ -58,27 +56,22 @@ public class qoi_to_file  extends DefaultInternalAction {
     	}
     	
     	if(type.equals("task")) {
-    		BeliefBase bb= ((RobotAgArch) ts.getUserAgArch()).getTaskBB(id);
-	    	Iterator<Literal> taskBB = bb.getCandidateBeliefs(Literal.parseLiteral("qoi(_,_)"), new Unifier());
-	    	while(taskBB.hasNext()) {
-	    		s_list.add(taskBB.next().toString());
+    		Iterator<Literal> iteTask = ((RobotAgArch) ts.getUserAgArch()).getTaskQoI(id).iterator();
+	    	while(iteTask.hasNext()) {
+	    		s_list.add(iteTask.next().toString());
 	    	}
-	    	
-	    	Iterator<Literal> actionBB = ((RobotAgArch) ts.getUserAgArch()).getActionBB(id).getCandidateBeliefs(Literal.parseLiteral("qoi(_,_)"), new Unifier());
-	    	while(actionBB.hasNext()) {
-	    		s_list.add(actionBB.next().toString());
+	    	s_list.add("----------------------ACTIONS----------------------");
+	    	Iterator<Literal> iteAction = ((RobotAgArch) ts.getUserAgArch()).getActionQoI(id).iterator();
+	    	while(iteAction.hasNext()) {
+	    		s_list.add(iteAction.next().toString());
 	    	}
     	} else if(type.equals("session")) {
-    		Iterator<Literal> sessionBB = ((InteractAgArch) ts.getUserAgArch()).getSessionBB(id).getCandidateBeliefs(Literal.parseLiteral("qoi(_,_)"), new Unifier());
-        	while(sessionBB.hasNext()) {
-        		s_list.add(sessionBB.next().toString());
+    		((InteractAgArch) ts.getUserAgArch()).saveChart();
+    		Iterator<Literal> iteSession = ((InteractAgArch) ts.getUserAgArch()).getSessionQoI(id).iterator();
+        	while(iteSession.hasNext()) {
+        		Literal l = iteSession.next();
+        		s_list.add(l.toString());
         	}
-        	
-        	Iterator<Literal> chatBB = ((InteractAgArch) ts.getUserAgArch()).getSessionBB(id).getCandidateBeliefs(Literal.parseLiteral("qoi_task(_,_)"), new Unifier());
-        	while(chatBB.hasNext()) {
-        		s_list.add(chatBB.next().toString());
-        	}
-
     	}
     	Files.write(path, s_list, StandardCharsets.UTF_8);
     	return true;

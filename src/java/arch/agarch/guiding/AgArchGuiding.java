@@ -2,6 +2,7 @@ package arch.agarch.guiding;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.logging.Logger;
 
 import com.google.common.collect.Multimap;
@@ -16,6 +17,8 @@ import jason.asSemantics.Message;
 import jason.asSemantics.Unifier;
 import jason.asSyntax.Atom;
 import jason.asSyntax.Literal;
+import jason.asSyntax.NumberTermImpl;
+import jason.asSyntax.Structure;
 import ros.RosNodeGuiding;
 import utils.SimpleFact;
 import utils.Tools;
@@ -31,6 +34,18 @@ public class AgArchGuiding extends AbstractROSAgArch {
 				}
 				return super.add(l);
 		    }
+	}
+	
+	protected class QoIDB extends LinkedList<Literal> {
+
+		@Override
+		public boolean add(Literal e) {
+			Structure time = new Structure("add_time");
+			Double t = getConnectedNode().getCurrentTime().toSeconds() * 1000;
+			time.addTerm(new NumberTermImpl(t.longValue()));
+			e.addAnnot(time);
+			return super.add(e);
+		}
 	}
 	
 	
@@ -135,6 +150,10 @@ public class AgArchGuiding extends AbstractROSAgArch {
 	
 	public String getTaskID() {
 		return taskID;
+	}
+	
+	public void saveChart() {
+		display.saveChart();
 	}
 
 	

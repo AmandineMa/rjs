@@ -34,7 +34,7 @@
 	!test(a);
 	!test3;
 	!test3;
-	jia.reset_att_counter(test3);
+	rjs.jia.reset_att_counter(test3);
 	!test3;
 	!test(a).
 	

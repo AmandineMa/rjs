@@ -17,13 +17,13 @@
     <property name="debug" value="<DEBUG>"/> <!-- use "-debug" to run in debug mode -->
     <property name="build.dir" value="${basedir}/bin/classes" />
 
-    <property name="supervisorJar" value="${env.SUPERVISOR_HOME}/supervisor.jar"/>
+    <property name="rjsJar" value="${env.RJS_HOME}/rjs.jar"/>
     <property name="jasonJar" value="${env.JASON_JAR}"/>
 
     <path id="project.classpath">
         <pathelement location="${basedir}"/>
         <pathelement location="${build.dir}"/>
-        <pathelement location="${supervisorJar}"/>
+        <pathelement location="${rjsJar}"/>
         <pathelement location="${jasonJar}"/>
         <PATH-LIB>
 
@@ -53,7 +53,7 @@
     <target name="jar" depends="compile">
         <mkdir dir="${basedir}/libs" />
         <delete file="${ant.project.name}.jar" />
-        <copy file="${supervisorJar}" tofile="${ant.project.name}.jar" />
+        <copy file="${rjsJar}" tofile="${ant.project.name}.jar" />
         <copy file="${jasonJar}" tofile="${ant.project.name}.jar" />
         <copy file="${mas2j.project.file}" tofile="default.mas2j" />
 
@@ -70,7 +70,7 @@
                 <include name="**/*.class" />
             </fileset>
             <zipgroupfileset dir="${basedir}/libs" includes="**/*.jar" />
-            <zipgroupfileset dir="${env.SUPERVISOR_HOME}/libs" includes="*.jar" />
+            <zipgroupfileset dir="${env.RJS_HOME}/libs" includes="*.jar" />
             <zipgroupfileset dir="${env.JASON_HOME}/libs" includes="*.jar" />
             <manifest>
                   <attribute name="Main-Class" value="jason.infra.centralised.RunCentralisedMAS"/>

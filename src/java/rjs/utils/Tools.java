@@ -6,8 +6,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import jason.asSyntax.ListTerm;
 import jason.asSyntax.ListTermImpl;
 import jason.asSyntax.NumberTermImpl;
+import jason.asSyntax.StringTermImpl;
 import jason.asSyntax.Term;
 
 public class Tools {
@@ -23,7 +25,7 @@ public class Tools {
 		return ((B.getX()- A.getX())*(C.getY()- A.getY())-(B.getY() - A.getY())*(C.getX()-A.getX()))>0;
 	}
 
-	public static String array_2_str_array(List<String> array) {
+	public static String arrayToStringArray(List<String> array) {
 		String str_array = new String();
 		for(String str : array) {
 			if(str_array.isEmpty()) {
@@ -36,7 +38,7 @@ public class Tools {
 		return str_array;
 	}
 
-	public static String array_2_str_array(int[] array) {
+	public static String arrayToStringArray(int[] array) {
 		String str_array = new String();
 		for(int i : array) {
 			if(str_array.isEmpty()) {
@@ -47,6 +49,14 @@ public class Tools {
 		}
 		str_array = "["+str_array+"]";
 		return str_array;
+	}
+	
+	public static ListTerm arrayToListTerm(List<String> array) {
+		ListTerm list = new ListTermImpl();
+		for(String str : array) {
+			list.add(new StringTermImpl(str));
+		}
+		return list;
 	}
 	
 	public static ArrayList<Double> listTermNumbers_to_list(ListTermImpl lti){

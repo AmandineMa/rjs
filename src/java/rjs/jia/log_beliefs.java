@@ -21,7 +21,7 @@ public class log_beliefs extends DefaultInternalAction {
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
     	
-    	logger.info("Setting Agent for Beliefs");
+    	logger.info("Setting "+ts.getUserAgArch().getAgName()+" for Beliefs");
     	if(MASConsoleGUI.hasConsole())
     		MASConsoleGUI.get().setBeliefAgent(ts.getAg());
     	return true;

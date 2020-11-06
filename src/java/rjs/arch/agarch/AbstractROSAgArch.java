@@ -1,6 +1,7 @@
 package rjs.arch.agarch;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -20,8 +21,6 @@ import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
 import org.ros.rosjava.tf.TransformTree;
 
-import com.github.rosjava_actionlib.GoalIDGenerator;
-
 import jason.RevisionFailedException;
 import jason.architecture.MindInspectorAgArch;
 import jason.asSemantics.ActionExec;
@@ -30,6 +29,7 @@ import jason.asSemantics.Unifier;
 import jason.asSyntax.Atom;
 import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
+import jason.asSyntax.StringTermImpl;
 import jason.bb.BeliefBase;
 import rjs.arch.actions.AbstractActionFactory;
 import rjs.arch.actions.Action;
@@ -44,9 +44,8 @@ public abstract class AbstractROSAgArch extends MindInspectorAgArch {
 	NodeConfiguration nodeConfiguration;
 	protected NodeMainExecutor nodeMainExecutor = DefaultNodeMainExecutor.newDefault();
 	protected ParameterLoaderNode parameterLoaderNode;
-	protected GoalIDGenerator goalIDGenerator;
 
-	MessageFactory messageFactory;
+	private MessageFactory messageFactory;
 	protected static AbstractActionFactory actionFactory;
 	
 	protected Logger logger = Logger.getLogger(AbstractROSAgArch.class.getName());
@@ -61,7 +60,7 @@ public abstract class AbstractROSAgArch extends MindInspectorAgArch {
 		//Executors.newFixedThreadPool(4, threadFactory);
 		
 		nodeConfiguration = NodeConfiguration.newPrivate();
-		messageFactory = nodeConfiguration.getTopicMessageFactory();
+		setMessageFactory(nodeConfiguration.getTopicMessageFactory());
 		
 	}
 	
@@ -94,7 +93,7 @@ public abstract class AbstractROSAgArch extends MindInspectorAgArch {
 				Tools.getStackTrace(e);
 			}
 			Action actionExecutable = actionFactory.createAction(action, AbstractROSAgArch.this);
-			if(action != null) {
+			if(actionExecutable != null) {
 				actionExecutable.execute();
 				if(actionExecutable.isSync())
 					actionExecuted(action);
@@ -243,6 +242,27 @@ public abstract class AbstractROSAgArch extends MindInspectorAgArch {
 		}
 	}
 	
+	public void addBelief(String functor, List<Object> terms) {
+		try {
+			String bel = functor + "(";
+			Iterator<Object> it = terms.iterator();
+			Object term = it.next();
+			if(term instanceof String)
+				term = new StringTermImpl((String)term);
+			bel = bel + term;
+			while(it.hasNext()) {
+				term = it.next();
+				if(term instanceof String && !((String)term).startsWith("["))
+					term = new StringTermImpl((String)term);
+				bel = bel + "," + term;
+			}
+			bel = bel + ")";
+			getTS().getAg().addBel(Literal.parseLiteral(bel));
+		} catch (RevisionFailedException e) {
+			logger.info(Tools.getStackTrace(e));
+		}
+	}
+	
 	public void removeBelief(String bel) {
 		try {
 			
@@ -253,7 +273,7 @@ public abstract class AbstractROSAgArch extends MindInspectorAgArch {
 	}
 	
 	public <T> T createMessage(String type) {
-		return messageFactory.newFromType(type);
+		return getMessageFactory().newFromType(type);
 	}
 
 	public void setNodeConfiguration(NodeConfiguration nodeConfiguration) {
@@ -280,18 +300,20 @@ public abstract class AbstractROSAgArch extends MindInspectorAgArch {
 		return nodeMainExecutor;
 	}
 	
-	public GoalIDGenerator getGoalIDGenerator() {
-		return goalIDGenerator;
+	public MessageFactory getMessageFactory() {
+		return messageFactory;
 	}
 
-
-	public void setGoalIDGenerator(GoalIDGenerator goalIDGenerator) {
-		this.goalIDGenerator = goalIDGenerator;
+	public void setMessageFactory(MessageFactory messageFactory) {
+		this.messageFactory = messageFactory;
 	}
-
 
 	public void setNodeMainExecutor(NodeMainExecutor nodeMainExecutor) {
 		this.nodeMainExecutor = nodeMainExecutor;
+	}
+	
+	public double getCurrentTime() {
+		return getConnectedNode().getCurrentTime().toSeconds() * 1000;
 	}
 
 	

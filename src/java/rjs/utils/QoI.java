@@ -4,8 +4,12 @@ public class QoI {
 
 	
 	
-	public static double logaFormula(double value, double threshold, double parameter) {
+	public static double logaFormula0To1(double value, double threshold, double parameter) {
 		return 1 - Math.exp(-Math.log(2) * Math.pow((value / threshold), parameter));
+	}
+	
+	public static double logaFormulaMinus1To1(double value, double threshold, double parameter) {
+		return 1 - 2 * Math.exp(-Math.log(2) * Math.pow((value / threshold), parameter));
 	}
 	
 	public static double normaFormulaMinus1To1(double value, double min, double max) {

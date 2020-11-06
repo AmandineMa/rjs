@@ -115,7 +115,6 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 
 			@Override
 			public void onSuccess(T response) {
-//				logger.info("message return: " + response.toString());
 				future.complete(response);
 			}
 		};
@@ -221,9 +220,10 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 
 	public HashMap<String, Boolean> initServiceClients() {
 		HashMap<String, Boolean> services_status = new HashMap<String, Boolean>();
-
-		for (Entry<String, HashMap<String, String>> entry : servicesMap.entrySet()) {
-			services_status.put(entry.getKey(), createServiceClient(entry.getKey()));
+		if(servicesMap != null) {
+			for (Entry<String, HashMap<String, String>> entry : servicesMap.entrySet()) {
+				services_status.put(entry.getKey(), createServiceClient(entry.getKey()));
+			}
 		}
 		return services_status;
 	}
@@ -265,7 +265,7 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		return connectedNode.getServiceResponseMessageFactory().newFromType(type);
 	}
 
-	public PointStamped build_point_stamped(String frame) {
+	public PointStamped buildPointStamped(String frame) {
 		PointStamped point = connectedNode.getTopicMessageFactory().newFromType(geometry_msgs.PointStamped._TYPE);
 		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
 		header.setFrameId(frame);
@@ -275,7 +275,7 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 
 	public PointStamped build_point_stamped(ActionExec action, String frame) {
 		MessageFactory messageFactory = connectedNode.getTopicMessageFactory();
-		PointStamped point_stamped = build_point_stamped(frame);
+		PointStamped point_stamped = buildPointStamped(frame);
 
 		if (action.getActionTerm().getArity() != 1) {
 			ListTermImpl point_term = ((ListTermImpl) action.getActionTerm().getTerm(1));

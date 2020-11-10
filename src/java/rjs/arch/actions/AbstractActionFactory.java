@@ -1,7 +1,5 @@
 package rjs.arch.actions;
 
-import java.util.logging.Level;
-
 import org.ros.internal.message.Message;
 import org.ros.node.topic.Publisher;
 
@@ -33,7 +31,7 @@ public abstract class AbstractActionFactory implements ActionFactory {
 		
 		ActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT> actionClientDialogue  
 			= new ActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT>(rosnode.getConnectedNode(), rosnode.getParameters().getString(topic), typeActionGoal,typeActionFeedback,typeActionResult);
-		actionClientDialogue.setLogLevel(Level.SEVERE);
+//		actionClientDialogue.setLogLevel(Level.SEVERE);
 		Tools.sleep(100);
 		return actionClientDialogue;
 	}

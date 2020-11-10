@@ -101,7 +101,7 @@ public class suspend_all extends DefaultInternalAction {
             i = e.getIntention();
             if (un.unifies(g, e.getTrigger()) || (i != null && i.hasTrigger(g, un))) {
                 C.removeEvent(e);
-                C.addPendingEvent(SUSPENDED_INT+e.getTrigger()+(c++), e);
+                C.addPendingEvent(SUSPENDED_INT+e.getTrigger()+(c++),  ASSyntax.createAtom("suspend_all_ia"), e);
                 if (i != null)
                     i.setSuspended(true);
                 un = bak.clone();

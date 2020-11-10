@@ -5,7 +5,7 @@ MAS supervisor {
 //	executionControl: jason.control.ExecutionControlGUI
 
 	agents:
-		supervisor_for_tests [verbose=1] agentArchClass arch.SupervisorAgArch beliefBaseClass agent.TimeBB;
+		test_more_recent [verbose=1] agentClass rjs.agent.LimitedAgent beliefBaseClass rjs.agent.TimeBB;
 
 	aslSourcePath:
 		"src/asl";

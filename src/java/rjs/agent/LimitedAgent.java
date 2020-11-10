@@ -7,9 +7,10 @@ import java.util.Set;
 
 import jason.JasonException;
 import jason.asSemantics.Agent;
-import jason.asSemantics.Event;
 import jason.asSemantics.GoalListener;
 import jason.asSemantics.Intention;
+import jason.asSyntax.ASSyntax;
+import jason.asSyntax.Atom;
 import jason.asSyntax.ListTerm;
 import jason.asSyntax.NumberTermImpl;
 import jason.asSyntax.Pred;
@@ -33,31 +34,23 @@ public class LimitedAgent extends Agent {
 		getTS().addGoalListener(new GoalListener() {
 
 			@Override
-			public void goalSuspended(Trigger goal, String reason) {}
-
-			@Override
-			public void goalStarted(Event goal) {}
-
-			@Override
-			public void goalResumed(Trigger goal) {}
-
-			@Override
-			public void goalFinished(Trigger goal, FinishStates result) {
+			public void goalFinished(Trigger goal, GoalStates result) {
 				removeTrigger(goal);
 			}
 
 			@Override
-			public void goalFailed(Trigger goal) {
+			public void goalFailed(Trigger goal, Term reason) {
 				decrementCounter(System.identityHashCode(goal));
 				removeTrigger(goal);	
 			}
-
+			
 			private void removeTrigger(Trigger goal) {
 				int hashcode = System.identityHashCode(goal);
 				Counter c = findCounter(hashcode);
 				if(c != null)
 					c.removeTrigger(hashcode);
 			}
+			
 		});
 	}
 
@@ -92,13 +85,16 @@ public class LimitedAgent extends Agent {
 
 						if(c.isMaxed() & !c.hasTrigger(System.identityHashCode(trig))) {
 							ListTerm failAnnots;
-							if(c.getCounting_type() == CountingType.attempt)
+							Atom atom;
+							if(c.getCounting_type() == CountingType.attempt) {
 								failAnnots = JasonException.createBasicErrorAnnots("max_attempts", "the limit of attempts ("+att+") is reached");
-							else
+								atom = ASSyntax.createAtom("max_attempts");
+							}else {
 								failAnnots = JasonException.createBasicErrorAnnots("max_exec", "the limit of executions ("+att+") is reached");
-
+								atom = ASSyntax.createAtom("max_exec");
+							}
 							try {
-								getTS().generateGoalDeletion(selected_i, failAnnots);
+								getTS().generateGoalDeletion(selected_i, failAnnots, atom);
 							} catch (JasonException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();

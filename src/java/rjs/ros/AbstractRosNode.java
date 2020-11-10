@@ -32,7 +32,7 @@ import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
 
-import com.github.rosjava_actionlib.GoalIDGenerator;
+//import com.github.rosjava_actionlib.GoalIDGenerator;
 
 import geometry_msgs.Point;
 import geometry_msgs.PointStamped;
@@ -51,9 +51,9 @@ import std_msgs.Header;
  *
  */
 public abstract class AbstractRosNode extends AbstractNodeMain {
-	private Logger logger = Logger.getLogger(AbstractRosNode.class.getName());
+	protected Logger logger = Logger.getLogger(AbstractRosNode.class.getName());
 	
-	protected GoalIDGenerator goalIDGenerator;
+//	protected GoalIDGenerator goalIDGenerator;
 	protected ConnectedNode connectedNode;
 	protected NodeConfiguration nodeConfiguration;
 	protected MessageFactory messageFactory;
@@ -74,7 +74,6 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 	}
 	
 	public void init() {
-		goalIDGenerator = new GoalIDGenerator(getConnectedNode());
 		tfl = new TransformListener(connectedNode);
 		parameters = connectedNode.getParameterTree();
 		URI uri = null;

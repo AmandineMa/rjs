@@ -1,4 +1,4 @@
-MAS supervisor {
+MAS rjs {
 
 	infrastructure: Centralised(threaded,1,1,3)
 	

@@ -1,4 +1,5 @@
 build
+bin/classes
 lib_not_used
 log
 .project

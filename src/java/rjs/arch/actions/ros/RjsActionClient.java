@@ -1,5 +1,6 @@
 package rjs.arch.actions.ros;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.logging.Logger;
@@ -12,6 +13,7 @@ import com.github.rosjava_actionlib.ActionClient;
 import com.github.rosjava_actionlib.ActionClientListener;
 
 import actionlib_msgs.GoalID;
+import actionlib_msgs.GoalStatus;
 import rjs.utils.Tools;
 
 public class RjsActionClient<T_ACTION_GOAL extends Message, T_ACTION_FEEDBACK extends Message, T_ACTION_RESULT extends Message> {
@@ -22,6 +24,7 @@ public class RjsActionClient<T_ACTION_GOAL extends Message, T_ACTION_FEEDBACK ex
 	public RjsActionClient(ConnectedNode connectedNode, String topic, String typeActionGoal, String typeActionFeedback, String typeActionResult) {
 		actionClient  
 		= new ActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT>(connectedNode, topic, typeActionGoal,typeActionFeedback,typeActionResult);
+		checkServerConnected(10);
 	}
 
 	public boolean checkServerConnected(double seconds) {
@@ -63,6 +66,22 @@ public class RjsActionClient<T_ACTION_GOAL extends Message, T_ACTION_FEEDBACK ex
 	
 	public void removeListener(ActionClientListener<T_ACTION_FEEDBACK, T_ACTION_RESULT> actionListener) {
 		actionClient.removeListener(actionListener);
+	}
+	
+	public static String getGoalStatus(GoalStatus goalStatus) {
+		String fieldName = "";
+		for(Field f : goalStatus.getClass().getFields()) {
+			try {
+				if(f.get(goalStatus) instanceof java.lang.Byte && (byte)f.get(goalStatus) == goalStatus.getStatus()) {
+					fieldName = f.getName();
+				}
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			}
+		}
+		return fieldName;
 	}
 
 }

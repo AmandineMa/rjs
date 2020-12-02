@@ -24,7 +24,6 @@ public class RjsActionClient<T_ACTION_GOAL extends Message, T_ACTION_FEEDBACK ex
 	public RjsActionClient(ConnectedNode connectedNode, String topic, String typeActionGoal, String typeActionFeedback, String typeActionResult) {
 		actionClient  
 		= new ActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT>(connectedNode, topic, typeActionGoal,typeActionFeedback,typeActionResult);
-		checkServerConnected(10);
 	}
 
 	public boolean checkServerConnected(double seconds) {

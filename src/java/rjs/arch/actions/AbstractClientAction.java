@@ -9,7 +9,6 @@ import com.github.rosjava_actionlib.ActionClientListener;
 
 import actionlib_msgs.GoalID;
 import actionlib_msgs.GoalStatus;
-import actionlib_msgs.GoalStatusArray;
 import jason.asSemantics.ActionExec;
 import rjs.arch.actions.ros.RjsActionClient;
 import rjs.arch.agarch.AbstractROSAgArch;
@@ -41,6 +40,7 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 	
 	public void sendGoal(T_ACTION_GOAL actionGoal) {
 		goalID = actionClient.sendGoal(actionGoal);
+		addGoalStatusInBB();
 	}
 
 
@@ -75,8 +75,14 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 		}
 		
 	}
+	
+	public T_ACTION_GOAL newGoalMessage() {
+		return actionClient.newGoalMessage();
+	}
 
 	
-	public abstract void setResultSucceeded(T_ACTION_RESULT result);
+	protected abstract void setResultSucceeded(T_ACTION_RESULT result);
+	
+	protected abstract void addGoalStatusInBB();
 
 }

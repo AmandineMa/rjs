@@ -40,6 +40,10 @@ public abstract class AbstractAction implements Action {
 		}
 		return params;
 	}
+	
+	protected List<Term> getActionTerms() {
+		return actionExec.getActionTerm().getTerms();
+	}
 
 	
 	public void handleFailure(ActionExec action, String srv_name, RuntimeException e) {

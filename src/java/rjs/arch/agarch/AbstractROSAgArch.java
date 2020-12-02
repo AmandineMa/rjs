@@ -24,12 +24,10 @@ import org.ros.rosjava.tf.TransformTree;
 import jason.RevisionFailedException;
 import jason.architecture.MindInspectorAgArch;
 import jason.asSemantics.ActionExec;
-import jason.asSemantics.Message;
 import jason.asSemantics.Unifier;
 import jason.asSyntax.Atom;
 import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
-import jason.asSyntax.StringTermImpl;
 import jason.bb.BeliefBase;
 import rjs.arch.actions.AbstractActionFactory;
 import rjs.arch.actions.Action;
@@ -86,12 +84,6 @@ public abstract class AbstractROSAgArch extends MindInspectorAgArch {
 		@Override
 		public void run() {
 			String action_name = action.getActionTerm().getFunctor();
-			Message msg = new Message("tell", getAgName(), "supervisor", "action_started(" + action_name + ")");
-			try {
-				sendMsg(msg);
-			} catch (Exception e) {
-				Tools.getStackTrace(e);
-			}
 			Action actionExecutable = actionFactory.createAction(action, AbstractROSAgArch.this);
 			if(actionExecutable != null) {
 				actionExecutable.execute();
@@ -244,20 +236,7 @@ public abstract class AbstractROSAgArch extends MindInspectorAgArch {
 	
 	public void addBelief(String functor, List<Object> terms) {
 		try {
-			String bel = functor + "(";
-			Iterator<Object> it = terms.iterator();
-			Object term = it.next();
-			if(term instanceof String)
-				term = new StringTermImpl((String)term);
-			bel = bel + term;
-			while(it.hasNext()) {
-				term = it.next();
-				if(term instanceof String && !((String)term).startsWith("["))
-					term = new StringTermImpl((String)term);
-				bel = bel + "," + term;
-			}
-			bel = bel + ")";
-			getTS().getAg().addBel(Literal.parseLiteral(bel));
+			getTS().getAg().addBel(Tools.stringFunctorAndTermsToBelLiteral(functor, terms));
 		} catch (RevisionFailedException e) {
 			logger.info(Tools.getStackTrace(e));
 		}
@@ -265,8 +244,15 @@ public abstract class AbstractROSAgArch extends MindInspectorAgArch {
 	
 	public void removeBelief(String bel) {
 		try {
-			
 			getTS().getAg().abolish(Literal.parseLiteral(bel), new Unifier());
+		} catch (RevisionFailedException e) {
+			logger.info(Tools.getStackTrace(e));
+		}
+	}
+	
+	public void removeBelief(String functor, List<Object> terms) {
+		try {
+			getTS().getAg().abolish(Tools.stringFunctorAndTermsToBelLiteral(functor, terms), new Unifier());
 		} catch (RevisionFailedException e) {
 			logger.info(Tools.getStackTrace(e));
 		}

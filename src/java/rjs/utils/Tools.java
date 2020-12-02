@@ -8,6 +8,7 @@ import java.util.List;
 
 import jason.asSyntax.ListTerm;
 import jason.asSyntax.ListTermImpl;
+import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
 import jason.asSyntax.StringTermImpl;
 import jason.asSyntax.Term;
@@ -66,6 +67,23 @@ public class Tools {
 			values.add(((NumberTermImpl)values_it.next()).solve());
 		}
 		return values;
+	}
+	
+	public static Literal stringFunctorAndTermsToBelLiteral(String functor, List<Object> terms) {
+		String bel = functor + "(";
+		Iterator<Object> it = terms.iterator();
+		Object term = it.next();
+		if(term instanceof String)
+			term = new StringTermImpl((String)term);
+		bel = bel + term;
+		while(it.hasNext()) {
+			term = it.next();
+			if(term instanceof String && !((String)term).startsWith("["))
+				term = new StringTermImpl((String)term);
+			bel = bel + "," + term;
+		}
+		bel = bel + ")";
+		return Literal.parseLiteral(bel);
 	}
 	
 	public static void sleep(long msec) {

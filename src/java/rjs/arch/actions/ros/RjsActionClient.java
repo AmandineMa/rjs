@@ -20,19 +20,21 @@ public class RjsActionClient<T_ACTION_GOAL extends Message, T_ACTION_FEEDBACK ex
 
 	protected Logger logger = Logger.getLogger(this.getClass().getName());	
 	private ActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT> actionClient;
+	private String topicName;
 
 	public RjsActionClient(ConnectedNode connectedNode, String topic, String typeActionGoal, String typeActionFeedback, String typeActionResult) {
 		actionClient  
 		= new ActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT>(connectedNode, topic, typeActionGoal,typeActionFeedback,typeActionResult);
+		this.topicName = topic;
 	}
 
 	public boolean checkServerConnected(double seconds) {
 		Duration serverTimeout = new Duration(seconds);
 		boolean serverStarted = actionClient.waitForActionServerToStart(serverTimeout);
 		if (serverStarted) {
-			logger.info("Dialogue server started.\n");
+			logger.info("Action server "+topicName+" started");
 		} else {
-			logger.severe("No dialogue server found for "+ serverTimeout.totalNsecs() / 1e9 + " seconds!");
+			logger.severe("No "+topicName+" server found for "+ serverTimeout.totalNsecs() / 1e9 + " seconds!");
 		}
 		return serverStarted;
 	}

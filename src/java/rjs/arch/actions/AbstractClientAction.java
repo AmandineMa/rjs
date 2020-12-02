@@ -2,6 +2,8 @@ package rjs.arch.actions;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.List;
 
 import org.ros.internal.message.Message;
 
@@ -10,6 +12,7 @@ import com.github.rosjava_actionlib.ActionClientListener;
 import actionlib_msgs.GoalID;
 import actionlib_msgs.GoalStatus;
 import jason.asSemantics.ActionExec;
+import jason.asSyntax.Term;
 import rjs.arch.actions.ros.RjsActionClient;
 import rjs.arch.agarch.AbstractROSAgArch;
 import rjs.utils.Tools;
@@ -18,16 +21,18 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 
 	protected RjsActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT> actionClient;
 	private GoalID goalID;
+	protected List<Term> actionTerms;
 	
-	public AbstractClientAction(ActionExec actionExec, AbstractROSAgArch rosAgArch, RjsActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT> actionClient) {
+	public AbstractClientAction(ActionExec actionExec, AbstractROSAgArch rosAgArch, RjsActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT> actionClient, List<Term> actionTerms) {
 		super(actionExec, rosAgArch);
 		this.actionClient = actionClient;
+		this.actionTerms = actionTerms;
 	}
 
 	@Override
 	public void execute() {
 		actionClient.addListener(this);
-		boolean serverStarted = actionClient.checkServerConnected(1);
+		boolean serverStarted = actionClient.checkServerConnected(10);
 		if(serverStarted) {
 			sendGoal(computeGoal());
 		}else {
@@ -65,6 +70,7 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 						logger.info("result with goal "+goalStatus.getGoalId().getId()+" not achieved: "+fieldName);
 					}
 				}
+				removeGoalStatusInBB();
 				actionClient.removeListener(this);
 				actionExec.setResult(resultSuccess);
 			}
@@ -83,6 +89,13 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 	
 	protected abstract void setResultSucceeded(T_ACTION_RESULT result);
 	
-	protected abstract void addGoalStatusInBB();
+	protected void addGoalStatusInBB() {
+		rosAgArch.addBelief(actionName, Arrays.asList("actionStarted",actionTerms));
+	}
+	
+	protected void removeGoalStatusInBB() {
+		rosAgArch.removeBelief(actionName, Arrays.asList("actionStarted",actionTerms));
+		rosAgArch.addBelief(actionName, Arrays.asList("actionOver",actionTerms));
+	}
 
 }

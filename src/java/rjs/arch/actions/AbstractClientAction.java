@@ -3,7 +3,6 @@ package rjs.arch.actions;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.List;
 
 import org.ros.internal.message.Message;
 
@@ -12,7 +11,7 @@ import com.github.rosjava_actionlib.ActionClientListener;
 import actionlib_msgs.GoalID;
 import actionlib_msgs.GoalStatus;
 import jason.asSemantics.ActionExec;
-import jason.asSyntax.Term;
+import jason.asSyntax.Literal;
 import rjs.arch.actions.ros.RjsActionClient;
 import rjs.arch.agarch.AbstractROSAgArch;
 import rjs.utils.Tools;
@@ -21,12 +20,10 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 
 	protected RjsActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT> actionClient;
 	private GoalID goalID;
-	protected List<Term> actionTerms;
 	
-	public AbstractClientAction(ActionExec actionExec, AbstractROSAgArch rosAgArch, RjsActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT> actionClient, List<Term> actionTerms) {
+	public AbstractClientAction(ActionExec actionExec, AbstractROSAgArch rosAgArch, RjsActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT> actionClient) {
 		super(actionExec, rosAgArch);
 		this.actionClient = actionClient;
-		this.actionTerms = actionTerms;
 	}
 
 	@Override
@@ -36,7 +33,7 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 		if(serverStarted) {
 			sendGoal(computeGoal());
 		}else {
-			actionExec.setResult(false);
+			setJasonActionResult(false);
 		}
 
 	}
@@ -63,7 +60,7 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 					setResultSucceeded(result);
 				}else {
 					String fieldName = RjsActionClient.getGoalStatus(goalStatus);
-					
+					setResultAborted(result);
 					if(fieldName.isEmpty()) {
 						logger.info("result with goal "+goalStatus.getGoalId().getId()+" not achieved: "+goalStatus.getStatus());
 					} else {
@@ -72,12 +69,12 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 				}
 				removeGoalStatusInBB();
 				actionClient.removeListener(this);
-				actionExec.setResult(resultSuccess);
+				setJasonActionResult(resultSuccess);
 			}
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 			Tools.getStackTrace(e);
 			actionClient.removeListener(this);
-			actionExec.setResult(resultSuccess);
+			setJasonActionResult(resultSuccess);
 		}
 		
 	}
@@ -89,13 +86,29 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 	
 	protected abstract void setResultSucceeded(T_ACTION_RESULT result);
 	
+	protected abstract void setResultAborted(T_ACTION_RESULT result);
+	
 	protected void addGoalStatusInBB() {
-		rosAgArch.addBelief(actionName, Arrays.asList("actionStarted",actionTerms));
+		if(actionTerms != null)
+			rosAgArch.addBelief(actionName, Arrays.asList("actionStarted",actionTerms));
+		else
+			rosAgArch.addBelief(actionName, Arrays.asList("actionStarted"));
 	}
 	
 	protected void removeGoalStatusInBB() {
-		rosAgArch.removeBelief(actionName, Arrays.asList("actionStarted",actionTerms));
-		rosAgArch.addBelief(actionName, Arrays.asList("actionOver",actionTerms));
+		rosAgArch.removeBelief(actionName, Arrays.asList("actionFeedback",Literal.parseLiteral("_")));
+		if(actionTerms != null) {
+			rosAgArch.removeBelief(actionName, Arrays.asList("actionStarted",actionTerms));
+			rosAgArch.addBelief(actionName, Arrays.asList("actionOver",actionTerms));
+		}else {
+			rosAgArch.removeBelief(actionName, Arrays.asList("actionStarted"));
+			rosAgArch.addBelief(actionName, Arrays.asList("actionOver"));
+		}
+	}
+	
+	private void setJasonActionResult(boolean resultSuccess) {
+		actionExec.setResult(resultSuccess);
+		rosAgArch.actionExecuted(actionExec);
 	}
 
 }

@@ -22,11 +22,13 @@ public abstract class AbstractAction implements Action {
 	
 	protected static AbstractRosNode rosnode;
 	protected String actionName;
+	protected List<Term> actionTerms;
 
 	public AbstractAction(ActionExec actionExec, AbstractROSAgArch rosAgArch) {
 		this.rosAgArch = rosAgArch;
 		this.actionExec = actionExec;
 		actionName = actionExec.getActionTerm().getFunctor();
+		actionTerms = actionExec.getActionTerm().getTerms();
 	}
 	
 	protected String removeQuotes(String string) {
@@ -41,9 +43,9 @@ public abstract class AbstractAction implements Action {
 		return params;
 	}
 	
-	protected List<Term> getActionTerms() {
-		return actionExec.getActionTerm().getTerms();
-	}
+//	protected List<Term> getActionTerms() {
+//		return actionExec.getActionTerm().getTerms();
+//	}
 
 	
 	public void handleFailure(ActionExec action, String srv_name, RuntimeException e) {

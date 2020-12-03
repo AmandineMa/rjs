@@ -21,14 +21,12 @@ import org.ros.internal.message.Message;
 import org.ros.internal.node.response.StatusCode;
 import org.ros.master.client.MasterStateClient;
 import org.ros.message.MessageFactory;
-import org.ros.message.MessageListener;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.parameter.ParameterTree;
 import org.ros.node.service.ServiceClient;
 import org.ros.node.service.ServiceResponseListener;
-import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
 
@@ -299,22 +297,5 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 	public ParameterTree getParameters() {
 		return parameters;
 	}
-
-
-	public <T> void addListener(String topic, String type, MessageListener<T> ml) {
-		Subscriber<T> sub = getConnectedNode().newSubscriber(getParameters().getString(topic), type);
-		sub.addMessageListener(ml, 10);
-	}
-	
-	public <T> void addListenerResult(String action_server, String type, MessageListener<T> ml) {
-		Subscriber<T> sub = getConnectedNode().newSubscriber(getParameters().getString(action_server) + "/result", type);
-		sub.addMessageListener(ml, 10);
-	}
-	
-	public <T> void addListenerFb(String action_server, String type, MessageListener<T> ml) {
-		Subscriber<T> sub = getConnectedNode().newSubscriber(getParameters().getString(action_server) + "/feedback", type);
-		sub.addMessageListener(ml, 10);
-	}
-	
 	
 }

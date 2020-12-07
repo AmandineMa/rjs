@@ -5,7 +5,7 @@ MAS rjs {
 //	executionControl: jason.control.ExecutionControlGUI
 
 	agents:
-		test_more_recent [verbose=1] agentClass rjs.agent.LimitedAgent beliefBaseClass rjs.agent.TimeBB;
+		goal_manager [verbose=2] ;
 
 	aslSourcePath:
 		"src/asl";

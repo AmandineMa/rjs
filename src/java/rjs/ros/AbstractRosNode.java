@@ -1,13 +1,8 @@
 package rjs.ros;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -18,7 +13,6 @@ import org.ros.exception.RemoteException;
 import org.ros.exception.RosRuntimeException;
 import org.ros.exception.ServiceNotFoundException;
 import org.ros.internal.message.Message;
-import org.ros.internal.node.response.StatusCode;
 import org.ros.master.client.MasterStateClient;
 import org.ros.message.MessageFactory;
 import org.ros.node.AbstractNodeMain;
@@ -29,8 +23,6 @@ import org.ros.node.service.ServiceClient;
 import org.ros.node.service.ServiceResponseListener;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
-
-//import com.github.rosjava_actionlib.GoalIDGenerator;
 
 import geometry_msgs.Point;
 import geometry_msgs.PointStamped;
@@ -51,7 +43,6 @@ import std_msgs.Header;
 public abstract class AbstractRosNode extends AbstractNodeMain {
 	protected Logger logger = Logger.getLogger(AbstractRosNode.class.getName());
 	
-//	protected GoalIDGenerator goalIDGenerator;
 	protected ConnectedNode connectedNode;
 	protected NodeConfiguration nodeConfiguration;
 	protected MessageFactory messageFactory;
@@ -85,20 +76,12 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		servicesMap = null;
 	}
 
-	public <T> void callAsyncService(String serviceName, ServiceResponseListener<T> srl, Map<String, Object> params) {
-		HashMap<String, String> mapInfoService = servicesMap.get(serviceName);
-
-		if (mapInfoService != null && mapInfoService.containsKey("type")) {
-			String type = mapInfoService.get("type");
-			type = type.replace('/', '.') + "Request";
-			callService(serviceName, type, srl, params);
-		} else {
-			logger.info("Service (" + serviceName + ") not declared in yaml or type not filled");
-			srl.onFailure(new RemoteException(StatusCode.ERROR, "Service (" + serviceName + ") not declared in yaml or type not filled"));
-		}
+	@SuppressWarnings("unchecked")
+	public <T> void callAsyncService(String serviceName, ServiceResponseListener<T> srl, Message params) {
+			serviceClients.get(serviceName).call(params, (ServiceResponseListener<Message>) srl);
 	}
 
-	public <T> T callSyncService(String service, Map<String, Object> params) {
+	public <T> T callSyncService(String service, Message params) {
 		CompletableFuture<T> future = new CompletableFuture<T>();
 
 		ServiceResponseListener<T> srl = new ServiceResponseListener<T>() {
@@ -126,94 +109,6 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		}
 		return response;
 	}
-
-	@SuppressWarnings("unchecked")
-	public <T> void callService(String serviceName, String className, ServiceResponseListener<T> srl,
-			Map<String, Object> params) {
-//		logger.info("Calling service (" + serviceName + ") with class: " + className);
-		Message msg = serviceClients.get(serviceName).newMessage();
-
-		List<Method> setMethods = new ArrayList<Method>();
-		try {
-			Class<?> c = Class.forName(className);
-			Method[] methods = c.getDeclaredMethods();
-			for (int i = 0; i < methods.length; i++) {
-//				logger.info("Current method: " + methods[i].getName());
-				if ("set".equalsIgnoreCase(methods[i].getName().substring(0, 3))) {
-//					logger.info("Is a set method");
-					setMethods.add(methods[i]);
-				}
-			}
-		} catch (ClassNotFoundException | IllegalArgumentException e) {
-			Tools.getStackTrace(e);
-		}
-
-		if(params != null) {
-			for (String name : params.keySet()) {
-				boolean noMethod = true;
-				for (Method curMethod : setMethods) {
-					if (curMethod.getName().substring(3).toLowerCase().equalsIgnoreCase(name))
-						noMethod = false;
-				}
-	
-				if (noMethod) {
-					logger.info("Warning: Parameter " + name + " doesn't have a corresponding setter in " + className);
-					logger.info("List of setters for this class: ");
-					for (Method curMethod : setMethods) {
-						logger.info("  -  " + curMethod.getName());
-					}
-				}
-			}
-
-			for (int i = 0; i < setMethods.size(); i++) {
-				try {
-					Method setM = setMethods.get(i);
-					if (setM.getParameterTypes().length == 1) {
-						setM.getParameterTypes();
-	
-						String paramName = setM.getName().substring(3).toLowerCase();
-						if (params.containsKey(paramName)) {
-	//						logger.info("Setting " + paramName + " with value: " + params.get(paramName));
-							setM.invoke(msg, params.get(paramName));
-						} else {
-							logger.info("No value defined for parameter: " + paramName);
-						}
-	
-					} else {
-						logger.info("Error: incorrect number of parameters: " + setM.getParameterTypes().length);
-					}
-	
-				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-					Tools.getStackTrace(e);
-				}
-			}
-		}
-
-//		logger.info("Calling CALL method");
-		serviceClients.get(serviceName).call(msg, (ServiceResponseListener<Message>) srl);
-	}
-
-/*	public <T> void call_service(String serviceName, String className, RosCallback<T> rcb, Map<String, Object> params) {
-		ServiceResponseListener<T> respList = getResponseListener(rcb);
-		call_service(serviceName, className, respList, params);
-	}
-
-	public <T> ServiceResponseListener<T> getResponseListener(RosCallback<T> rcb) {
-		return new ServiceResponseListener<T>() {
-
-			public void onFailure(RemoteException e) {
-				RosRuntimeException RRE = new RosRuntimeException(e);
-				logger.info(Tools.getStackTrace((Exception) RRE));
-				throw RRE;
-			}
-
-			public void onSuccess(T response) {
-				logger.info("Response received on ServiceResponseListener");
-				rcb.callback(response);
-			}
-
-		};
-	}*/
 
 	public HashMap<String, Boolean> initServiceClients() {
 		HashMap<String, Boolean> services_status = new HashMap<String, Boolean>();
@@ -260,6 +155,10 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 
 	public <T> T newServiceResponseFromType(String type) {
 		return connectedNode.getServiceResponseMessageFactory().newFromType(type);
+	}
+	
+	public <T> T newServiceRequestFromType(String type) {
+		return connectedNode.getServiceRequestMessageFactory().newFromType(type);
 	}
 
 	public PointStamped buildPointStamped(String frame) {

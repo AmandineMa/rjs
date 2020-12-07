@@ -2,11 +2,11 @@ package rjs.arch.actions;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import hatp_msgs.Plan;
+import hatp_msgs.PlanningRequest;
+import hatp_msgs.PlanningRequestRequest;
 import hatp_msgs.PlanningRequestResponse;
 import hatp_msgs.Request;
 import jason.asSemantics.ActionExec;
@@ -40,10 +40,9 @@ public class GetHATPPlan extends AbstractAction {
 		request.setTask(task_name);
 		request.setType("1");
 		
-		Map<String, Object> parameters = new HashMap<String, Object>();
-		parameters.put("request", request);
-		
-		PlanningRequestResponse hatpPlannerResp = rosnode.callSyncService("hatp_planner", parameters);
+		PlanningRequestRequest planreq = (PlanningRequestRequest) rosnode.newServiceRequestFromType(PlanningRequest._TYPE);
+		planreq.setRequest(request);
+		PlanningRequestResponse hatpPlannerResp = rosnode.callSyncService("hatp_planner", planreq);
 		
 		if(hatpPlannerResp != null) {
 			Plan plan = hatpPlannerResp.getSolution();

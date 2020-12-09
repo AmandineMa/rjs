@@ -30,8 +30,10 @@ public class get_param extends DefaultInternalAction {
     	try {
 	    	String class_name = args[1].toString().replaceAll("^\"|\"$", "");
 	    	String prefix = "java.lang.";
-	    	if(class_name.equals("List"))
+	    	if(class_name.equals("List")) {
 	    		prefix = "java.util.";
+	    		class_name = "List";
+	    	}
 			Class<?> c = Class.forName(prefix+class_name);
 			Method m = AbstractROSAgArch.getRosnode().getParameters().getClass().getMethod("get"+class_name, String.class);
 			if(c.equals(Boolean.class)){
@@ -57,6 +59,8 @@ public class get_param extends DefaultInternalAction {
 						d = (Double) p.get(i);
 					if(d != null)
 						list.add(new NumberTermImpl(d));
+					else if(p.get(i) instanceof String)
+						list.add(new StringTermImpl(p.get(i).toString()));
 					else
 						return false;
 				}

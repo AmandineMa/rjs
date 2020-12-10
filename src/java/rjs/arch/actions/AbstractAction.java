@@ -64,5 +64,10 @@ public abstract class AbstractAction implements Action {
 	protected void setSync(boolean as) {
 		sync = as;
 	}
+	
+	protected void setResult(boolean res) {
+		actionExec.setResult(res);
+		rosAgArch.actionExecuted(actionExec);
+	}
 
 }

@@ -6,12 +6,16 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import jason.asSyntax.Atom;
 import jason.asSyntax.ListTerm;
 import jason.asSyntax.ListTermImpl;
 import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
+import jason.asSyntax.SetTerm;
+import jason.asSyntax.SetTermImpl;
 import jason.asSyntax.StringTermImpl;
 import jason.asSyntax.Term;
+import jason.asSyntax.UnnamedVar;
 
 public class Tools {
 
@@ -60,6 +64,14 @@ public class Tools {
 		return list;
 	}
 	
+	public static SetTerm arrayToSetTerm(List<String> array) {
+		SetTerm list = new SetTermImpl();
+		for(String str : array) {
+			list.add(new Atom(str));
+		}
+		return list;
+	}
+	
 	public static ArrayList<Double> listTermNumbers_to_list(ListTermImpl lti){
 		ArrayList<Double> values = new ArrayList<>();
 		Iterator<Term> values_it =  lti.iterator();
@@ -73,7 +85,9 @@ public class Tools {
 		String bel = functor + "(";
 		Iterator<Object> it = terms.iterator();
 		Object term = it.next();
-		if(term instanceof String)
+		if(term.equals("_"))
+			term = new UnnamedVar();
+		else if(term instanceof String)
 			term = new StringTermImpl((String)term);
 		bel = bel + term;
 		while(it.hasNext()) {

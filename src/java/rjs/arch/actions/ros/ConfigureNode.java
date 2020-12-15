@@ -21,7 +21,7 @@ public class ConfigureNode extends AbstractAction {
 
 	@Override
 	public void execute() {
-		if(System.getenv("ROS_MASTER_URI") != null && System.getenv("ROS_IP") != null /*&& !System.getenv("ROS_IP").equals("127.0.0.1")*/) {
+		if(System.getenv("ROS_MASTER_URI") != null && System.getenv("ROS_IP") != null) {
 			List<String> emptyArgv = Lists.newArrayList("EmptyList");
 			CommandLineLoader loader = new CommandLineLoader(emptyArgv);
 			URI masterUri = null;
@@ -42,6 +42,8 @@ public class ConfigureNode extends AbstractAction {
 			else if (System.getenv("ROS_IP").equals("127.0.0.1"))
 				logger.info("ROS_IP should not be localhost");
 		}
+		//TODO: investigate on how to active actionExecuted
+//		rosAgArch.actionExecuted(actionExec);
 	}
 
 }

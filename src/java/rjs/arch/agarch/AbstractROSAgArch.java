@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 import org.ros.exception.RosRuntimeException;
 import org.ros.helpers.ParameterLoaderNode;
 import org.ros.message.MessageFactory;
+import org.ros.message.MessageListener;
 import org.ros.node.ConnectedNode;
 import org.ros.node.DefaultNodeMainExecutor;
 import org.ros.node.NodeConfiguration;
@@ -128,6 +129,10 @@ public abstract class AbstractROSAgArch extends MindInspectorAgArch {
 
 	public ConnectedNode getConnectedNode() {
 		return rosnode.getConnectedNode();
+	}
+	
+	public <T> void setSubListener(String subName, MessageListener<T> listener) {
+		rosnode.setSubListener(subName, listener);
 	}
 	
 	public double getRosTimeSeconds() {

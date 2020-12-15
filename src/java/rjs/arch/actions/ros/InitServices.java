@@ -28,7 +28,8 @@ public class InitServices extends AbstractAction {
 				actionExec.setFailureReason(new Atom("srv_not_connected"), "Some services are not connected");
 			}
 		}
-
+		//TODO: investigate on how to active actionExecuted
+//		rosAgArch.actionExecuted(actionExec);
 	}
 
 }

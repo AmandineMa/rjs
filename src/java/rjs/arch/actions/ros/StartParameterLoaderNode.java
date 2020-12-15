@@ -29,6 +29,8 @@ public class StartParameterLoaderNode extends AbstractAction {
 		rosAgArch.setParameterLoaderNode(new ParameterLoaderNode(resourceList));
 		rosAgArch.getNodeMainExecutor().execute(rosAgArch.getParameterLoaderNode(), rosAgArch.getNodeConfiguration());
 		actionExec.setResult(true);
+		//TODO: investigate on how to active actionExecuted
+//		rosAgArch.actionExecuted(actionExec);
 	}
 
 }

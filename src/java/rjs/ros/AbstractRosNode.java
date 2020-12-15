@@ -15,12 +15,15 @@ import org.ros.exception.ServiceNotFoundException;
 import org.ros.internal.message.Message;
 import org.ros.master.client.MasterStateClient;
 import org.ros.message.MessageFactory;
+import org.ros.message.MessageListener;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.parameter.ParameterTree;
 import org.ros.node.service.ServiceClient;
 import org.ros.node.service.ServiceResponseListener;
+import org.ros.node.topic.Publisher;
+import org.ros.node.topic.Subscriber;
 import org.ros.rosjava.tf.TransformTree;
 import org.ros.rosjava.tf.pubsub.TransformListener;
 
@@ -49,8 +52,11 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 	protected TransformListener tfl;
 	protected ParameterTree parameters;
 	protected MasterStateClient msc;
-	protected HashMap<String, HashMap<String, String>> servicesMap;
+	protected HashMap<String, HashMap<String, String>> servicesMap = null;
 	protected HashMap<String, ServiceClient<Message, Message>> serviceClients;
+	protected HashMap<String, HashMap<String, String>> topicsMap = null;
+	protected HashMap<String, Subscriber<Message>> subscribers;
+	protected HashMap<String, Publisher<Message>> publishers;
 
 	public AbstractRosNode(String name) {
 		nodeConfiguration = NodeConfiguration.newPrivate();
@@ -73,7 +79,11 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		}
 		msc = new MasterStateClient(connectedNode, uri);
 		serviceClients = new HashMap<String, ServiceClient<Message, Message>>();
-		servicesMap = null;
+		subscribers = new HashMap<String, Subscriber<Message>>();
+		publishers = new HashMap<String, Publisher<Message>>();
+		setServicesMap();
+		setTopicsMap();
+		createSubscribers();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -152,6 +162,28 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		}
 		return status;
 	}
+	
+	public void createSubscribers() {
+		if(topicsMap != null) {
+			for (Entry<String, HashMap<String, String>> entry : topicsMap.entrySet()) {
+				String key = entry.getKey();
+				if(topicsMap.get(key).get("function").equals("sub")) {
+					subscribers.put(key, connectedNode.newSubscriber(topicsMap.get(key).get("name"), topicsMap.get(key).get("type")));
+				}else if(topicsMap.get(key).get("function").equals("pub")) {
+					publishers.put(key, connectedNode.newPublisher(topicsMap.get(key).get("name"), topicsMap.get(key).get("type")));
+				}
+			}
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	public <T> void setSubListener(String subName, MessageListener<T> listener) {
+		subscribers.get(subName).addMessageListener((MessageListener<Message>) listener, 10);
+	}
+	
+	public void publish(String pubName, Message message) {
+		publishers.get(pubName).publish(message);
+	}
 
 	public <T> T newServiceResponseFromType(String type) {
 		return connectedNode.getServiceResponseMessageFactory().newFromType(type);
@@ -196,5 +228,9 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 	public ParameterTree getParameters() {
 		return parameters;
 	}
+	
+	protected abstract void setServicesMap();
+	
+	protected abstract void setTopicsMap();
 	
 }

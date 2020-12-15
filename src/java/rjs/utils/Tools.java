@@ -84,17 +84,21 @@ public class Tools {
 	public static Literal stringFunctorAndTermsToBelLiteral(String functor, List<Object> terms) {
 		String bel = functor + "(";
 		Iterator<Object> it = terms.iterator();
-		Object term = it.next();
-		if(term.equals("_"))
-			term = new UnnamedVar();
-		else if(term instanceof String)
-			term = new StringTermImpl((String)term);
-		bel = bel + term;
+		Object term;
+		boolean first = true;
 		while(it.hasNext()) {
+			
 			term = it.next();
-			if(term instanceof String && !((String)term).startsWith("["))
+			if(term.equals("_"))
+				term = new UnnamedVar();
+			else if(term instanceof String && !((String)term).startsWith("["))
 				term = new StringTermImpl((String)term);
-			bel = bel + "," + term;
+			
+			if(first)
+				bel = bel + term;
+			else
+				bel = bel + "," + term;
+			first = false;
 		}
 		bel = bel + ")";
 		return Literal.parseLiteral(bel);

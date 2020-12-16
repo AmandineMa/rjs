@@ -20,7 +20,6 @@ public abstract class AbstractAction implements Action {
 	protected ActionExec actionExec;
 	protected AbstractROSAgArch rosAgArch;
 	
-	protected static AbstractRosNode rosnode;
 	protected String actionName;
 	protected List<Term> actionTerms;
 
@@ -65,9 +64,13 @@ public abstract class AbstractAction implements Action {
 		sync = as;
 	}
 	
-	protected void setResult(boolean res) {
+	protected void setActionExecuted(boolean res) {
 		actionExec.setResult(res);
 		rosAgArch.actionExecuted(actionExec);
+	}
+	
+	protected AbstractRosNode getRosNode() {
+		return AbstractROSAgArch.getRosnode();
 	}
 
 }

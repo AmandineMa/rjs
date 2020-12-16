@@ -17,7 +17,7 @@ public class InitServices extends AbstractAction {
 
 	@Override
 	public void execute() {
-		HashMap<String, Boolean> services_status = rosnode.initServiceClients();
+		HashMap<String, Boolean> services_status = getRosNode().initServiceClients();
 		actionExec.setResult(true);
 		for(Entry<String, Boolean> entry : services_status.entrySet()) {
 			if(entry.getValue()) {
@@ -28,8 +28,6 @@ public class InitServices extends AbstractAction {
 				actionExec.setFailureReason(new Atom("srv_not_connected"), "Some services are not connected");
 			}
 		}
-		//TODO: investigate on how to active actionExecuted
-//		rosAgArch.actionExecuted(actionExec);
 	}
 
 }

@@ -12,11 +12,12 @@
          basedir=".."
          default="run">
 
+    <property environment="env"/>
     <property name="mas2j.project.file" value="test.mas2j"/>
     <property name="debug" value=""/> <!-- use "-d" to run in debug mode -->
     <property name="build.dir" value="${basedir}/bin/classes" />
 
-    <property name="jasonJar" value="/home/amayima/eclipse-workspace/jason/jason/build/libs/jason-2.6.2-amdia.jar"/>
+    <property name="jasonJar" value="${env.JASON_JAR}"/>
 
     <path id="project.classpath">
         <pathelement location="${basedir}"/>

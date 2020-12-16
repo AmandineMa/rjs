@@ -33,7 +33,7 @@ public class RetryInitServices extends AbstractAction {
         	Term term = var.capply(iu.next());
         	list.add(term.toString());
         }
-		HashMap<String, Boolean> services_status = rosnode.retryInitServiceClients(list);
+		HashMap<String, Boolean> services_status = getRosNode().retryInitServiceClients(list);
 		for(Entry<String, Boolean> entry : services_status.entrySet()) {
 			if(entry.getValue()) {
 				rosAgArch.addBelief("connected_srv("+entry.getKey()+")");
@@ -44,8 +44,6 @@ public class RetryInitServices extends AbstractAction {
 				actionExec.setFailureReason(new Atom("srv_not_connected"), "Some services are not connected");
 			}
 		}
-		//TODO: investigate on how to active actionExecuted
-//		rosAgArch.act(actionExec);
 	}
 
 }

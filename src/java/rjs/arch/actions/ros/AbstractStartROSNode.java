@@ -15,13 +15,14 @@ public abstract class AbstractStartROSNode extends AbstractAction {
 	}
 
 	
-	protected void configRosnode() {
-		rosAgArch.getNodeMainExecutor().execute(rosnode, rosAgArch.getNodeConfiguration());
-		while(rosnode.getConnectedNode() == null) {
+	@Override
+	public void execute() {
+		instantiateRosNode();
+		rosAgArch.getNodeMainExecutor().execute(getRosNode(), rosAgArch.getNodeConfiguration());
+		while(getRosNode().getConnectedNode() == null) {
 			Tools.sleep(100);
 		}
-		rosnode.init();
-		AbstractROSAgArch.setRosnode(rosnode);
+		getRosNode().init();
 		try {
 			rosAgArch.setActionFactoryRosVariables();
 		} catch (Exception e) {
@@ -29,5 +30,7 @@ public abstract class AbstractStartROSNode extends AbstractAction {
 		}
 		actionExec.setResult(true);
 	}
+	
+	protected abstract void instantiateRosNode();
 
 }

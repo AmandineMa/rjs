@@ -42,8 +42,6 @@ public class ConfigureNode extends AbstractAction {
 			else if (System.getenv("ROS_IP").equals("127.0.0.1"))
 				logger.info("ROS_IP should not be localhost");
 		}
-		//TODO: investigate on how to active actionExecuted
-//		rosAgArch.actionExecuted(actionExec);
 	}
 
 }

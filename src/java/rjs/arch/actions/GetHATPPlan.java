@@ -40,9 +40,9 @@ public class GetHATPPlan extends AbstractAction {
 		request.setTask(task_name);
 		request.setType("1");
 		
-		PlanningRequestRequest planreq = (PlanningRequestRequest) rosnode.newServiceRequestFromType(PlanningRequest._TYPE);
+		PlanningRequestRequest planreq = (PlanningRequestRequest) getRosNode().newServiceRequestFromType(PlanningRequest._TYPE);
 		planreq.setRequest(request);
-		PlanningRequestResponse hatpPlannerResp = rosnode.callSyncService("hatp_planner", planreq);
+		PlanningRequestResponse hatpPlannerResp = getRosNode().callSyncService("hatp_planner", planreq);
 		
 		if(hatpPlannerResp != null) {
 			Plan plan = hatpPlannerResp.getSolution();

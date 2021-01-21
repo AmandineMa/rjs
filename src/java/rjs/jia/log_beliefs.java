@@ -23,7 +23,7 @@ public class log_beliefs extends DefaultInternalAction {
     	
     	logger.info("Setting "+ts.getAgArch().getAgName()+" for Beliefs");
     	if(MASConsoleGUI.hasConsole())
-    		MASConsoleGUI.get().setBeliefAgent(ts.getAg());
+    		MASConsoleGUI.get().addBeliefAgent(ts.getAg());
     	return true;
     	
     }

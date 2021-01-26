@@ -110,5 +110,17 @@ public class Tools {
 		} catch (InterruptedException ex) {
 		}
 	}
+	
+	public static String removeQuotes(String string) {
+		return string.replaceAll("^\"|\"$", "");
+	}
+	
+	public static ArrayList<String> removeQuotes(List<Term> terms) {
+		ArrayList<String> params = new ArrayList<String>();
+		for (Term term : terms) {
+			params.add(term.toString().replaceAll("^\"|\"$", ""));
+		}
+		return params;
+	}
 
 }

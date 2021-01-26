@@ -10,6 +10,7 @@ import jason.asSemantics.ActionExec;
 import jason.asSyntax.Term;
 import rjs.arch.actions.AbstractAction;
 import rjs.arch.agarch.AbstractROSAgArch;
+import rjs.utils.Tools;
 
 public class StartParameterLoaderNode extends AbstractAction {
 
@@ -23,7 +24,7 @@ public class StartParameterLoaderNode extends AbstractAction {
 		Iterator<Term> it = actionExec.getActionTerm().getTerms().iterator();
 		List<ParameterLoaderNode.Resource> resourceList = new ArrayList<ParameterLoaderNode.Resource>();
 		while(it.hasNext()) {
-			String file = removeQuotes(it.next().toString());
+			String file = Tools.removeQuotes(it.next().toString());
 			resourceList.add(new ParameterLoaderNode.Resource(AbstractROSAgArch.class.getResourceAsStream(file), ""));
 		}
 		rosAgArch.setParameterLoaderNode(new ParameterLoaderNode(resourceList));

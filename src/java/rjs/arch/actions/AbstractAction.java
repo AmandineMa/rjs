@@ -30,18 +30,6 @@ public abstract class AbstractAction implements Action {
 		actionTerms = actionExec.getActionTerm().getTerms();
 	}
 	
-	protected String removeQuotes(String string) {
-		return string.replaceAll("^\"|\"$", "");
-	}
-	
-	protected ArrayList<String> removeQuotes(List<Term> terms) {
-		ArrayList<String> params = new ArrayList<String>();
-		for (Term term : terms) {
-			params.add(term.toString().replaceAll("^\"|\"$", ""));
-		}
-		return params;
-	}
-	
 //	protected List<Term> getActionTerms() {
 //		return actionExec.getActionTerm().getTerms();
 //	}

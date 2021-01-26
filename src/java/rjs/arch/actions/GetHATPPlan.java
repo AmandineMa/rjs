@@ -25,7 +25,7 @@ public class GetHATPPlan extends AbstractAction {
 	@Override
 	public void execute() {
 		String task_name = actionExec.getActionTerm().getTerm(0).toString();
-		task_name = removeQuotes(task_name);
+		task_name = Tools.removeQuotes(task_name);
 		Request request = rosAgArch.createMessage(Request._TYPE);
 		
 		if(actionExec.getActionTerm().getArity() > 1) {

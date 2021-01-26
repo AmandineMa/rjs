@@ -14,6 +14,7 @@ import org.ros.exception.RosRuntimeException;
 import org.ros.exception.ServiceNotFoundException;
 import org.ros.internal.message.Message;
 import org.ros.master.client.MasterStateClient;
+import org.ros.master.client.TopicSystemState;
 import org.ros.message.MessageFactory;
 import org.ros.message.MessageListener;
 import org.ros.node.AbstractNodeMain;
@@ -83,7 +84,7 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		publishers = new HashMap<String, Publisher<Message>>();
 		setServicesMap();
 		setTopicsMap();
-		createSubscribers();
+		createPublishers();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -163,18 +164,51 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		return status;
 	}
 	
-	public void createSubscribers() {
+	public HashMap<String, Boolean> createSubscribers() {
+		HashMap<String, Boolean> subStatus = new HashMap<String, Boolean>();
 		if(topicsMap != null) {
 			for (Entry<String, HashMap<String, String>> entry : topicsMap.entrySet()) {
 				String key = entry.getKey();
-				if(topicsMap.get(key).get("function").equals("sub")) {
-					subscribers.put(key, connectedNode.newSubscriber(topicsMap.get(key).get("name"), topicsMap.get(key).get("type")));
-				}else if(topicsMap.get(key).get("function").equals("pub")) {
+				if(topicsMap.get(key).get("function").equals("sub") && !subscribers.containsKey(key)) {
+					if(!isTopicPublished(topicsMap.get(key).get("name"))){
+						subStatus.put(key, false);
+					}else {
+						subscribers.put(key, connectedNode.newSubscriber(topicsMap.get(key).get("name"), topicsMap.get(key).get("type")));
+						subStatus.put(key, true);
+					}
+				}
+			}
+		}
+		return subStatus;
+	}
+	
+	public void createPublishers() {
+		if(topicsMap != null) {
+			for (Entry<String, HashMap<String, String>> entry : topicsMap.entrySet()) {
+				String key = entry.getKey();
+				if(topicsMap.get(key).get("function").equals("pub")) {
 					publishers.put(key, connectedNode.newPublisher(topicsMap.get(key).get("name"), topicsMap.get(key).get("type")));
 				}
 			}
 		}
 	}
+	
+	private final boolean isTopicPublished(final String topicName) {
+        boolean result = false;
+        if (topicName != null) {
+            for (final TopicSystemState topicSystemState : msc.getSystemState().getTopics()) {
+                if (topicSystemState != null
+                        && topicName.equals(topicSystemState.getTopicName())
+                        && topicSystemState.getPublishers() != null
+                        && !topicSystemState.getPublishers().isEmpty()) {
+                    result = true;
+                    break;
+                }
+
+            }
+        }
+        return result;
+    }
 	
 	@SuppressWarnings("unchecked")
 	public <T> void setSubListener(String subName, MessageListener<T> listener) {

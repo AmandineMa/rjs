@@ -1,6 +1,5 @@
 package rjs.arch.actions;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -29,11 +28,6 @@ public abstract class AbstractAction implements Action {
 		actionName = actionExec.getActionTerm().getFunctor();
 		actionTerms = actionExec.getActionTerm().getTerms();
 	}
-	
-//	protected List<Term> getActionTerms() {
-//		return actionExec.getActionTerm().getTerms();
-//	}
-
 	
 	public void handleFailure(ActionExec action, String srv_name, RuntimeException e) {
 		RosRuntimeException RRE = new RosRuntimeException(e);

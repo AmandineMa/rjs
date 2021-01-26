@@ -22,6 +22,7 @@ public class InitSub extends AbstractAction {
 		for(Entry<String, Boolean> entry : subStatus.entrySet()) {
 			if(entry.getValue()) {
 				rosAgArch.addBelief("connectedTopic("+entry.getKey()+")");
+				rosAgArch.removeBelief("~connectedTopic("+entry.getKey()+")");
 			}else {
 				rosAgArch.addBelief("~connectedTopic("+entry.getKey()+")");
 				actionExec.setResult(false);

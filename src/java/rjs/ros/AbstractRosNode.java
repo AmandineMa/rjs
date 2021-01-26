@@ -4,7 +4,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
@@ -121,47 +120,37 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		return response;
 	}
 
+	
 	public HashMap<String, Boolean> initServiceClients() {
-		HashMap<String, Boolean> services_status = new HashMap<String, Boolean>();
+		HashMap<String, Boolean> serviceStatus = new HashMap<String, Boolean>();
 		if(servicesMap != null) {
 			for (Entry<String, HashMap<String, String>> entry : servicesMap.entrySet()) {
-				services_status.put(entry.getKey(), createServiceClient(entry.getKey()));
+				String key = entry.getKey();
+				if(!serviceClients.containsKey(key)) {
+					URI ls = msc.lookupService(servicesMap.get(key).get("name"));
+					if(ls.toString().isEmpty()){
+						serviceStatus.put(key, false);
+					}else {
+						createServiceClient(key);
+						serviceStatus.put(key, true);
+					}
+				}
 			}
 		}
-		return services_status;
+		return serviceStatus;
 	}
 
-	public HashMap<String, Boolean> retryInitServiceClients(Set<String> clients_to_init) {
-		HashMap<String, Boolean> services_status = new HashMap<String, Boolean>();
 
-		for (String client : clients_to_init) {
-			services_status.put(client, createServiceClient(client));
-		}
-		return services_status;
-	}
-
-	private boolean createServiceClient(String key) {
-		boolean status = false;
+	private void createServiceClient(String key) {
 		String srv_name = servicesMap.get(key).get("name");
-		URI ls = msc.lookupService(srv_name);
-		if (ls.toString().isEmpty()) {
-			serviceClients.put(key, null);
-			status = false;
-		} else {
-			ServiceClient<Message, Message> serv_client;
-			try {
-				logger.info("connect to " + srv_name);
-				serv_client = connectedNode.newServiceClient(srv_name, servicesMap.get(key).get("type"));
-				serviceClients.put(key, serv_client);
-				status = true;
-			} catch (ServiceNotFoundException e) {
-				logger.severe("Service not found exception : " + e.getMessage());
-				throw new RosRuntimeException(e);
-			} catch (Exception e) {
-				logger.info(Tools.getStackTrace(e));
-			}
+		try {
+			serviceClients.put(key, connectedNode.newServiceClient(srv_name, servicesMap.get(key).get("type")));
+		} catch (ServiceNotFoundException e) {
+			logger.severe("Service not found exception : " + e.getMessage());
+			throw new RosRuntimeException(e);
+		} catch (Exception e) {
+			logger.info(Tools.getStackTrace(e));
 		}
-		return status;
 	}
 	
 	public HashMap<String, Boolean> createSubscribers() {

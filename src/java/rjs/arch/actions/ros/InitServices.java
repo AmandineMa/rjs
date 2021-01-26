@@ -22,6 +22,7 @@ public class InitServices extends AbstractAction {
 		for(Entry<String, Boolean> entry : services_status.entrySet()) {
 			if(entry.getValue()) {
 				rosAgArch.addBelief("connected_srv("+entry.getKey()+")");
+				rosAgArch.removeBelief("~connected_srv("+entry.getKey()+")");
 			}else {
 				rosAgArch.addBelief("~connected_srv("+entry.getKey()+")");
 				actionExec.setResult(false);

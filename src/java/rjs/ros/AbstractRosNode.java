@@ -201,7 +201,8 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 	
 	@SuppressWarnings("unchecked")
 	public <T> void setSubListener(String subName, MessageListener<T> listener) {
-		subscribers.get(subName).addMessageListener((MessageListener<Message>) listener, 10);
+		if(subscribers.get(subName) != null)
+			subscribers.get(subName).addMessageListener((MessageListener<Message>) listener, 10);
 	}
 	
 	public void publish(String pubName, Message message) {

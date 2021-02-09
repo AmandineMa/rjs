@@ -18,18 +18,18 @@ import rjs.utils.Tools;
 
 public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTION_FEEDBACK extends Message, T_ACTION_RESULT extends Message> extends AbstractAction implements ActionClientListener<T_ACTION_FEEDBACK, T_ACTION_RESULT> {
 
-	protected RjsActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT> actionClient;
+	protected RjsActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT> rjsActionClient;
 	private GoalID goalID;
 	
 	public AbstractClientAction(ActionExec actionExec, AbstractROSAgArch rosAgArch, RjsActionClient<T_ACTION_GOAL, T_ACTION_FEEDBACK, T_ACTION_RESULT> actionClient) {
 		super(actionExec, rosAgArch);
-		this.actionClient = actionClient;
+		this.rjsActionClient = actionClient;
 	}
 
 	@Override
 	public void execute() {
-		actionClient.addListener(this);
-		boolean serverStarted = actionClient.checkServerConnected(10);
+		rjsActionClient.addListener(this);
+		boolean serverStarted = rjsActionClient.checkServerConnected(10);
 		if(serverStarted) {
 			sendGoal(computeGoal());
 		}else {
@@ -41,7 +41,7 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 	public abstract T_ACTION_GOAL computeGoal();
 	
 	public void sendGoal(T_ACTION_GOAL actionGoal) {
-		goalID = actionClient.sendGoal(actionGoal);
+		goalID = rjsActionClient.sendGoal(actionGoal);
 		addGoalStatusInBB();
 	}
 
@@ -68,19 +68,19 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 					}
 				}
 				removeGoalStatusInBB();
-				actionClient.removeListener(this);
+				rjsActionClient.removeListener(this);
 				setJasonActionResult(resultSuccess);
 			}
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 			Tools.getStackTrace(e);
-			actionClient.removeListener(this);
+			rjsActionClient.removeListener(this);
 			setJasonActionResult(resultSuccess);
 		}
 		
 	}
 	
 	public T_ACTION_GOAL newGoalMessage() {
-		return actionClient.newGoalMessage();
+		return rjsActionClient.newGoalMessage();
 	}
 
 	

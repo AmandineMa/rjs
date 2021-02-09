@@ -23,7 +23,7 @@ import org.ros.node.NodeMainExecutor;
 import org.ros.rosjava.tf.TransformTree;
 
 import jason.RevisionFailedException;
-import jason.architecture.MindInspectorAgArch;
+import jason.architecture.AgArch;
 import jason.asSemantics.ActionExec;
 import jason.asSemantics.Unifier;
 import jason.asSyntax.Atom;
@@ -35,7 +35,7 @@ import rjs.arch.actions.Action;
 import rjs.ros.AbstractRosNode;
 import rjs.utils.Tools;
 
-public abstract class AbstractROSAgArch extends MindInspectorAgArch {
+public abstract class AbstractROSAgArch extends AgArch {
 	
 	static protected AbstractRosNode rosnode;
 	

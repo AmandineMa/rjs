@@ -54,5 +54,9 @@ public abstract class AbstractAction implements Action {
 	protected AbstractRosNode getRosNode() {
 		return AbstractROSAgArch.getRosnode();
 	}
+	
+	protected String getActionTerm(int i) {
+		return Tools.removeQuotes(actionTerms.get(i).toString());
+	}
 
 }

@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.ros.message.Time;
+
 import jason.asSyntax.Atom;
 import jason.asSyntax.ListTerm;
 import jason.asSyntax.ListTermImpl;
@@ -121,6 +123,12 @@ public class Tools {
 			params.add(term.toString().replaceAll("^\"|\"$", ""));
 		}
 		return params;
+	}
+	
+	public static Time rosTimeFromMSec(Double ms) {
+		int nsec = (int) (ms % 1000) * 1000000;
+		int sec = (int) (ms / 1000);
+		return new Time(sec,nsec);
 	}
 
 }

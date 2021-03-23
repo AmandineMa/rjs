@@ -83,6 +83,15 @@ public class Tools {
 		return values;
 	}
 	
+	public static List<String> listTermStringTolist(ListTermImpl lti){
+		ArrayList<String> values = new ArrayList<>();
+		Iterator<Term> values_it =  lti.iterator();
+		while(values_it.hasNext()) {
+			values.add((values_it.next()).toString());
+		}
+		return values;
+	}
+	
 	public static Literal stringFunctorAndTermsToBelLiteral(String functor, List<Object> terms) {
 		String bel = functor + "(";
 		Iterator<Object> it = terms.iterator();

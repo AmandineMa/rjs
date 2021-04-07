@@ -159,12 +159,12 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 			for (Entry<String, HashMap<String, String>> entry : topicsMap.entrySet()) {
 				String key = entry.getKey();
 				if(topicsMap.get(key).get("function").equals("sub") && !subscribers.containsKey(key)) {
-					if(!isTopicPublished(topicsMap.get(key).get("name"))){
-						subStatus.put(key, false);
-					}else {
+//					if(!isTopicPublished(topicsMap.get(key).get("name"))){
+//						subStatus.put(key, false);
+//					}else {
 						subscribers.put(key, connectedNode.newSubscriber(topicsMap.get(key).get("name"), topicsMap.get(key).get("type")));
 						subStatus.put(key, true);
-					}
+//					}
 				}
 			}
 		}
@@ -224,8 +224,21 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		point.setHeader(header);
 		return point;
 	}
+	
+	public PointStamped buildPointStamped(String frame, ListTermImpl point_term) {
+		MessageFactory messageFactory = connectedNode.getTopicMessageFactory();
+		PointStamped point_stamped = buildPointStamped(frame);
 
-	public PointStamped build_point_stamped(ActionExec action, String frame) {
+		Point point = messageFactory.newFromType(Point._TYPE);
+		point.setX(((NumberTermImpl) point_term.get(0)).solve());
+		point.setY(((NumberTermImpl) point_term.get(1)).solve());
+		point.setZ(((NumberTermImpl) point_term.get(2)).solve());
+		point_stamped.setPoint(point);
+
+		return point_stamped;
+	}
+
+	public PointStamped buildPointStamped(ActionExec action, String frame) {
 		MessageFactory messageFactory = connectedNode.getTopicMessageFactory();
 		PointStamped point_stamped = buildPointStamped(frame);
 

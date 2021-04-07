@@ -36,9 +36,9 @@ public class Tools {
 		String str_array = new String();
 		for(String str : array) {
 			if(str_array.isEmpty()) {
-				str_array = str;
+				str_array = (new StringTermImpl(str)).toString();
 			}else {
-				str_array = str_array+","+str;
+				str_array = str_array+","+(new StringTermImpl(str)).toString();
 			}
 		}
 		str_array = "["+str_array+"]";

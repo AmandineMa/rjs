@@ -26,7 +26,7 @@ public class InitSub extends AbstractAction {
 			}else {
 				rosAgArch.addBelief("~connectedTopic("+entry.getKey()+")");
 				actionExec.setResult(false);
-				actionExec.setFailureReason(new Atom("topic_not_connected"), "Some services are not connected");
+				actionExec.setFailureReason(new Atom("topic_not_connected"), "Some topics are not connected");
 			}
 		}
 

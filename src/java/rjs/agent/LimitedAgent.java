@@ -17,6 +17,7 @@ import jason.asSyntax.Pred;
 import jason.asSyntax.Structure;
 import jason.asSyntax.Term;
 import jason.asSyntax.Trigger;
+import rjs.utils.Tools;
 
 public class LimitedAgent extends Agent {
 
@@ -96,8 +97,7 @@ public class LimitedAgent extends Agent {
 							try {
 								getTS().generateGoalDeletion(selected_i, failAnnots, atom);
 							} catch (JasonException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
+								Tools.getStackTrace(e);
 							}
 							selected_i = null;
 

@@ -12,7 +12,9 @@ import jason.asSyntax.Term;
 public class replace extends DefaultInternalAction {
 
     /**
-	 * 
+	 Set an element in a numbered list.
+	 jia.replace(index, list, element, new list)
+	
 	 */
 	private static final long serialVersionUID = 1L;
 

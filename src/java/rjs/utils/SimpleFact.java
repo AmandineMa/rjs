@@ -11,9 +11,7 @@ public class SimpleFact {
 	}
 	
 	
-	public SimpleFact() {
-		// TODO Auto-generated constructor stub
-	}
+	public SimpleFact() {}
 
 
 	public SimpleFact(String predicate) {

@@ -79,7 +79,7 @@ public class TimeBB extends DefaultBeliefBase {
 	@Override
 	public boolean add(Literal bel) {
 		annote_time(bel);
-		return super.add(bel);
+		return super.add(bel, false);
 	}
 
 	@Override

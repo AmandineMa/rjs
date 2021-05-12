@@ -7,6 +7,8 @@ public class Predicate {
 	public String property;
 	public String subject;
 	public String object;
+	public boolean isSubjectUnnamed = false;
+	public boolean isObjectUnnamed = false;
 	
 	public Predicate(String property, String subject, String object) {
 		this.property = property;
@@ -17,7 +19,11 @@ public class Predicate {
 	public Predicate(Literal predicate) {
 			property = predicate.getFunctor();
     		subject = predicate.getTerm(0) == null ? "bool#true" : Tools.removeQuotes(predicate.getTerm(0).toString());
+    		if( predicate.getTerm(0).isUnnamedVar())
+    			isSubjectUnnamed = true;
     		object = predicate.getTerm(1) == null ? "bool#true" : Tools.removeQuotes(predicate.getTerm(1).toString());
+    		if( predicate.getTerm(1).isUnnamedVar())
+    			isObjectUnnamed = true;
 	}
 	
 	public Predicate(String property) {
@@ -37,7 +43,6 @@ public class Predicate {
 		return property+"("+subject+","+object+")";
 	}
 	
-
 //	public String getProperty() {
 //		return property;
 //	}

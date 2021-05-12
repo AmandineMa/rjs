@@ -52,7 +52,7 @@ public abstract class AbstractAction implements Action {
 	}
 	
 	protected AbstractRosNode getRosNode() {
-		return AbstractROSAgArch.getRosnode();
+		return rosAgArch.getRosnode();
 	}
 	
 	protected String getActionTerm(int i) {

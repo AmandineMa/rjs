@@ -4,8 +4,6 @@ package rjs.jia;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -20,7 +18,6 @@ import jason.asSyntax.NumberTermImpl;
 import jason.asSyntax.StringTermImpl;
 import jason.asSyntax.Term;
 import rjs.arch.agarch.AbstractROSAgArch;
-import rjs.utils.Tools;
 
 /** Handle only lists of Double/Integer **/
 
@@ -43,24 +40,24 @@ public class get_param extends DefaultInternalAction {
 	    		prefix = "java.lang.";
 	    	}
 			Class<?> c = Class.forName(prefix+class_name);
-			Method m = AbstractROSAgArch.getRosnode().getParameters().getClass().getMethod("get"+class_name, String.class);
+			Method m = ((AbstractROSAgArch) ts.getAgArch()).getRosnode().getParameters().getClass().getMethod("get"+class_name, String.class);
 			if(c.equals(Boolean.class)){
-				Boolean p = (Boolean) m.invoke(AbstractROSAgArch.getRosnode().getParameters(),param_name);
+				Boolean p = (Boolean) m.invoke(((AbstractROSAgArch) ts.getAgArch()).getRosnode().getParameters(),param_name);
 				return un.unifies(args[2], new Atom(Literal.parseLiteral(p.toString())));
 			}else if(c.equals(Double.class)) {
-				Double p = (Double) m.invoke(AbstractROSAgArch.getRosnode().getParameters(), param_name);
+				Double p = (Double) m.invoke(((AbstractROSAgArch) ts.getAgArch()).getRosnode().getParameters(), param_name);
 				return un.unifies(args[2], new NumberTermImpl(p));
 			}else if(c.equals(Integer.class)) {
-				Integer p = (Integer) m.invoke(AbstractROSAgArch.getRosnode().getParameters(), param_name);
+				Integer p = (Integer) m.invoke(((AbstractROSAgArch) ts.getAgArch()).getRosnode().getParameters(), param_name);
 				return un.unifies(args[2], new NumberTermImpl(p));
 			}else if(c.equals(String.class)) {
-				String p = (String) m.invoke(AbstractROSAgArch.getRosnode().getParameters(), param_name);
+				String p = (String) m.invoke(((AbstractROSAgArch) ts.getAgArch()).getRosnode().getParameters(), param_name);
 				return un.unifies(args[2], new StringTermImpl(p));
 			}else if(c.equals(List.class)) {
-				List<?> p = (List<?>) m.invoke(AbstractROSAgArch.getRosnode().getParameters(), param_name);
+				List<?> p = (List<?>) m.invoke(((AbstractROSAgArch) ts.getAgArch()).getRosnode().getParameters(), param_name);
 				return un.unifies(args[2], getListTermImpl(p));
 			}else if(c.equals(Map.class)){
-				Map<?,?> p = (Map<?,?>) m.invoke(AbstractROSAgArch.getRosnode().getParameters(), param_name);
+				Map<?,?> p = (Map<?,?>) m.invoke(((AbstractROSAgArch) ts.getAgArch()).getRosnode().getParameters(), param_name);
 				return un.unifies(args[2], getMapTermImpl(p));
 			}else {
 				return false;

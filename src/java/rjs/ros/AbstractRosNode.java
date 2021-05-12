@@ -46,6 +46,7 @@ import std_msgs.Header;
 public abstract class AbstractRosNode extends AbstractNodeMain {
 	protected Logger logger = Logger.getLogger(AbstractRosNode.class.getName());
 	
+	protected String name;
 	protected ConnectedNode connectedNode;
 	protected NodeConfiguration nodeConfiguration;
 	protected MessageFactory messageFactory;
@@ -61,6 +62,8 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 	public AbstractRosNode(String name) {
 		nodeConfiguration = NodeConfiguration.newPrivate();
 		messageFactory = nodeConfiguration.getTopicMessageFactory();
+		this.name = name;
+		logger.info("ROSNODE WITH NAME "+name);
 	}
 
 	@Override

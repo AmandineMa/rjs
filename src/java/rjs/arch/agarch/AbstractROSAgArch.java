@@ -1,5 +1,9 @@
 package rjs.arch.agarch;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -14,6 +18,7 @@ import java.util.logging.Logger;
 
 import org.ros.exception.RosRuntimeException;
 import org.ros.helpers.ParameterLoaderNode;
+import org.ros.internal.loader.CommandLineLoader;
 import org.ros.message.MessageFactory;
 import org.ros.message.MessageListener;
 import org.ros.node.ConnectedNode;
@@ -21,6 +26,8 @@ import org.ros.node.DefaultNodeMainExecutor;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMainExecutor;
 import org.ros.rosjava.tf.TransformTree;
+
+import com.google.common.collect.Lists;
 
 import jason.RevisionFailedException;
 import jason.architecture.AgArch;
@@ -37,10 +44,11 @@ import rjs.utils.Tools;
 
 public abstract class AbstractROSAgArch extends AgArch {
 	
-	static protected AbstractRosNode rosnode;
+	protected AbstractRosNode rosnode;
 	
 	protected ExecutorService executor;
 	NodeConfiguration nodeConfiguration;
+	NodeConfiguration nodeConfigurationParams;
 	protected NodeMainExecutor nodeMainExecutor = DefaultNodeMainExecutor.newDefault();
 	protected ParameterLoaderNode parameterLoaderNode;
 
@@ -52,7 +60,10 @@ public abstract class AbstractROSAgArch extends AgArch {
 	
 	public AbstractROSAgArch() {
 		super();
-		
+	}
+	
+	@Override
+	public void init() {
 		executor = new CustomExecutorService(4, 4,
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<Runnable>());
@@ -61,7 +72,44 @@ public abstract class AbstractROSAgArch extends AgArch {
 		nodeConfiguration = NodeConfiguration.newPrivate();
 		setMessageFactory(nodeConfiguration.getTopicMessageFactory());
 		
-	}
+		List<String> emptyArgv = Lists.newArrayList("EmptyList");
+		CommandLineLoader loader = new CommandLineLoader(emptyArgv);
+		URI masterUri = null;
+		nodeConfiguration = loader.build();	
+		try {
+			masterUri = new URI(System.getenv("ROS_MASTER_URI"));			
+		} catch (URISyntaxException e) {
+			logger.info("Wrong URI syntax :" + e.getMessage());
+		} 
+		nodeConfiguration.setMasterUri(masterUri);
+		
+		List<String> params = Arrays.asList("/general.yaml", "/plan_manager.yaml");
+		List<ParameterLoaderNode.Resource> resourceList = new ArrayList<ParameterLoaderNode.Resource>();
+		for(String p : params) {
+			String file = Tools.removeQuotes(p.toString());
+			resourceList.add(new ParameterLoaderNode.Resource(AbstractROSAgArch.class.getResourceAsStream(file), ""));
+		}
+		nodeConfigurationParams = NodeConfiguration.copyOf(nodeConfiguration);
+		nodeConfigurationParams.setDefaultNodeName(getAgName()+"_parameter_loader");
+		parameterLoaderNode = new ParameterLoaderNode(resourceList);
+		nodeMainExecutor.execute(parameterLoaderNode, nodeConfigurationParams);
+		
+		nodeConfiguration.setDefaultNodeName(getAgName());
+		initRosNode();
+		nodeMainExecutor.execute(rosnode, nodeConfiguration);
+		while(rosnode.getConnectedNode() == null) {
+			Tools.sleep(100);
+		}
+		rosnode.init();
+
+		try {
+			setActionFactoryRosVariables();
+		} catch (Exception e) {
+			Tools.getStackTrace(e);
+		}
+	} 
+	
+	public abstract void initRosNode();
 	
 	public void setActionFactory(AbstractActionFactory actionF) {
 		actionFactory = actionF;
@@ -69,7 +117,7 @@ public abstract class AbstractROSAgArch extends AgArch {
 	
 	public void setActionFactoryRosVariables() throws Exception  {
 		if(actionFactory != null && rosnode != null)
-			actionFactory.setRosVariables();
+			actionFactory.setRosVariables(rosnode);
 		else
 			throw new Exception("action factory or rosnode null");
 	}
@@ -103,33 +151,21 @@ public abstract class AbstractROSAgArch extends AgArch {
 		executor.execute(new AgRunnable(action));
 	}
 	
-
 	@Override
 	public void stop() {
 		executor.shutdownNow();
 		super.stop();
 	}
-
-
-	@Override
-	public void init() {
-//		setupMindInspector("gui(cycle,html,history)");    
-//		setupMindInspector("file(cycle,xml,log)");
-		
-	} 
 	
-	
-	public static AbstractRosNode getRosnode() {
+	public AbstractRosNode getRosnode() {
 		return rosnode;
-	}
-
-	public static void setRosnode(AbstractRosNode rosnode) {
-		AbstractROSAgArch.rosnode = rosnode;
 	}
 
 	public ConnectedNode getConnectedNode() {
 		return rosnode.getConnectedNode();
 	}
+	
+	public abstract void initListeners();
 	
 	public <T> void setSubListener(String subName, MessageListener<T> listener) {
 		rosnode.setSubListener(subName, listener);
@@ -267,30 +303,6 @@ public abstract class AbstractROSAgArch extends AgArch {
 		return getMessageFactory().newFromType(type);
 	}
 
-	public void setNodeConfiguration(NodeConfiguration nodeConfiguration) {
-		this.nodeConfiguration = nodeConfiguration;
-	}
-
-
-	public NodeConfiguration getNodeConfiguration() {
-		return nodeConfiguration;
-	}
-
-
-	public ParameterLoaderNode getParameterLoaderNode() {
-		return parameterLoaderNode;
-	}
-
-
-	public void setParameterLoaderNode(ParameterLoaderNode parameterLoaderNode) {
-		this.parameterLoaderNode = parameterLoaderNode;
-	}
-
-
-	public NodeMainExecutor getNodeMainExecutor() {
-		return nodeMainExecutor;
-	}
-	
 	public MessageFactory getMessageFactory() {
 		return messageFactory;
 	}

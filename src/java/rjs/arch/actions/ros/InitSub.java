@@ -29,7 +29,7 @@ public class InitSub extends AbstractAction {
 				actionExec.setFailureReason(new Atom("topic_not_connected"), "Some topics are not connected");
 			}
 		}
-
+		rosAgArch.initListeners();
 	}
 
 }

@@ -13,8 +13,8 @@ public abstract class AbstractActionFactory implements ActionFactory {
 	protected Logger logger = Logger.getLogger(this.getClass().getName());
 	protected AbstractRosNode rosnode;
 
-	public void setRosVariables() {
-		rosnode = AbstractROSAgArch.getRosnode();
+	public void setRosVariables(AbstractRosNode rosnode) {
+		this.rosnode = rosnode;
 	}
 	
 	protected Publisher<std_msgs.String> createPublisher(String topic) {

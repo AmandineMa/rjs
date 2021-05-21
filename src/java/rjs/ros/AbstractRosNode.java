@@ -273,4 +273,8 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 	
 	protected abstract void setTopicsMap();
 	
+	public HashMap<String, HashMap<String, String>> getTopicsMap() {
+		return topicsMap;
+	}
+	
 }

@@ -2,6 +2,7 @@ package rjs.utils;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -139,5 +140,16 @@ public class Tools {
 		int sec = (int) (ms / 1000);
 		return new Time(sec,nsec);
 	}
+	
+	public static Object getStaticValue(String className, String fieldName) {
+        try {
+            Class<?> clazz = Class.forName(className);
+            Field field = clazz.getDeclaredField(fieldName.toUpperCase());
+            return field.get(null);
+        } catch(Exception ex) {
+            ex.printStackTrace();
+        }
+        return null;
+    }
 
 }

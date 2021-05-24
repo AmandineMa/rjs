@@ -102,17 +102,17 @@ public abstract class AbstractROSAgArch extends AgArch {
 		}
 		rosnode.init();
 
-		try {
-			setActionFactoryRosVariables();
-		} catch (Exception e) {
-			Tools.getStackTrace(e);
-		}
 	} 
 	
 	public abstract void initRosNode();
 	
 	public void setActionFactory(AbstractActionFactory actionF) {
 		actionFactory = actionF;
+		try {
+			setActionFactoryRosVariables();
+		} catch (Exception e) {
+			Tools.getStackTrace(e);
+		}
 	}
 	
 	public void setActionFactoryRosVariables() throws Exception  {
@@ -231,6 +231,10 @@ public abstract class AbstractROSAgArch extends AgArch {
 	
 	public Literal findBel(String s) {
 		return getTS().getAg().findBel(Literal.parseLiteral(s), new Unifier());
+	}
+	
+	public Literal findBel(Literal l) {
+		return getTS().getAg().findBel(l, new Unifier());
 	}
 	
 	public Iterator<Literal> get_beliefs_iterator(String belief_name){

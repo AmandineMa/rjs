@@ -61,6 +61,10 @@ public class RjsActionClient<T_ACTION_GOAL extends Message, T_ACTION_FEEDBACK ex
 		return null;
 	}
 	
+	public void sendCancel(GoalID goalID) {
+		actionClient.sendCancel(goalID);
+	}
+	
 	public void addListener(ActionClientListener<T_ACTION_FEEDBACK, T_ACTION_RESULT> actionListener) {
 		actionClient.addListener(actionListener);
 	}

@@ -10,6 +10,7 @@ import com.github.rosjava_actionlib.ActionClientListener;
 
 import actionlib_msgs.GoalID;
 import actionlib_msgs.GoalStatus;
+import actionlib_msgs.GoalStatusArray;
 import jason.asSemantics.ActionExec;
 import jason.asSyntax.Literal;
 import rjs.arch.actions.ros.RjsActionClient;
@@ -35,7 +36,6 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 		}else {
 			setJasonActionResult(false);
 		}
-
 	}
 	
 	public abstract T_ACTION_GOAL computeGoal();
@@ -45,6 +45,10 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 		addGoalStatusInBB();
 	}
 
+	public void cancelActiveGoal() {
+		rjsActionClient.sendCancel(goalID);
+		removeGoalStatusInBB();
+	}
 
 	@Override
 	public void resultReceived(T_ACTION_RESULT result) {
@@ -79,6 +83,15 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 		
 	}
 	
+	@Override
+	public void statusReceived(GoalStatusArray arg0) {
+		String bel = "cancel("+actionName+")";
+		if(rosAgArch.findBel(bel) != null) {
+			cancelActiveGoal();
+			rosAgArch.removeBelief(bel);
+		}
+	}
+
 	public T_ACTION_GOAL newGoalMessage() {
 		return rjsActionClient.newGoalMessage();
 	}

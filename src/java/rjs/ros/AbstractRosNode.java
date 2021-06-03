@@ -88,13 +88,16 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		setTopicsMap();
 		createPublishers();
 	}
-
+	
 	@SuppressWarnings("unchecked")
-	public <T> void callAsyncService(String serviceName, ServiceResponseListener<T> srl, Message params) {
-			serviceClients.get(serviceName).call(params, (ServiceResponseListener<Message>) srl);
+	public <T> void callAsyncService(Object service, ServiceResponseListener<T> srl, Message params) {
+		if(service instanceof String)
+			serviceClients.get(service).call(params, (ServiceResponseListener<Message>) srl);
+		else if(service instanceof ServiceClient<?,?>)
+			((ServiceClient<Message, Message>) service).call(params, (ServiceResponseListener<Message>) srl);
 	}
-
-	public <T> T callSyncService(String service, Message params) {
+	
+	public <T> T callSyncService(Object service, Message params) {
 		CompletableFuture<T> future = new CompletableFuture<T>();
 
 		ServiceResponseListener<T> srl = new ServiceResponseListener<T>() {
@@ -123,7 +126,6 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		return response;
 	}
 
-	
 	public HashMap<String, Boolean> initServiceClients() {
 		HashMap<String, Boolean> serviceStatus = new HashMap<String, Boolean>();
 		if(servicesMap != null) {

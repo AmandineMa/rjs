@@ -67,6 +67,18 @@ public class Tools {
 		return list;
 	}
 	
+	public static ListTerm listOfListToListTerm(List<List<String>> array) {
+		ListTerm listTerm = new ListTermImpl();
+		for(List<String> list : array) {
+			ListTerm intermediateListTerm = new ListTermImpl();
+			for(String str : list) {
+				intermediateListTerm.add(new StringTermImpl(str));
+			}
+			listTerm.add(intermediateListTerm);
+		}
+		return listTerm;
+	}
+	
 	public static SetTerm arrayToSetTerm(List<String> array) {
 		SetTerm list = new SetTermImpl();
 		for(String str : array) {

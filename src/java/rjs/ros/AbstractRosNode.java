@@ -16,6 +16,7 @@ import org.ros.master.client.MasterStateClient;
 import org.ros.master.client.TopicSystemState;
 import org.ros.message.MessageFactory;
 import org.ros.message.MessageListener;
+import org.ros.message.Time;
 import org.ros.node.AbstractNodeMain;
 import org.ros.node.ConnectedNode;
 import org.ros.node.NodeConfiguration;
@@ -227,6 +228,7 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		Header header = connectedNode.getTopicMessageFactory().newFromType(std_msgs.Header._TYPE);
 		header.setFrameId(frame);
 		point.setHeader(header);
+		header.setStamp(Time.fromMillis(0));
 		return point;
 	}
 	
@@ -239,7 +241,7 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		point.setY(((NumberTermImpl) point_term.get(1)).solve());
 		point.setZ(((NumberTermImpl) point_term.get(2)).solve());
 		point_stamped.setPoint(point);
-
+		
 		return point_stamped;
 	}
 

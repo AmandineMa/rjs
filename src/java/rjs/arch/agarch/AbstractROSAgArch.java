@@ -37,6 +37,7 @@ import jason.asSyntax.Atom;
 import jason.asSyntax.Literal;
 import jason.asSyntax.NumberTermImpl;
 import jason.bb.BeliefBase;
+import rjs.agent.TimeBB;
 import rjs.arch.actions.AbstractActionFactory;
 import rjs.arch.actions.Action;
 import rjs.ros.AbstractRosNode;
@@ -100,8 +101,10 @@ public abstract class AbstractROSAgArch extends AgArch {
 		while(rosnode.getConnectedNode() == null) {
 			Tools.sleep(100);
 		}
+		
+		((TimeBB) getTS().getAg().getBB()).setAgArch(this);
 		rosnode.init();
-
+		
 	} 
 	
 	public abstract void initRosNode();

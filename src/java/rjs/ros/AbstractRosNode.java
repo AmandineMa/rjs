@@ -64,7 +64,6 @@ public abstract class AbstractRosNode extends AbstractNodeMain {
 		nodeConfiguration = NodeConfiguration.newPrivate();
 		messageFactory = nodeConfiguration.getTopicMessageFactory();
 		this.name = name;
-		logger.info("ROSNODE WITH NAME "+name);
 	}
 
 	@Override

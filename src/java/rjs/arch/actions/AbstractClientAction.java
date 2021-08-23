@@ -34,6 +34,7 @@ public abstract class AbstractClientAction<T_ACTION_GOAL extends Message, T_ACTI
 		if(serverStarted) {
 			sendGoal(computeGoal());
 		}else {
+			actionExec.setFailureReason(Literal.parseLiteral("no_action_server("+actionName+")"), "no action server is connected for "+actionName);
 			setJasonActionResult(false);
 		}
 	}

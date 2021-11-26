@@ -13,7 +13,6 @@
          default="run">
 
     <property environment="env"/>
-    <property name="mas2j.project.file" value="test.mas2j"/>
     <property name="debug" value=""/> <!-- use "-d" to run in debug mode -->
     <property name="build.dir" value="${basedir}/bin/classes" />
 
@@ -53,7 +52,6 @@
         <mkdir dir="${basedir}/lib" />
         <delete file="${ant.project.name}.jar" />
         <copy file="${jasonJar}" tofile="${ant.project.name}.jar" />
-        <copy file="${mas2j.project.file}" tofile="default.mas2j" />
         <jar update="yes" jarfile="${ant.project.name}.jar" >
             <fileset dir="${basedir}">
                 <include name="**/*.asl" />
@@ -77,7 +75,6 @@
         <java classname="jason.infra.centralised.CreateJNLP"
               failonerror="true" fork="yes" dir="${basedir}/${ant.project.name}-jws" >
             <classpath refid="project.classpath"/>
-            <arg line="${ant.project.name} ${mas2j.project.file}"/>
         </java>
         <copy todir="${basedir}/${ant.project.name}-jws" failonerror="no">
             <fileset dir="${basedir}/lib" includes="**/*.jar" />
@@ -99,7 +96,6 @@
         <java classname="jason.infra.centralised.RunCentralisedMAS"
               failonerror="true" fork="yes" dir="${basedir}" >
             <classpath refid="project.classpath"/>
-            <arg line="${mas2j.project.file} ${debug} "/>
             <!-- jvmarg line="-Xmx500M -Xss8M"/ -->
         </java>
         <antcall target="user-end" />

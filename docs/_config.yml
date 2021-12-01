@@ -9,7 +9,7 @@ baseurl: "/docs" # the subpath of your site, e.g. /blog
 url: "https://amdia.github.io/rjs/" # the base hostname & protocol for your site, e.g. http://example.com
 remote_theme: pmarsceill/just-the-docs
 
-permalink: /apidocs/, /img/
+permalink: /apidocs/
 exclude: ["node_modules/", "*.gemspec", "*.gem", "Gemfile", "Gemfile.lock", "package.json", "package-lock.json",  "script/", "LICENSE.txt", "lib/", "bin/", "README.md", "Rakefile"
 , "docs/tests/"
 ]

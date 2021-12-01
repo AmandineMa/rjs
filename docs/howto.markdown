@@ -1,7 +1,6 @@
 ---
 layout: default
 title: How to install and configure RJS
-permalink: /howto/
 nav_order: 2
 ---
 

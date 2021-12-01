@@ -1,8 +1,7 @@
 ---
 layout: default
 title: Create a new project using RJS
-permalink: /create/
-nav_order: 2
+nav_order: 3
 ---
 
 # Create a new project using RJS and Eclipse
@@ -22,7 +21,7 @@ Then, two possibilities:
 <div class="code-example" markdown="1">
 **Prerequisites**
 
-Having RJS added as project in Eclipse → see [ the "how to"](/howto/)
+Having RJS added as project in Eclipse → see [ the "how to"](howto.markdown)
 </div>
 
 **Right click on the project > Build Path > Configure Build Path** and then go on the **Project tab > Add > rjs**

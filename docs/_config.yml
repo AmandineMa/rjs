@@ -5,7 +5,7 @@
 # in the templates via {{ site.myvariable }}.
 title: RosJasonSoftware
 description:  Documentation of the RosJasonSoftware (RJS), a bridge between ROS and Jason.
-baseurl: "" # the subpath of your site, e.g. /blog
+baseurl: "/docs" # the subpath of your site, e.g. /blog
 url: "https://amdia.github.io/rjs/" # the base hostname & protocol for your site, e.g. http://example.com
 remote_theme: pmarsceill/just-the-docs
 

@@ -12,7 +12,7 @@ There is an existing software, [jason_ros](https://github.com/jason-lang/jason_r
 
 ## Usage
 
-[View the documentation](https://amdia.github.io/rjs/) for usage information.
+[View the documentation](https://amandinema.github.io/rjs/) for usage information.
 
 
 

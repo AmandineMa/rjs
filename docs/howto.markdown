@@ -8,12 +8,12 @@ nav_order: 2
 # How to install and configure RJS?
 
 ## For RJS users
-Download the [RJS package](https://github.com/amdia/rjs/blob/master/rjs.jar) to add it to the library of their project using ROS with Jason.
+Download the [RJS package](https://github.com/AmandineMa/rjs/blob/master/rjs.jar) to add it to the library of their project using ROS with Jason.
 
 ## For RJS developers
 ### Download and configuration
 
-	git clone git@github.com:amdia/rjs.git
+	git clone git@github.com:AmandineMa/rjs.git
 	export RJS_HOME=<YOUR_PATH>/rjs/
 	cd rjs
 	./gradlew eclipse <1>
@@ -35,7 +35,7 @@ The .jar is compiled based on the configuration given in the file build.xml.
 
 ### To bring modifications to Jason or to use Eclipse debug mode (to be able to have breakpoints in Jason classes)
 
-	git clone -b perso-dev2.6 git@github.com:amdia/jason.git
+	git clone -b perso-dev2.6 git@github.com:AmandineMa/jason.git
 	cd jason
 	./gradlew config // <1> <2>
 	./gradlew eclipse // <3>

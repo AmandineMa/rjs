@@ -20,7 +20,7 @@
 title: RosJasonSoftware
 description:  Documentation of the RosJasonSoftware (RJS), a bridge between ROS and Jason.
 baseurl: "/rjs" # the subpath of your site, e.g. /blog
-url: "https://amdia.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://AmandineMa.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 
 # Build settings
 remote_theme: pmarsceill/just-the-docs
@@ -30,7 +30,7 @@ plugins:
 # Aux links for the upper right navigation
 aux_links:
   "RJS on GitHub":
-    - "//github.com/amdia/rjs"
+    - "//github.com/AmandineMa/rjs"
 
 # Exclude from processing.
 # The following items will not be processed, by default.
